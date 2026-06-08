@@ -36,3 +36,6 @@ logs/
 # Agent run artifacts
 .agents/
 .pytest_cache/
+
+# Supabase CLI local state
+supabase/.temp/
