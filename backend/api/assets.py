@@ -1,0 +1,105 @@
+from fastapi import APIRouter, Depends, HTTPException
+from supabase import Client
+from backend.api.auth import get_current_user, get_db
+from backend.api.deps import require_role
+from backend.core.audit import log_action
+from backend.core.target_validation import validate_scan_target, TargetValidationError
+from backend.models.schemas import AssetCreate, AssetUpdate
+
+router = APIRouter(prefix="/assets", tags=["assets"])
+
+
+@router.get("")
+async def list_assets(user=Depends(get_current_user), db: Client = Depends(get_db)):
+    result = db.table("assets").select("*").eq("org_id", user["org_id"]).execute()
+    return result.data
+
+
+@router.get("/{asset_id}")
+async def get_asset(asset_id: str, user=Depends(get_current_user), db: Client = Depends(get_db)):
+    asset = _assert_asset_owned(db, asset_id, user["org_id"])
+    result = db.table("assets").select("*").eq("id", asset_id).eq("org_id", user["org_id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return result.data[0]
+
+
+@router.post("", status_code=201)
+async def create_asset(
+    body: AssetCreate,
+    user=Depends(require_role("analyst")),
+    db: Client = Depends(get_db),
+):
+    try:
+        validate_scan_target(body.host, body.is_internal)
+    except TargetValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    result = db.table("assets").insert(
+        {**body.model_dump(), "org_id": user["org_id"]}
+    ).execute()
+    asset = result.data[0]
+    log_action(
+        user["org_id"], user["id"], "asset.created",
+        entity_type="asset", entity_id=asset["id"],
+        metadata={
+            "name": asset.get("name"),
+            "host": asset.get("host"),
+            "type": asset.get("type"),
+            "is_internal": asset.get("is_internal"),
+        },
+    )
+    return asset
+
+
+@router.patch("/{asset_id}")
+async def update_asset(
+    asset_id: str,
+    body: AssetUpdate,
+    user=Depends(require_role("analyst")),
+    db: Client = Depends(get_db),
+):
+    asset = _assert_asset_owned(db, asset_id, user["org_id"])
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    if "host" in updates:
+        try:
+            validate_scan_target(
+                updates["host"],
+                updates.get("is_internal", asset.get("is_internal", False)),
+            )
+        except TargetValidationError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    result = db.table("assets").update(updates).eq("id", asset_id).execute()
+    updated_asset = result.data[0]
+    log_action(
+        user["org_id"], user["id"], "asset.updated",
+        entity_type="asset", entity_id=asset_id,
+        metadata={
+            "changed_fields": sorted(updates.keys()),
+            "name": updated_asset.get("name"),
+            "host": updated_asset.get("host"),
+        },
+    )
+    return updated_asset
+
+
+@router.delete("/{asset_id}", status_code=204)
+async def delete_asset(
+    asset_id: str,
+    user=Depends(require_role("admin")),
+    db: Client = Depends(get_db),
+):
+    asset = _assert_asset_owned(db, asset_id, user["org_id"])
+    db.table("assets").delete().eq("id", asset_id).execute()
+    log_action(
+        user["org_id"], user["id"], "asset.deleted",
+        entity_type="asset", entity_id=asset_id,
+        metadata={"name": asset.get("name"), "host": asset.get("host")},
+    )
+
+
+def _assert_asset_owned(db: Client, asset_id: str, org_id: str) -> dict:
+    r = db.table("assets").select("id, name, host, is_internal").eq("id", asset_id).eq("org_id", org_id).execute()
+    if not r.data:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return r.data[0]
