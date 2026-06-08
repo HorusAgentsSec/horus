@@ -1,3 +1,5 @@
+name: horus
+
 services:
   backend:
     build:
