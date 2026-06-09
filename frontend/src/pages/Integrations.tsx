@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Bell, Slack, Mail, Plus, Trash2, Send, X, FileText } from 'lucide-react'
+import { Bell, Slack, Mail, Plus, Trash2, Send, X, FileText, AlertTriangle } from 'lucide-react'
 import { api, friendlyErrorMessage } from '../lib/api'
 import { useRole } from '../hooks/useRole'
 import { cn } from '../lib/utils'
 
-type IntegrationType = 'slack' | 'email'
+type IntegrationType = 'slack' | 'email' | 'pagerduty' | 'opsgenie'
 
 interface Integration {
   id: string
@@ -102,15 +102,21 @@ export default function Integrations() {
               <div className="flex items-center gap-3 min-w-0">
                 {it.type === 'slack' ? (
                   <Slack className="w-5 h-5 text-accent shrink-0" />
-                ) : (
+                ) : it.type === 'email' ? (
                   <Mail className="w-5 h-5 text-accent shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-5 h-5 text-accent shrink-0" />
                 )}
                 <div className="min-w-0">
-                  <p className="text-white capitalize">{it.type}</p>
+                  <p className="text-white capitalize">{it.type === 'pagerduty' ? 'PagerDuty' : it.type === 'opsgenie' ? 'OpsGenie' : it.type}</p>
                   <p className="text-xs text-muted truncate">
                     {it.type === 'slack'
                       ? it.config.webhook_url || 'webhook'
-                      : (it.config.to || []).join(', ') || 'no recipients'}
+                      : it.type === 'email'
+                      ? (it.config.to || []).join(', ') || 'no recipients'
+                      : it.type === 'pagerduty'
+                      ? 'Events API v2 · SSVC-Act triggers P1'
+                      : 'Alerts API · SSVC-Act triggers P1'}
                     {it.config.min_severity && ` · ≥ ${it.config.min_severity}`}
                   </p>
                   {status?.id === it.id && (
@@ -173,23 +179,33 @@ function AddForm({ onCreated }: { onCreated: () => void }) {
   const [to, setTo] = useState('')
   const [smtp, setSmtp] = useState({ smtp_host: '', smtp_port: '', smtp_user: '', smtp_password: '', from_addr: '' })
   const [boardReport, setBoardReport] = useState(false)
+  const [pdKey, setPdKey] = useState('')
+  const [ogKey, setOgKey] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   const submit = async () => {
     setError('')
-    const config: Record<string, any> = { min_severity: minSeverity }
+    const config: Record<string, any> = {}
     if (type === 'slack') {
       if (!webhookUrl.trim()) return setError('Webhook URL is required')
       config.webhook_url = webhookUrl.trim()
-    } else {
+      config.min_severity = minSeverity
+    } else if (type === 'email') {
       const recipients = to.split(',').map((s) => s.trim()).filter(Boolean)
       if (!recipients.length) return setError('At least one recipient is required')
       config.to = recipients
+      config.min_severity = minSeverity
       for (const [k, v] of Object.entries(smtp)) {
         if (v.trim()) config[k] = k === 'smtp_port' ? Number(v) : v.trim()
       }
       if (boardReport) config.posture_report = true
+    } else if (type === 'pagerduty') {
+      if (!pdKey.trim()) return setError('Integration key is required')
+      config.integration_key = pdKey.trim()
+    } else if (type === 'opsgenie') {
+      if (!ogKey.trim()) return setError('API key is required')
+      config.api_key = ogKey.trim()
     }
     setSaving(true)
     try {
@@ -202,20 +218,29 @@ function AddForm({ onCreated }: { onCreated: () => void }) {
     }
   }
 
+  const TYPE_TABS: { value: IntegrationType; label: string; icon: React.ReactNode }[] = [
+    { value: 'slack', label: 'Slack', icon: <Slack className="w-4 h-4" /> },
+    { value: 'email', label: 'Email', icon: <Mail className="w-4 h-4" /> },
+    { value: 'pagerduty', label: 'PagerDuty', icon: <AlertTriangle className="w-4 h-4" /> },
+    { value: 'opsgenie', label: 'OpsGenie', icon: <AlertTriangle className="w-4 h-4" /> },
+  ]
+
+  const showSeveritySelector = type === 'slack' || type === 'email'
+
   return (
     <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
-      <div className="flex gap-2">
-        {(['slack', 'email'] as const).map((t) => (
+      <div className="flex flex-wrap gap-2">
+        {TYPE_TABS.map(({ value, label, icon }) => (
           <button
-            key={t}
-            onClick={() => setType(t)}
+            key={value}
+            onClick={() => setType(value)}
             className={cn(
-              'flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md capitalize transition-colors',
-              type === t ? 'bg-accent/10 text-accent' : 'text-muted hover:text-white',
+              'flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md transition-colors',
+              type === value ? 'bg-accent/10 text-accent' : 'text-muted hover:text-white',
             )}
           >
-            {t === 'slack' ? <Slack className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
-            {t}
+            {icon}
+            {label}
           </button>
         ))}
       </div>
@@ -230,7 +255,7 @@ function AddForm({ onCreated }: { onCreated: () => void }) {
             placeholder="https://hooks.slack.com/services/…"
           />
         </div>
-      ) : (
+      ) : type === 'email' ? (
         <div className="space-y-3">
           <div>
             <label className={label}>Recipients (comma-separated)</label>
@@ -266,25 +291,67 @@ function AddForm({ onCreated }: { onCreated: () => void }) {
             </span>
           </label>
         </div>
+      ) : type === 'pagerduty' ? (
+        <div className="space-y-3">
+          <div>
+            <label className={label}>Integration Key</label>
+            <input
+              className={input}
+              type="password"
+              value={pdKey}
+              onChange={(e) => setPdKey(e.target.value)}
+              placeholder="Events API v2 integration key from your PagerDuty service"
+            />
+          </div>
+          <p className="text-xs text-muted">Triggers P1 incidents for SSVC &lsquo;Act&rsquo; findings</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div>
+            <label className={label}>API Key</label>
+            <input
+              className={input}
+              type="password"
+              value={ogKey}
+              onChange={(e) => setOgKey(e.target.value)}
+              placeholder="OpsGenie API key with Create/Update access"
+            />
+          </div>
+          <p className="text-xs text-muted">Creates P1 alerts for SSVC &lsquo;Act&rsquo; findings</p>
+        </div>
       )}
 
-      <div className="flex items-center gap-3">
-        <div className="flex-1">
-          <label className={label}>Notify when severity is at least</label>
-          <select className={input} value={minSeverity} onChange={(e) => setMinSeverity(e.target.value)}>
-            {SEVERITIES.map((s) => (
-              <option key={s} value={s} className="capitalize">{s}</option>
-            ))}
-          </select>
+      {showSeveritySelector && (
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <label className={label}>Notify when severity is at least</label>
+            <select className={input} value={minSeverity} onChange={(e) => setMinSeverity(e.target.value)}>
+              {SEVERITIES.map((s) => (
+                <option key={s} value={s} className="capitalize">{s}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={submit}
+            disabled={saving}
+            className="self-end bg-accent text-bg font-medium text-sm px-4 py-1.5 rounded-md hover:bg-accent/90 disabled:opacity-50 transition-colors"
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
         </div>
-        <button
-          onClick={submit}
-          disabled={saving}
-          className="self-end bg-accent text-bg font-medium text-sm px-4 py-1.5 rounded-md hover:bg-accent/90 disabled:opacity-50 transition-colors"
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-      </div>
+      )}
+
+      {!showSeveritySelector && (
+        <div className="flex justify-end">
+          <button
+            onClick={submit}
+            disabled={saving}
+            className="bg-accent text-bg font-medium text-sm px-4 py-1.5 rounded-md hover:bg-accent/90 disabled:opacity-50 transition-colors"
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      )}
 
       {error && <p className="text-xs text-severity-high">{error}</p>}
     </div>

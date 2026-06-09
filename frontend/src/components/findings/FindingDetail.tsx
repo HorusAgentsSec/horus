@@ -1,4 +1,4 @@
-import { Swords } from 'lucide-react'
+import { AlertTriangle, Swords } from 'lucide-react'
 import { SeverityBadge } from './SeverityBadge'
 import { PriorityBadge } from './PriorityBadge'
 import { VerdictBadge } from './VerdictBadge'
@@ -41,6 +41,8 @@ interface Finding {
       automatable?: boolean
       technical_impact?: string
     } | null
+    epss_score?: number | null
+    remediation?: string | null
   }
   first_seen_at: string
   last_seen_at: string
@@ -52,9 +54,10 @@ interface Props {
   suggestions: Suggestion[]
   onApprove: (id: string) => void
   onReject: (id: string) => void
+  onStatusChange?: (newStatus: string) => void
 }
 
-export function FindingDetailView({ finding, suggestions, onApprove, onReject }: Props) {
+export function FindingDetailView({ finding, suggestions, onApprove, onReject, onStatusChange }: Props) {
   return (
     <div className="space-y-6">
       <div className="bg-surface border border-border rounded-lg p-6">
@@ -65,15 +68,41 @@ export function FindingDetailView({ finding, suggestions, onApprove, onReject }:
               {finding.assets?.name} ({finding.assets?.host})
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+            {finding.raw_data.exploitability === 'active' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-severity-critical/20 text-severity-critical border border-severity-critical/40">
+                <AlertTriangle className="w-3 h-3" />
+                KEV Active
+              </span>
+            )}
             <VerdictBadge verdict={finding.raw_data.verdict} />
             <PriorityBadge priority={finding.raw_data.ssvc?.priority} />
             <SeverityBadge severity={finding.severity} />
           </div>
         </div>
 
+        {onStatusChange && (
+          <div className="mt-3">
+            <select
+              value={finding.status}
+              onChange={(e) => onStatusChange(e.target.value)}
+              className="bg-bg border border-border text-xs text-white rounded px-2 py-1 focus:outline-none focus:border-accent"
+            >
+              <option value="open">Open</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+              <option value="false_positive">False Positive</option>
+              <option value="accepted_risk">Accepted Risk</option>
+            </select>
+          </div>
+        )}
+
         {finding.cvss_score && (
           <p className="text-xs text-muted mt-3">CVSS {finding.cvss_score}</p>
+        )}
+
+        {typeof finding.raw_data.epss_score === 'number' && (
+          <p className="text-xs text-muted mt-1">EPSS {(finding.raw_data.epss_score * 100).toFixed(1)}%</p>
         )}
 
         {finding.cve_ids.length > 0 && (
@@ -167,6 +196,15 @@ export function FindingDetailView({ finding, suggestions, onApprove, onReject }:
           </div>
         )}
       </div>
+
+      {finding.raw_data.remediation && (
+        <div>
+          <h2 className="text-sm font-medium text-muted uppercase mb-3">Remediation</h2>
+          <div className="bg-surface border border-border rounded-lg p-4">
+            <p className="text-sm text-white/80 leading-relaxed whitespace-pre-line">{finding.raw_data.remediation}</p>
+          </div>
+        </div>
+      )}
 
       {suggestions.length > 0 && (
         <div>

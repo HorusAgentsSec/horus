@@ -7,6 +7,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
 } from 'recharts'
 import { ShieldCheck, TrendingDown, TrendingUp, Minus, FileDown, Loader2, Mail } from 'lucide-react'
 import { api, friendlyErrorMessage } from '../lib/api'
@@ -24,10 +25,25 @@ interface Point {
   info: number
 }
 
+interface PostureEvent {
+  event_date: string
+  event_type: string
+  description: string
+}
+
 interface Timeline {
   timeline: Point[]
   current: Point | null
   trend_delta: number
+  events?: PostureEvent[]
+}
+
+interface NormalizedMetrics {
+  pct_critical_closed_in_7d: number
+  open_findings_per_asset: number
+  total_critical: number
+  closed_critical: number
+  fast_closed_critical: number
 }
 
 // Stacked from most to least severe (info is noise → omitted from the chart).
@@ -50,6 +66,7 @@ export function PostureTimeline({ days = 90 }: { days?: number }) {
   const [exportError, setExportError] = useState<string | null>(null)
   const [emailing, setEmailing] = useState(false)
   const [emailStatus, setEmailStatus] = useState<{ msg: string; ok: boolean } | null>(null)
+  const [normalized, setNormalized] = useState<NormalizedMetrics | null>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -59,6 +76,13 @@ export function PostureTimeline({ days = 90 }: { days?: number }) {
       .catch(() => setData(null))
       .finally(() => setLoading(false))
   }, [days])
+
+  useEffect(() => {
+    api
+      .get<NormalizedMetrics>('/posture/normalized')
+      .then(setNormalized)
+      .catch(() => setNormalized(null))
+  }, [])
 
   const hasHistory = !!data && data.timeline.length > 0
 
@@ -212,6 +236,15 @@ export function PostureTimeline({ days = 90 }: { days?: number }) {
                     fill={`url(#grad-${b.key})`}
                   />
                 ))}
+                {(data.events ?? []).map((e, i) => (
+                  <ReferenceLine
+                    key={i}
+                    x={e.event_date}
+                    stroke="#666"
+                    strokeDasharray="3 3"
+                    label={{ value: '●', position: 'top', fontSize: 10, fill: '#888' }}
+                  />
+                ))}
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -225,7 +258,60 @@ export function PostureTimeline({ days = 90 }: { days?: number }) {
               )}
             </div>
           )}
+          {data.events && data.events.length > 0 && (
+            <div className="mt-4 space-y-1">
+              <p className="text-xs text-muted uppercase font-medium mb-2">Timeline events</p>
+              {data.events.map((e, i) => (
+                <div key={i} className="flex gap-2 text-xs">
+                  <span className="text-muted">{fmtDate(e.event_date)}</span>
+                  <span className="text-white/70">{e.description}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </>
+      )}
+      {normalized && (
+        <div className="mt-6 border-t border-white/10 pt-4">
+          <div className="flex items-start justify-between mb-2">
+            <p className="text-xs text-muted uppercase font-medium">Normalized metrics</p>
+            <p className="text-[10px] text-white/40 max-w-xs text-right">
+              These metrics improve as your team remediates — unlike the raw risk score which rises with more assets.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <div className="flex-1 glass rounded-md p-3">
+              <div className={cn(
+                'text-xl font-semibold leading-none',
+                normalized.pct_critical_closed_in_7d >= 80
+                  ? 'text-mode-auto'
+                  : normalized.pct_critical_closed_in_7d >= 50
+                  ? 'text-yellow-400'
+                  : 'text-severity-critical',
+              )}>
+                {normalized.pct_critical_closed_in_7d}%
+              </div>
+              <div className="text-[10px] text-white/50 mt-1 uppercase tracking-wide">
+                Critical findings closed ≤7d
+              </div>
+            </div>
+            <div className="flex-1 glass rounded-md p-3">
+              <div className={cn(
+                'text-xl font-semibold leading-none',
+                normalized.open_findings_per_asset < 2
+                  ? 'text-mode-auto'
+                  : normalized.open_findings_per_asset < 5
+                  ? 'text-yellow-400'
+                  : 'text-severity-critical',
+              )}>
+                {normalized.open_findings_per_asset}
+              </div>
+              <div className="text-[10px] text-white/50 mt-1 uppercase tracking-wide">
+                Open findings per asset
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

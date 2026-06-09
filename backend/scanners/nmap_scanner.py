@@ -36,6 +36,17 @@ INFORMATIONAL_SCRIPTS = {
     "fingerprint-strings",
 }
 
+# Scripts that report potential issues, not confirmed — kept as findings but flagged with
+# low confidence so the validation agent can handle them correctly.
+LOW_CONFIDENCE_SCRIPTS = {
+    "http-csrf",
+    "http-phpself-xss",
+    "http-stored-xss",
+    "http-reflected-xss",
+    "http-xssed",
+    "http-unsafe-output-escaping",
+}
+
 
 class NmapScanner(BaseScanner):
     def scan(
@@ -54,11 +65,13 @@ class NmapScanner(BaseScanner):
             *port_args,
             "-sV",          # version detection
             "--script", "vuln,default",
+            "--script-timeout", "30s",  # bound each NSE script (vulners etc. can hang on network I/O)
             "-oX", out_path,
-            "--host-timeout", "5m",
+            "--host-timeout", "3m",
             host,
         ]
 
+        process = None
         try:
             process = subprocess.Popen(
                 cmd,
@@ -69,21 +82,24 @@ class NmapScanner(BaseScanner):
             )
             if scan_id:
                 register_process(scan_id, process)
-            process.communicate(timeout=360)
+            process.communicate(timeout=240)
         except subprocess.TimeoutExpired:
-            if scan_id:
-                unregister_process(scan_id, process)
-            try:
-                os.killpg(process.pid, subprocess.signal.SIGKILL)
-            except Exception:
-                pass
             logger.warning(f"NmapScanner timed out on {host}")
+            if process is not None:
+                try:
+                    os.killpg(process.pid, subprocess.signal.SIGKILL)
+                except Exception:
+                    pass
+                try:
+                    process.communicate()  # drain pipes after kill
+                except Exception:
+                    pass
             return []
         except FileNotFoundError:
             logger.error("nmap binary not found — skipping Nmap scan")
             return []
         finally:
-            if scan_id and "process" in locals():
+            if scan_id and process is not None:
                 unregister_process(scan_id, process)
 
         findings = self._parse_xml(out_path, host)
@@ -131,6 +147,17 @@ class NmapScanner(BaseScanner):
                         continue
 
                     severity = _infer_severity(script_id, output)
+                    raw: dict = {
+                        "port": port_id,
+                        "service": service_name,
+                        "product": product,
+                        "version": version,
+                        "script_id": script_id,
+                        "output": output,
+                    }
+                    if script_id in LOW_CONFIDENCE_SCRIPTS:
+                        raw["confidence"] = 0.4
+                        raw["needs_verification"] = True
                     findings.append(
                         RawFinding(
                             tool="nmap",
@@ -138,14 +165,7 @@ class NmapScanner(BaseScanner):
                             name=f"{script_id} on {service_name}/{port_id}",
                             host=host,
                             severity=severity,
-                            raw={
-                                "port": port_id,
-                                "service": service_name,
-                                "product": product,
-                                "version": version,
-                                "script_id": script_id,
-                                "output": output,
-                            },
+                            raw=raw,
                         )
                     )
 

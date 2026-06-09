@@ -26,6 +26,7 @@ import AssetDetail from './pages/AssetDetail'
 import Adversarial from './pages/Adversarial'
 import AdversarialDetail from './pages/AdversarialDetail'
 import AuthPhishing from './pages/AuthPhishing'
+import CredentialExposure from './pages/CredentialExposure'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, mustChangePassword } = useAuth()
@@ -106,6 +107,7 @@ export default function App() {
           <Route path="adversarial" element={<Adversarial />} />
           <Route path="adversarial/:id" element={<AdversarialDetail />} />
           <Route path="auth-phishing" element={<AuthPhishing />} />
+          <Route path="credential-exposure" element={<CredentialExposure />} />
         </Route>
       </Routes>
     </BrowserRouter>

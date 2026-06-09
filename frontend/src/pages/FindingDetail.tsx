@@ -32,6 +32,12 @@ export default function FindingDetailPage() {
     load()
   }
 
+  const handleStatusChange = async (newStatus: string) => {
+    if (!id) return
+    await api.patch(`/findings/${id}`, { status: newStatus })
+    load()
+  }
+
   if (loading) return <p className="text-muted text-sm">Loading…</p>
   if (!finding) return <p className="text-muted text-sm">Finding not found.</p>
 
@@ -41,6 +47,7 @@ export default function FindingDetailPage() {
       suggestions={suggestions as Parameters<typeof FindingDetailView>[0]['suggestions']}
       onApprove={handleApprove}
       onReject={handleReject}
+      onStatusChange={handleStatusChange}
     />
   )
 }

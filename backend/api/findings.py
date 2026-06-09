@@ -1,7 +1,8 @@
 import logging
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from supabase import Client
 
 from backend.api.auth import get_current_user, get_db
@@ -12,12 +13,17 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/findings", tags=["findings"])
 
+SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"]
+
 
 @router.get("")
 async def list_findings(
     severity: Optional[str] = None,
     status: Optional[str] = None,
     asset_id: Optional[str] = None,
+    cve_id: Optional[str] = None,
+    tool: Optional[str] = None,
+    order_by: Optional[str] = None,
     page: int = 1,
     per_page: int = 50,
     user=Depends(get_current_user),
@@ -31,8 +37,18 @@ async def list_findings(
         query = query.eq("status", status)
     if asset_id:
         query = query.eq("asset_id", asset_id)
+    if cve_id:
+        query = query.contains("cve_ids", [cve_id])
+    if tool:
+        query = query.eq("raw_data->>tool", tool)
 
-    result = query.order("created_at", desc=True).range(offset, offset + per_page - 1).execute()
+    if order_by == "severity":
+        query = query.order("severity", desc=False).order("created_at", desc=True)
+    else:
+        # default and fallback (epss/ssvc are inside jsonb, order by created_at)
+        query = query.order("created_at", desc=True)
+
+    result = query.range(offset, offset + per_page - 1).execute()
     return result.data
 
 
@@ -91,6 +107,33 @@ async def list_suggestions(
         .execute()
     )
     return result.data
+
+
+class BulkAction(BaseModel):
+    ids: List[str]
+    action: str  # "mark_false_positive" | "accept_risk" | "mark_open" | "mark_resolved"
+
+
+@router.post("/bulk")
+async def bulk_update_findings(
+    body: BulkAction,
+    user=Depends(get_current_user),
+    db: Client = Depends(get_db),
+):
+    ACTION_TO_STATUS = {
+        "mark_false_positive": "false_positive",
+        "accept_risk": "accepted_risk",
+        "mark_open": "open",
+        "mark_resolved": "resolved",
+    }
+    if body.action not in ACTION_TO_STATUS:
+        raise HTTPException(400, f"unknown action: {body.action}")
+    if not body.ids:
+        raise HTTPException(400, "ids must not be empty")
+
+    new_status = ACTION_TO_STATUS[body.action]
+    db.table("findings").update({"status": new_status}).in_("id", body.ids).eq("org_id", user["org_id"]).execute()
+    return {"updated": len(body.ids)}
 
 
 def _assert_owned(db: Client, finding_id: str, org_id: str):

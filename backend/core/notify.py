@@ -1,5 +1,5 @@
 """
-Notification dispatch — Slack + email.
+Notification dispatch — Slack + email + PagerDuty + OpsGenie.
 
 Best-effort by design (like core.audit): a failing or misconfigured integration must
 NEVER break a scan. After a scan completes, `notify_scan_complete` builds a findings
@@ -9,6 +9,8 @@ Integration config (stored in the integrations.config jsonb, read with service-r
   Slack: {"webhook_url": "...", "min_severity": "high"}
   Email: {"to": ["a@b.com"], "min_severity": "high",
           optional SMTP overrides: smtp_host/smtp_port/smtp_user/smtp_password/from_addr/use_tls}
+  PagerDuty: {"integration_key": "..."}
+  OpsGenie: {"api_key": "..."}
 """
 
 import logging
@@ -137,11 +139,59 @@ def _email_body(summary: dict) -> tuple[str, str]:
     return subject, "\n".join(lines)
 
 
+def _pagerduty_trigger(
+    integration_key: str, summary: str, severity: str, source: str, details: dict
+) -> None:
+    payload = {
+        "routing_key": integration_key,
+        "event_action": "trigger",
+        "payload": {
+            "summary": summary,
+            "severity": severity,  # "critical" | "error" | "warning" | "info"
+            "source": source,
+            "custom_details": details,
+        },
+    }
+    resp = httpx.post("https://events.pagerduty.com/v2/enqueue", json=payload, timeout=_HTTP_TIMEOUT)
+    resp.raise_for_status()
+
+
+def _opsgenie_trigger(
+    api_key: str, message: str, description: str, priority: str, tags: list[str]
+) -> None:
+    headers = {"Authorization": f"GenieKey {api_key}", "Content-Type": "application/json"}
+    payload = {
+        "message": message,
+        "description": description,
+        "priority": priority,  # "P1" | "P2" | "P3" | "P4" | "P5"
+        "tags": tags,
+    }
+    resp = httpx.post(
+        "https://api.opsgenie.com/v2/alerts", json=payload, headers=headers, timeout=_HTTP_TIMEOUT
+    )
+    resp.raise_for_status()
+
+
+def _ssvc_pagerduty_severity(ssvc_priority: str) -> str:
+    """Map SSVC priority to PagerDuty severity string."""
+    return {"act": "critical", "attend": "error"}.get(ssvc_priority, "warning")
+
+
+def _ssvc_opsgenie_priority(ssvc_priority: str) -> str:
+    """Map SSVC priority to OpsGenie priority string."""
+    return {"act": "P1", "attend": "P2"}.get(ssvc_priority, "P3")
+
+
 # ── Orchestration ────────────────────────────────────────────────────────────
 
 def _dispatch(integration: dict, summary: dict) -> None:
     itype = integration["type"]
     config = integration.get("config") or {}
+
+    # PagerDuty and OpsGenie are SSVC-driven — dispatched separately in notify_scan_complete.
+    if itype in ("pagerduty", "opsgenie"):
+        return
+
     min_sev = config.get("min_severity") or settings.notify_default_min_severity
     if not _meets_threshold(summary["_findings"], min_sev):
         logger.info("notify: %s skipped (below %s threshold)", itype, min_sev)
@@ -156,6 +206,39 @@ def _dispatch(integration: dict, summary: dict) -> None:
         logger.warning("notify: unknown integration type %r", itype)
         return
     logger.info("notify: %s delivered for asset %s", itype, summary["asset"])
+
+
+def _dispatch_ssvc_act(integration: dict, asset_name: str, act_findings: list[dict]) -> None:
+    """Dispatch a PagerDuty/OpsGenie alert for SSVC 'act' findings. Best-effort caller."""
+    itype = integration["type"]
+    config = integration.get("config") or {}
+    n = len(act_findings)
+    message = f"Horus: {n} SSVC-ACT finding{'s' if n != 1 else ''} on {asset_name}"
+    details = {"count": n, "asset": asset_name}
+
+    if itype == "pagerduty":
+        integration_key = config.get("integration_key", "")
+        if not integration_key:
+            raise ValueError("pagerduty integration missing 'integration_key'")
+        _pagerduty_trigger(
+            integration_key=integration_key,
+            summary=message,
+            severity=_ssvc_pagerduty_severity("act"),
+            source="horus",
+            details=details,
+        )
+    elif itype == "opsgenie":
+        api_key = config.get("api_key", "")
+        if not api_key:
+            raise ValueError("opsgenie integration missing 'api_key'")
+        _opsgenie_trigger(
+            api_key=api_key,
+            message=message,
+            description=f"{n} SSVC-ACT finding{'s' if n != 1 else ''} detected on {asset_name} by Horus",
+            priority=_ssvc_opsgenie_priority("act"),
+            tags=["horus", "ssvc-act", asset_name],
+        )
+    logger.info("notify: %s ssvc-act delivered for asset %s", itype, asset_name)
 
 
 def _notify_in_app(org_id: str, scan_id: str, summary: dict) -> None:
@@ -227,6 +310,20 @@ def notify_scan_complete(scan_id: str, org_id: str) -> None:
             _dispatch(integration, summary)
         except Exception:
             logger.exception("notify: integration %s failed", integration.get("id"))
+
+    # PagerDuty / OpsGenie: fire only when there are SSVC "act" findings.
+    act_findings = [
+        f for f in findings
+        if ((f.get("raw_data") or {}).get("ssvc") or {}).get("priority") == "act"
+    ]
+    if act_findings:
+        for integration in integrations:
+            if integration["type"] not in ("pagerduty", "opsgenie"):
+                continue
+            try:
+                _dispatch_ssvc_act(integration, asset_name, act_findings)
+            except Exception:
+                logger.exception("notify: ssvc-act integration %s failed", integration.get("id"))
 
 
 # ── Watchtower alerts ─────────────────────────────────────────────────────────
@@ -459,6 +556,28 @@ def send_test(integration: dict) -> None:
             config,
             "[Horus] Test notification",
             "This is a test notification from Horus. Your integration works. ✅",
+        )
+    elif itype == "pagerduty":
+        integration_key = config.get("integration_key", "")
+        if not integration_key:
+            raise ValueError("pagerduty integration missing 'integration_key'")
+        _pagerduty_trigger(
+            integration_key=integration_key,
+            summary="Horus test — PagerDuty integration verified",
+            severity="info",
+            source="horus",
+            details={"test": True},
+        )
+    elif itype == "opsgenie":
+        api_key = config.get("api_key", "")
+        if not api_key:
+            raise ValueError("opsgenie integration missing 'api_key'")
+        _opsgenie_trigger(
+            api_key=api_key,
+            message="Horus test — OpsGenie integration verified",
+            description="This is a test alert from Horus. Your OpsGenie integration works.",
+            priority="P5",
+            tags=["horus", "test"],
         )
     else:
         raise ValueError(f"unknown integration type: {itype}")

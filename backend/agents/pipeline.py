@@ -4,30 +4,46 @@ from datetime import datetime, timezone
 
 from backend.agents.state import ScanState, AssetInfo
 from backend.agents.analyst_team import classify_domain
-from backend.agents.recon_agent import ReconAgent
+from backend.agents.recon_agent import run_recon
 from backend.agents.analyst_agent import AnalystAgent
-from backend.agents.correlation_agent import CorrelationAgent
-from backend.agents.threat_intel_agent import ThreatIntelAgent
+from backend.agents.correlation_agent import run_correlation
+from backend.agents.threat_intel_agent import run_threat_intel
 from backend.agents.validation_agent import ValidationAgent
 from backend.agents.remediation_agent import RemediationAgent
-from backend.agents.risk_manager_agent import RiskManagerAgent
+from backend.agents.risk_manager_agent import run_risk_manager
 from backend.agents.reporter_agent import ReporterAgent
 from backend.core.executor import submit_scan
 from backend.core.supabase_client import supabase
 
 logger = logging.getLogger(__name__)
 
+
+def _step(agent_type: str, fn):
+    """Wraps a deterministic function as a pipeline-compatible step (no LLM, 0 tokens)."""
+    class _Shim:
+        def __init__(self):
+            self.agent_type = agent_type
+            self.tokens_used = 0
+            self.model_used = None
+            self.redactor = None  # accepted but ignored — no LLM calls here
+
+        def run(self, state: ScanState) -> ScanState:
+            return fn(state)
+
+    return _Shim
+
+
 # Recon → Analyst → Correlation → ThreatIntel → Validation → Remediation → RiskManager → Reporter.
 # Validation (the red/blue debate) sits after enrichment (so it can use KEV/EPSS exploitability to
 # gate) and before Remediation (so we don't draft fixes for findings judged false positive).
 AGENT_SEQUENCE = [
-    ReconAgent,
+    _step("recon",        run_recon),
     AnalystAgent,
-    CorrelationAgent,
-    ThreatIntelAgent,
+    _step("correlation",  run_correlation),
+    _step("threat_intel", run_threat_intel),
     ValidationAgent,
     RemediationAgent,
-    RiskManagerAgent,
+    _step("risk_manager", run_risk_manager),
     ReporterAgent,
 ]
 
@@ -305,7 +321,16 @@ def _persist_results(state: ScanState):
 
     from backend.core import ssvc
 
+    seen_sigs: set[tuple] = set()
     for finding in state.analyzed_findings:
+        raw_finding = next((r for r in state.raw_findings if r.name == finding.title), None)
+        port = raw_finding.raw.get("port") if raw_finding else None
+        sig = (state.scan_id, state.asset.id, finding.title, port)
+        if sig in seen_sigs:
+            logger.debug("Skipping duplicate finding in scan %s: %s", state.scan_id, finding.title)
+            continue
+        seen_sigs.add(sig)
+
         enrichment = next(
             (e for e in state.enriched_findings if e.finding_id == finding.id), None
         )

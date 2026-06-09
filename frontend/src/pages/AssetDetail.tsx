@@ -1,21 +1,58 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Server, Activity, Edit2 } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
 import { api, friendlyErrorMessage } from '../lib/api'
 import type { Asset } from '../hooks/useAssets'
 import { AssetForm } from '../components/assets/AssetForm'
+import { cn } from '../lib/utils'
 
-interface ScanRow {
+interface AssetScan {
   id: string
   status: string
   created_at: string
+  started_at: string | null
+  completed_at: string | null
+  triggered_by_label: string
 }
+
+interface FindingsSummary {
+  open_by_severity: Record<string, number>
+  total: number
+}
+
+interface InventoryItem {
+  product: string
+  version: string | null
+  port: string
+  service_name: string | null
+  last_seen_at: string
+}
+
+const STATUS_COLOR: Record<string, string> = {
+  completed: 'text-mode-auto bg-mode-auto/10 border-mode-auto/30',
+  running: 'text-accent bg-accent/10 border-accent/30',
+  failed: 'text-severity-critical bg-severity-critical/10 border-severity-critical/30',
+  canceled: 'text-muted bg-white/[0.03] border-border',
+  pending: 'text-muted bg-surface border-border',
+}
+
+const SEVERITY_COLOR: Record<string, string> = {
+  critical: 'text-severity-critical bg-severity-critical/10 border-severity-critical/30',
+  high: 'text-severity-high bg-severity-high/10 border-severity-high/30',
+  medium: 'text-severity-medium bg-severity-medium/10 border-severity-medium/30',
+  low: 'text-severity-low bg-severity-low/10 border-severity-low/30',
+}
+
+const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low']
 
 export default function AssetDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [asset, setAsset] = useState<Asset | null>(null)
-  const [scans, setScans] = useState<ScanRow[]>([])
+  const [scans, setScans] = useState<AssetScan[]>([])
+  const [findingsSummary, setFindingsSummary] = useState<FindingsSummary | null>(null)
+  const [inventory, setInventory] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
@@ -25,10 +62,15 @@ export default function AssetDetail() {
     setLoading(true)
     Promise.all([
       api.get<Asset>(`/assets/${id}`),
-      api.get<ScanRow[]>('/scans')
+      api.get<AssetScan[]>(`/assets/${id}/scans`),
+      api.get<FindingsSummary>(`/assets/${id}/findings/summary`),
+      api.get<InventoryItem[]>(`/assets/${id}/inventory`),
     ])
-      .then(([aData, sData]) => {
+      .then(([aData, sData, fData, iData]) => {
         setAsset(aData)
+        setScans(sData)
+        setFindingsSummary(fData)
+        setInventory(iData)
       })
       .catch((e) => setError(friendlyErrorMessage(e, 'Failed to load asset details')))
       .finally(() => setLoading(false))
@@ -50,6 +92,9 @@ export default function AssetDetail() {
     </div>
   )
 
+  const openBySev = findingsSummary?.open_by_severity ?? {}
+  const hasOpenFindings = Object.keys(openBySev).length > 0
+
   return (
     <div className="space-y-6">
       <div>
@@ -67,7 +112,7 @@ export default function AssetDetail() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={() => setIsEditing(!isEditing)}
               className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white/5 hover:bg-white/10 border border-white/10 rounded transition-colors"
             >
@@ -86,10 +131,10 @@ export default function AssetDetail() {
       {isEditing && (
         <div className="bg-surface border border-border rounded-lg p-6">
           <h2 className="text-sm font-medium mb-4">Edit Asset</h2>
-          <AssetForm 
-            initialData={asset} 
-            onCreated={() => { setIsEditing(false); fetchAsset() }} 
-            onCancel={() => setIsEditing(false)} 
+          <AssetForm
+            initialData={asset}
+            onCreated={() => { setIsEditing(false); fetchAsset() }}
+            onCancel={() => setIsEditing(false)}
           />
         </div>
       )}
@@ -125,11 +170,101 @@ export default function AssetDetail() {
         </dl>
       </div>
 
+      {/* Open Findings */}
+      <div className="bg-surface border border-border rounded-lg p-6">
+        <h2 className="text-lg font-medium mb-4">Open Findings</h2>
+        {hasOpenFindings ? (
+          <div className="flex flex-wrap gap-3">
+            {SEVERITY_ORDER.filter(sev => openBySev[sev] != null).map(sev => (
+              <span
+                key={sev}
+                className={cn('text-sm px-3 py-1.5 rounded border font-medium capitalize', SEVERITY_COLOR[sev] ?? 'text-muted border-border')}
+              >
+                {sev}: {openBySev[sev]}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted">No open findings</p>
+        )}
+      </div>
+
+      {/* Related Scans */}
       <div className="bg-surface border border-border rounded-lg p-6">
         <h2 className="text-lg font-medium mb-4">Related Scans</h2>
-        <p className="text-sm text-muted">
-          (A real implementation would list the scans for this asset here, fetching from /assets/{id}/scans)
-        </p>
+        {scans.length === 0 ? (
+          <p className="text-sm text-muted">No scans yet</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs text-muted">
+                  <th className="text-left py-3 px-4 font-medium">Status</th>
+                  <th className="text-left py-3 px-4 font-medium">Triggered by</th>
+                  <th className="text-left py-3 px-4 font-medium">Date</th>
+                  <th className="text-left py-3 px-4 font-medium">Duration</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scans.map((scan) => {
+                  const duration =
+                    scan.started_at && scan.completed_at
+                      ? `${Math.round((new Date(scan.completed_at).getTime() - new Date(scan.started_at).getTime()) / 1000)}s`
+                      : '—'
+                  return (
+                    <tr
+                      key={scan.id}
+                      className="border-b border-border hover:bg-white/[0.02] cursor-pointer transition-colors"
+                      onClick={() => navigate(`/scans/${scan.id}`)}
+                    >
+                      <td className="py-3 px-4">
+                        <span className={cn('text-xs px-2 py-0.5 rounded border capitalize', STATUS_COLOR[scan.status] ?? STATUS_COLOR.pending)}>
+                          {scan.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-muted text-xs">{scan.triggered_by_label || '—'}</td>
+                      <td className="py-3 px-4 text-muted text-xs">
+                        {formatDistanceToNow(new Date(scan.created_at))} ago
+                      </td>
+                      <td className="py-3 px-4 text-muted text-xs">{duration}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Detected Technologies */}
+      <div className="bg-surface border border-border rounded-lg p-6">
+        <h2 className="text-lg font-medium mb-4">Detected Technologies</h2>
+        {inventory.length === 0 ? (
+          <p className="text-sm text-muted">No inventory data yet — run a scan</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs text-muted">
+                  <th className="text-left py-3 px-4 font-medium">Product</th>
+                  <th className="text-left py-3 px-4 font-medium">Version</th>
+                  <th className="text-left py-3 px-4 font-medium">Port</th>
+                  <th className="text-left py-3 px-4 font-medium">Service</th>
+                </tr>
+              </thead>
+              <tbody>
+                {inventory.map((item, idx) => (
+                  <tr key={idx} className="border-b border-border">
+                    <td className="py-3 px-4 text-white font-medium">{item.product}</td>
+                    <td className="py-3 px-4 text-muted text-xs">{item.version ?? '—'}</td>
+                    <td className="py-3 px-4 text-muted text-xs font-mono">{item.port}</td>
+                    <td className="py-3 px-4 text-muted text-xs">{item.service_name ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )

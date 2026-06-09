@@ -126,6 +126,28 @@ def load_timeline(client, org_id: str, days: int = 90) -> dict:
     return {"timeline": timeline, "current": current, "trend_delta": delta}
 
 
+def record_posture_event(
+    org_id: str,
+    event_type: str,
+    description: str,
+    event_date: str | None = None,
+) -> None:
+    """Record a notable event on a specific date so the posture chart can annotate score
+    jumps. Best-effort: failures are logged but never propagated to callers."""
+    from backend.core.supabase_client import supabase
+    from datetime import date
+
+    try:
+        supabase.table("posture_events").insert({
+            "org_id": org_id,
+            "event_date": event_date or date.today().isoformat(),
+            "event_type": event_type,
+            "description": description,
+        }).execute()
+    except Exception:
+        logger.exception("posture: failed to record event")
+
+
 def snapshot_all_orgs() -> int:
     """Snapshot every org's posture — the daily cron entry point. Captures days with no
     scan (aging findings, new Watchtower alerts) so the timeline has a point every day."""

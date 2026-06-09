@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
-VALID_TYPES = {"slack", "email"}
-_SECRET_KEYS = {"webhook_url", "smtp_password"}
+VALID_TYPES = {"slack", "email", "pagerduty", "opsgenie"}
+_SECRET_KEYS = {"webhook_url", "smtp_password", "integration_key", "api_key"}
 
 
 def _redact(integration: dict) -> dict:

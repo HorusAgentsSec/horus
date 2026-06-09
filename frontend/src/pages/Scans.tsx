@@ -79,6 +79,7 @@ export default function Scans() {
   }
 
   const cancelActive = async () => {
+    if (!confirm(`Cancel all ${activeCount} active scan${activeCount === 1 ? '' : 's'}?`)) return
     setCanceling('active')
     try {
       await api.post('/scans/cancel-active')

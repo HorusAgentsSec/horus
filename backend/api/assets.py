@@ -98,6 +98,60 @@ async def delete_asset(
     )
 
 
+@router.get("/{asset_id}/scans")
+async def list_asset_scans(
+    asset_id: str, user=Depends(get_current_user), db: Client = Depends(get_db)
+):
+    _assert_asset_owned(db, asset_id, user["org_id"])
+    scans = (
+        db.table("scans")
+        .select("id, status, created_at, started_at, completed_at, triggered_by_label")
+        .eq("asset_id", asset_id)
+        .eq("org_id", user["org_id"])
+        .order("created_at", desc=True)
+        .limit(20)
+        .execute()
+        .data or []
+    )
+    return scans
+
+
+@router.get("/{asset_id}/findings/summary")
+async def asset_findings_summary(
+    asset_id: str, user=Depends(get_current_user), db: Client = Depends(get_db)
+):
+    _assert_asset_owned(db, asset_id, user["org_id"])
+    rows = (
+        db.table("findings")
+        .select("severity, status")
+        .eq("asset_id", asset_id)
+        .eq("org_id", user["org_id"])
+        .execute()
+        .data or []
+    )
+    open_by_sev: dict[str, int] = {}
+    for r in rows:
+        if r["status"] == "open":
+            open_by_sev[r["severity"]] = open_by_sev.get(r["severity"], 0) + 1
+    return {"open_by_severity": open_by_sev, "total": len(rows)}
+
+
+@router.get("/{asset_id}/inventory")
+async def asset_inventory(
+    asset_id: str, user=Depends(get_current_user), db: Client = Depends(get_db)
+):
+    _assert_asset_owned(db, asset_id, user["org_id"])
+    rows = (
+        db.table("asset_inventory")
+        .select("product, version, port, service_name, last_seen_at")
+        .eq("asset_id", asset_id)
+        .order("last_seen_at", desc=True)
+        .execute()
+        .data or []
+    )
+    return rows
+
+
 def _assert_asset_owned(db: Client, asset_id: str, org_id: str) -> dict:
     r = db.table("assets").select("id, name, host, is_internal").eq("id", asset_id).eq("org_id", org_id).execute()
     if not r.data:
