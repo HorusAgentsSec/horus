@@ -323,7 +323,7 @@ async def launch_campaign(
         )
 
     # Load org name
-    org_row = db.table("organizations").select("name, domain").eq("id", user["org_id"]).single().execute()
+    org_row = db.table("organizations").select("name").eq("id", user["org_id"]).single().execute()
     org_name = (org_row.data or {}).get("name", "")
 
     from backend.agents.phishing_agent import PhishingAgent
@@ -465,11 +465,25 @@ async def campaign_results(
 
     targets = (
         db.table("phishing_targets")
-        .select("*, employees(email, full_name, karma_score)")
+        .select("*")
         .eq("campaign_id", campaign_id)
         .execute()
         .data
     )
+
+    # Enrich with employee data (manual join — no PostgREST FK declared)
+    emp_ids = list({t["employee_id"] for t in targets if t.get("employee_id")})
+    if emp_ids:
+        emp_rows = (
+            db.table("employees")
+            .select("id, email, full_name, karma_score")
+            .in_("id", emp_ids)
+            .execute()
+            .data
+        )
+        emp_map = {e["id"]: e for e in emp_rows}
+        for t in targets:
+            t["employees"] = emp_map.get(t.get("employee_id"))
 
     total = len(targets)
     clicked = sum(1 for t in targets if t.get("link_clicked_at"))
