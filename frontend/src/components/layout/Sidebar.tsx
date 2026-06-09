@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Shield, LayoutDashboard, Server, Search, AlertTriangle, Lock, Settings, Users, ScrollText, Brain, Bell, Clock, Radar, Eye, Activity } from 'lucide-react'
+import { Swords, LayoutDashboard, Server, Search, AlertTriangle, Lock, Settings, Users, ScrollText, Brain, Bell, Clock, Radar, Eye, Activity, Mail } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useRole, type Role } from '../../hooks/useRole'
 
@@ -12,6 +12,8 @@ const links: { to: string; icon: React.ElementType; label: string; minRole?: Rol
   { to: '/schedules', icon: Clock, label: 'Schedules' },
   { to: '/jobs', icon: Activity, label: 'Job history' },
   { to: '/findings', icon: AlertTriangle, label: 'Findings' },
+  { to: '/adversarial', icon: Swords, label: 'Red / Blue' },
+  { to: '/auth-phishing', icon: Mail, label: 'AuthPhishing', minRole: 'admin' },
   { to: '/permissions', icon: Lock, label: 'Permissions' },
   { to: '/team', icon: Users, label: 'Team' },
   { to: '/audit', icon: ScrollText, label: 'Audit log', minRole: 'admin' },

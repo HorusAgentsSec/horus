@@ -23,6 +23,9 @@ import Integrations from './pages/Integrations'
 import Settings from './pages/Settings'
 import Analytics from './pages/Analytics'
 import AssetDetail from './pages/AssetDetail'
+import Adversarial from './pages/Adversarial'
+import AdversarialDetail from './pages/AdversarialDetail'
+import AuthPhishing from './pages/AuthPhishing'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, mustChangePassword } = useAuth()
@@ -100,6 +103,9 @@ export default function App() {
           <Route path="integrations" element={<Integrations />} />
           <Route path="settings" element={<Settings />} />
           <Route path="analytics" element={<Analytics />} />
+          <Route path="adversarial" element={<Adversarial />} />
+          <Route path="adversarial/:id" element={<AdversarialDetail />} />
+          <Route path="auth-phishing" element={<AuthPhishing />} />
         </Route>
       </Routes>
     </BrowserRouter>
