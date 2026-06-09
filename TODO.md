@@ -101,7 +101,13 @@
 - [x] In-app notifications — HECHO: `notify._notify_in_app` crea una notificación por admin/analyst
       al completar scan (gated por umbral de severidad), y la campana 🔔 de `Header.tsx` ya es
       funcional (badge con contador, dropdown, marcar-leída, navega al scan; poll cada 60s).
-- [ ] `🔴 Difícil` Integrar con plataformas de cloud como AWS y GCP para auditar pipelines de CI/CD, logs de esas plataformas, etc. 
+- [ ] `🔴 Difícil` Integrar con plataformas de cloud como AWS y GCP para auditar pipelines de CI/CD, logs de esas plataformas, etc.
+- [x] **PagerDuty / OpsGenie para findings SSVC "ACT"** — HECHO (2026-06-09): `_pagerduty_trigger()` y
+      `_opsgenie_trigger()` en `core/notify.py`. `notify_scan_complete` filtra findings con
+      `raw_data.ssvc.priority == "act"` y dispara P1/critical. Mapeo: `act`→P1/critical, `attend`→P2/error.
+      `send_test()` soporta ambos tipos. `VALID_TYPES` extendido. `_SECRET_KEYS` incluye `integration_key`
+      y `api_key`. Formularios en `Integrations.tsx` con tab selector 4 tipos.
+
 ## 🧠 Inteligencia / correlación CVE (mejoras incrementales)
 
 - [x] **Alias-map de productos** — HECHO: `PRODUCT_ALIASES` en `cpe_intel.py` (~25 productos:
@@ -115,15 +121,37 @@
 
 ## ✅ Calidad de findings
 
-- [ ] `🟢 Muy sencilla` **Marcar/ocultar falsos positivos probables** — los scripts `http-*-xss` / `http-csrf` de nmap
-      señalan potencial, no confirmado. Bajar su confianza o marcarlos "needs verification".
+- [x] **Marcar scripts de nmap como "needs verification"** — HECHO (2026-06-09): `LOW_CONFIDENCE_SCRIPTS`
+      en `nmap_scanner.py` (`http-csrf`, `http-phpself-xss`, `http-stored-xss`, `http-reflected-xss`,
+      `http-xssed`, `http-unsafe-output-escaping`). Los findings de estos scripts se incluyen pero con
+      `confidence=0.4` y `needs_verification=True` en `raw_data`, lo que activa el path de debate del
+      `ValidationAgent` en lugar de auto-confirmarlos.
 - [ ] `🔴 Difícil` **Validación activa opcional** — confirmar un finding correlado por versión con una prueba
       ligera, para subir la confianza de 0.7 a "confirmado".
 - [ ] `🟢 Muy sencilla` Revisar periódicamente la lista `INFORMATIONAL_SCRIPTS` según aparezca ruido nuevo.
+- [x] **Deduplicación de findings repetidos** — HECHO (2026-06-09): `pipeline._persist_results` mantiene
+      un `seen_sigs: set[tuple]` por scan. Firma: `(scan_id, asset_id, title, port)`. Duplicados exactos
+      dentro del mismo batch se descartan antes de cualquier escritura a BD.
 - [x] **Agrupar findings por servicio** — HECHO: `AnalyzedFinding.source_service` (set por
       CorrelationAgent) se persiste en `raw_data`, y `Findings.tsx` agrupa los correlados en una
       fila desplegable por servicio ("nginx 1.18.0 — 6 CVEs · N actively exploited", severidad
       peor del grupo). Los findings directos del scanner (vulners…) siguen sueltos. Verificado.
+
+## 📋 Gestión de incidentes (Case Management)
+
+- [ ] `🔴 Difícil` **Incidents — agrupar findings en casos con dueño + SLA** — los findings hoy existen
+      en aislamiento. Un SOC necesita agrupar findings relacionados en un "incidente", asignar un
+      responsable, trackear SLA (tiempo hasta resolución), y escribir un post-mortem.
+      Diseño mínimo viable: tabla `incidents` (`id, org_id, title, status, assignee_id, severity,
+      sla_deadline, created_at, closed_at`), tabla `incident_findings` (`incident_id, finding_id`),
+      y `incident_notes` (`id, incident_id, author_id, body, created_at`) para el log de actividad.
+      API CRUD completa + página `pages/Incidents.tsx` (lista con SLA countdown, vista de detalle
+      con findings vinculados + línea de tiempo de notas). Un finding SSVC `act` sin incidente
+      vinculado debería mostrar un aviso.
+- [x] **Bulk actions en la lista de Findings** — HECHO (2026-06-09): checkboxes opcionales en `FindingCard`
+      (no rompen el comportamiento por defecto). Botón "Select" en `Findings.tsx` activa modo selección;
+      barra sticky con N selected + [Mark False Positive] [Accept Risk] [Mark Resolved] [Clear]. Backend:
+      `POST /findings/bulk` con `BulkAction(ids, action)`, scoped a `org_id`.
 
 ## 👁️ UX / percepción
 
@@ -146,7 +174,31 @@
       streaming finding-a-finding real (hoy aparece al completar cada agente) y/o Supabase Realtime.
       NOTA: arreglado de paso un bug latente — el check constraint de `agent_runs.agent_type` no incluía
       'validation' (migración `20260607140000`, aplicada), sin el cual la validación nunca corría en prod.
-- [ ] `🟡 Normal` Vista de detalle de finding con CVSS + EPSS + KEV + remediación sugerida en una sola pantalla.
+- [x] **Vista de detalle de finding** — HECHO (2026-06-09): `FindingDetail.tsx` + componente
+      `FindingDetail.tsx`. Añadidos: badge "KEV Active" (rojo, `AlertTriangle`) en cabecera cuando
+      `exploitability=active`; EPSS `X.X%` bajo CVSS; selector de status inline (llama `PATCH /findings/{id}`
+      y recarga); sección "Remediation" si `raw_data.remediation` existe. Todo en una sola pantalla.
+- [x] **Enriquecimiento de la página de detalle de activo** — HECHO (2026-06-09): eliminado el placeholder.
+      Tres nuevas secciones con datos reales: "Open Findings" (badges de severidad por counts),
+      "Related Scans" (tabla con status/duración/trigger, click navega al scan), "Detected Technologies"
+      (de `asset_inventory`: product/version/port/service). Tres endpoints nuevos en `assets.py`:
+      `GET /assets/{id}/scans`, `/findings/summary`, `/inventory`.
+- [x] **Filtrado y ordenación avanzados en Findings** — HECHO (2026-06-09): filtros añadidos: asset
+      (selector con `useAssets`), CVE-ID (input texto, commit on Enter), tool (nmap/nuclei), order_by
+      (newest/severity). Backend `GET /findings` acepta `cve_id`, `tool` (jsonb `raw_data->>'tool'`),
+      `order_by`. Todos los filtros pasan como query params en `load()`.
+- [x] **Anotaciones en el gráfico de postura** — HECHO (2026-06-09): tabla `posture_events` (migración
+      `20260609200000_posture_events.sql`, aplicada). `core/posture.py`: `record_posture_event()`.
+      `GET /posture/timeline` devuelve también `events[]`. `PostureTimeline.tsx`: `ReferenceLine`
+      dashed por evento + lista de eventos debajo del gráfico.
+- [x] **Normalizar el risk score** — HECHO (2026-06-09): nuevo `GET /posture/normalized` devuelve
+      `pct_critical_closed_in_7d` y `open_findings_per_asset`. `PostureTimeline.tsx` muestra panel
+      "Normalized metrics" con dos tarjetas color-coded (verde/amarillo/rojo) y nota explicativa.
+- [x] **Confirmación antes de acciones destructivas** — HECHO (2026-06-09): `cancelActive` en `Scans.tsx`
+      tiene `confirm("Cancel all N active scans?")` antes de ejecutar (el `scanAll` ya lo tenía).
+- [x] **Cron human-readable en Schedules** — HECHO (2026-06-09): `cronstrue` instalado. `cronLabel()`
+      reescrita: primero busca preset, luego `cronstrue.toString()`, fallback al raw. `cronLabelWithRaw()`
+      muestra "Daily at 02:00 (0 2 * * *)" cuando el label difiere del raw.
 - [x] **Report ejecutivo persistido por scan** — HECHO (2026-06-07): el `ReporterAgent` (que antes
       generaba un report y lo tiraba) ahora es verdict/SSVC-aware (excluye falsos positivos, ordena
       top_priorities por urgencia SSVC), se persiste en `scans.report` (migración
@@ -256,6 +308,39 @@
 - [ ] `🔴 Difícil` **Confidential computing (TEE)** — roadmap premium: modelo SOTA en enclave (Intel TDX / AMD
       SEV-SNP / NVIDIA H100 CC) + attestation remota → el proveedor no ve el plaintext. No urgente.
 - Tiers de pricing: Sovereign(on-prem) / Private(TEE+redacción) / Standard(cloud+redacción).
+
+---
+
+## 🎣 Phishing Awareness / Simulación de Ataques Humanos
+
+> **Contexto.** El `PhishingAgent` (`backend/agents/phishing_agent.py`) está implementado: genera
+> emails de phishing simulado personalizados con el inventario real de activos de la org. También
+> existe `core/hibp.py` con integración completa a HaveIBeenPwned Domain Search (credenciales
+> expuestas, karma score por empleado, correlación con activos). Sin embargo, ninguno de los dos
+> está enrutado en la API (`router.py`) ni visible en el frontend. Esta sección cierra esa brecha.
+
+- [x] **Campaña de phishing simulado — UI + API completa** — HECHO (2026-06-09):
+      `PhishingAgent` (`agents/phishing_agent.py`) conectado como feature de primera clase.
+      Migración `20260609130000_phishing.sql` (`phishing_campaigns` + `phishing_targets`,
+      RLS org-scoped, índices en `campaign_id` y `tracking_token`, aplicada en remoto).
+      `api/phishing.py`: `GET/POST /phishing/campaigns`, `GET /phishing/campaigns/{id}`,
+      `PATCH /campaigns/{id}`, `GET /phishing/track/{token}` (público, sin auth, registra
+      `clicked_at` y sirve página HTML de concienciación). Lanzamiento en background task:
+      genera email por target con `PhishingAgent.generate_email()` usando los assets reales
+      de la org como contexto, envía por SMTP HTML, actualiza `sent_at`/`subject`/`pretext`.
+      El modelo se resuelve desde `llm_phishing_model` (config existente) → fallback default.
+      Guard: solo admin puede crear/lanzar. UI `pages/PhishingCampaigns.tsx`: stats globales
+      (campañas, enviados, click rate, reportes), lista de campañas con tasa de clicks en
+      tiempo real, drawer de detalle con tabla de targets (sent/clicked/reported + pretext
+      expandible), wizard de 4 pasos (Setup → Assets → Targets → Review). Sidebar + ruta
+      `/phishing` añadidos. Build TypeScript limpio. 126 tests passed (1 preexistente falla
+      no relacionado: `test_token_tracking` / campo `tags` en `AssetInfo`).
+
+- [x] **HIBP — Credenciales expuestas en el frontend** — HECHO (2026-06-09): `api/hibp.py` nuevo router
+      (`POST /hibp/check` background task, `GET /hibp/breaches` join con employees, `GET /hibp/stats`).
+      Registrado en `router.py`. Página `pages/CredentialExposure.tsx`: 3 stat cards (breaches, employees
+      affected, avg karma — color verde/amarillo/rojo), botón "Run HIBP Check" (admin), tabla de brechas
+      con employee/department/breach name/date/sensitive badge/karma. Link en sidebar junto a AuthPhishing.
 
 ## ✔️ Hecho recientemente (2026-06-05)
 
