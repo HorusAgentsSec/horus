@@ -146,15 +146,16 @@
 
 ## 📋 Gestión de incidentes (Case Management)
 
-- [ ] `🔴 Difícil` **Incidents — agrupar findings en casos con dueño + SLA** — los findings hoy existen
-      en aislamiento. Un SOC necesita agrupar findings relacionados en un "incidente", asignar un
-      responsable, trackear SLA (tiempo hasta resolución), y escribir un post-mortem.
-      Diseño mínimo viable: tabla `incidents` (`id, org_id, title, status, assignee_id, severity,
-      sla_deadline, created_at, closed_at`), tabla `incident_findings` (`incident_id, finding_id`),
-      y `incident_notes` (`id, incident_id, author_id, body, created_at`) para el log de actividad.
-      API CRUD completa + página `pages/Incidents.tsx` (lista con SLA countdown, vista de detalle
-      con findings vinculados + línea de tiempo de notas). Un finding SSVC `act` sin incidente
-      vinculado debería mostrar un aviso.
+- [x] **Incidents — agrupar findings en casos con dueño + SLA** — HECHO (2026-06-10):
+      Tablas `incidents` / `incident_findings` / `incident_notes` con RLS via `current_org_id()`.
+      API completa: list (filtros status/severity, stats open/critical/overdue), create, detail
+      (findings + notas enriquecidos), patch, soft-close (admin), link/unlink findings, add note.
+      Assignee/author enriched con profiles+auth. UI: `pages/Incidents.tsx` (stats header, lista
+      con SLA countdown rojo si vencido, modal de creación), `pages/IncidentDetail.tsx` (título
+      editable inline, status/severity selectors, sección findings con link-by-ID + unlink,
+      timeline de notas con avatares de iniciales). `components/incidents/IncidentBadges.tsx`
+      (StatusBadge + SlaCountdown). Nav link sidebar. Aviso amarillo en `FindingDetail.tsx` cuando
+      SSVC=act y finding sin incidente vinculado, con botón "Create incident" que pre-enlaza y navega.
 - [x] **Bulk actions en la lista de Findings** — HECHO (2026-06-09): checkboxes opcionales en `FindingCard`
       (no rompen el comportamiento por defecto). Botón "Select" en `Findings.tsx` activa modo selección;
       barra sticky con N selected + [Mark False Positive] [Accept Risk] [Mark Resolved] [Clear]. Backend:

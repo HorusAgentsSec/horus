@@ -16,6 +16,8 @@ import Schedules from './pages/Schedules'
 import Jobs from './pages/Jobs'
 import Findings from './pages/Findings'
 import FindingDetail from './pages/FindingDetail'
+import Incidents from './pages/Incidents'
+import IncidentDetail from './pages/IncidentDetail'
 import Permissions from './pages/Permissions'
 import Team from './pages/Team'
 import Audit from './pages/Audit'
@@ -99,6 +101,8 @@ export default function App() {
           <Route path="jobs" element={<Jobs />} />
           <Route path="findings" element={<Findings />} />
           <Route path="findings/:id" element={<FindingDetail />} />
+          <Route path="incidents" element={<Incidents />} />
+          <Route path="incidents/:id" element={<IncidentDetail />} />
           <Route path="permissions" element={<Permissions />} />
           <Route path="team" element={<Team />} />
           <Route path="audit" element={<Audit />} />

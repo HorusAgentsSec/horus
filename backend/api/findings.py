@@ -158,7 +158,20 @@ async def get_finding(
     )
     if not result.data:
         raise HTTPException(status_code=404, detail="Finding not found")
-    return result.data
+
+    # How many incidents this finding belongs to — drives the "not linked to an
+    # incident" nudge in the UI for high-priority (SSVC "act") findings.
+    finding = result.data
+    links = (
+        db.table("incident_findings")
+        .select("incident_id")
+        .eq("finding_id", finding_id)
+        .execute()
+        .data
+        or []
+    )
+    finding["incident_count"] = len(links)
+    return finding
 
 
 @router.patch("/{finding_id}")

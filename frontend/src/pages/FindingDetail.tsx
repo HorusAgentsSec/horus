@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ExternalLink, Ticket } from 'lucide-react'
-import { api, jiraApi, friendlyErrorMessage, type JiraStatus, type JiraTicket } from '../lib/api'
+import { ArrowLeft, ExternalLink, Ticket, AlertCircle } from 'lucide-react'
+import { api, jiraApi, incidentsApi, friendlyErrorMessage, type JiraStatus, type JiraTicket } from '../lib/api'
 import { FindingDetailView } from '../components/findings/FindingDetail'
+
+// Narrow shape we read off the otherwise-unknown finding to decide whether to
+// nudge the user toward creating an incident.
+interface FindingNudgeFields {
+  id?: string
+  title?: string
+  incident_count?: number
+  raw_data?: { ssvc?: { priority?: string } | null } | null
+}
 
 export default function FindingDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -14,6 +23,7 @@ export default function FindingDetailPage() {
   const [ticket, setTicket] = useState<JiraTicket | null>(null)
   const [creatingTicket, setCreatingTicket] = useState(false)
   const [ticketError, setTicketError] = useState('')
+  const [creatingIncident, setCreatingIncident] = useState(false)
 
   const load = async () => {
     if (!id) return
@@ -40,6 +50,24 @@ export default function FindingDetailPage() {
       setTicketError(friendlyErrorMessage(e, 'Could not create the Jira ticket'))
     } finally {
       setCreatingTicket(false)
+    }
+  }
+
+  // Spin up an incident pre-linked to this finding, then jump to it. Severity
+  // defaults to critical since the nudge only fires for SSVC "act" findings.
+  const createIncidentFromFinding = async () => {
+    if (!id || creatingIncident) return
+    setCreatingIncident(true)
+    try {
+      const f = finding as FindingNudgeFields
+      const created = await incidentsApi.create({
+        title: f.title || 'Incident from finding',
+        severity: 'critical',
+        finding_ids: [id],
+      })
+      navigate(`/incidents/${created.id}`)
+    } catch {
+      setCreatingIncident(false)
     }
   }
 
@@ -72,6 +100,10 @@ export default function FindingDetailPage() {
 
   if (loading) return <div>{backButton}<p className="text-muted text-sm">Loading…</p></div>
   if (!finding) return <div>{backButton}<p className="text-muted text-sm">Finding not found.</p></div>
+
+  const nudge = finding as FindingNudgeFields
+  const ssvcPriority = (nudge.raw_data?.ssvc?.priority ?? '').toLowerCase()
+  const showIncidentNudge = ssvcPriority === 'act' && (nudge.incident_count ?? 0) === 0
 
   const jiraReady = !!jiraStatus?.configured && !!jiraStatus?.enabled
   const jiraControl = ticket ? (
@@ -111,6 +143,21 @@ export default function FindingDetailPage() {
           {ticketError && <p className="text-xs text-severity-high max-w-xs text-right">{ticketError}</p>}
         </div>
       </div>
+      {showIncidentNudge && (
+        <div className="glass rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 mb-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-yellow-400 shrink-0" />
+          <p className="text-sm text-yellow-100 flex-1">
+            This finding is not linked to an incident. Consider creating one.
+          </p>
+          <button
+            onClick={createIncidentFromFinding}
+            disabled={creatingIncident}
+            className="text-sm bg-yellow-500/20 text-yellow-100 px-3 py-1.5 rounded-md hover:bg-yellow-500/30 disabled:opacity-40 whitespace-nowrap"
+          >
+            {creatingIncident ? 'Creating…' : 'Create incident'}
+          </button>
+        </div>
+      )}
       <FindingDetailView
         finding={finding as Parameters<typeof FindingDetailView>[0]['finding']}
         suggestions={suggestions as Parameters<typeof FindingDetailView>[0]['suggestions']}
