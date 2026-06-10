@@ -6,7 +6,7 @@ from backend.api.router import api_router
 from backend.core import scheduler
 from backend.core import executor
 from backend.core.config import settings
-from backend.core.rate_limit import SlidingWindowLimiter, client_ip_from
+from backend.core.rate_limit import build_limiter, client_ip_from
 from backend.core.security_headers import build_security_headers
 
 
@@ -27,7 +27,8 @@ app = FastAPI(
 # ── Rate limiting ────────────────────────────────────────────────────────────────
 # Registered before CORS so CORS ends up the outermost layer — that way even a 429
 # carries CORS headers and the browser can read it.
-_limiter = SlidingWindowLimiter()
+# Uses Redis when REDIS_URL is set (shared across workers); falls back to in-memory.
+_limiter = build_limiter(settings.redis_url)
 # Write-heavy / abuse-prone endpoints get a tighter per-IP budget.
 _SENSITIVE_ROUTES = (
     ("POST", "/api/scans"),

@@ -34,6 +34,19 @@ INFORMATIONAL_SCRIPTS = {
     "tls-nextprotoneg",
     "banner",
     "fingerprint-strings",
+    # Host-key / auth discovery — fingerprint only, no exploitability
+    "ssh-hostkey",
+    "ssh-auth-methods",
+    "http-auth-finder",
+    # DNS / mDNS enumeration — informational
+    "dns-service-discovery",
+    "broadcast-dns-service-discovery",
+    # Pure enumeration scripts that generate noise without confirmed issues
+    "http-open-proxy",          # needs manual confirmation; often false positive
+    "http-trace",               # TRACE allowed is low-severity and often a scanner artifact
+    "rdp-enum-encryption",      # shows RDP encryption level, not a finding
+    "smb-security-mode",        # shows SMB config, not a vulnerability by itself
+    "smbv2-enabled",            # SMBv2 presence is not itself a finding
 }
 
 # Scripts that report potential issues, not confirmed — kept as findings but flagged with
@@ -128,13 +141,19 @@ class NmapScanner(BaseScanner):
                 service_name = service_el.get("name", "") if service_el is not None else ""
                 product = service_el.get("product", "") if service_el is not None else ""
                 version = service_el.get("version", "") if service_el is not None else ""
+                extrainfo = service_el.get("extrainfo", "") if service_el is not None else ""
 
-                # Record the detected software so the pipeline can correlate it to CVEs,
-                # even when no vuln script fired on this port.
-                if product and version:
-                    self.detected_services.append(
-                        {"product": product, "version": version, "port": port_id, "service": service_name}
-                    )
+                # Record the detected software so the pipeline can correlate it to CVEs.
+                # Include service entries even when product is absent so the correlation
+                # layer can attempt a service-name fallback (e.g. service="ftp" + version).
+                if (product and version) or (service_name and version):
+                    self.detected_services.append({
+                        "product": product,
+                        "version": version,
+                        "port": port_id,
+                        "service": service_name,
+                        "extrainfo": extrainfo,
+                    })
 
                 # Collect any script output (vuln scripts)
                 for script_el in port_el.findall("script"):

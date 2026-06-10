@@ -310,3 +310,99 @@ export const threatFeedsApi = {
   listFindings: () =>
     api.get<any[]>('/threat-feeds/findings'),
 }
+
+// ── Incidents (Case Management) ──────────────────────────────────────────────
+
+export type IncidentStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
+export type IncidentSeverity = 'critical' | 'high' | 'medium' | 'low'
+
+export interface IncidentPerson {
+  id: string
+  name: string | null
+  email: string | null
+}
+
+export interface IncidentSummary {
+  id: string
+  title: string
+  description: string | null
+  status: IncidentStatus
+  severity: IncidentSeverity
+  assignee_id: string | null
+  assignee: IncidentPerson | null
+  sla_deadline: string | null
+  created_at: string
+  closed_at: string | null
+  updated_at: string
+  finding_count: number
+}
+
+export interface IncidentFinding {
+  id: string
+  title: string | null
+  severity: string | null
+  status: string | null
+  added_at: string
+}
+
+export interface IncidentNote {
+  id: string
+  incident_id: string
+  author_id: string
+  author: IncidentPerson | null
+  body: string
+  created_at: string
+}
+
+export interface IncidentDetail extends IncidentSummary {
+  created_by: string | null
+  created_by_user: IncidentPerson | null
+  findings: IncidentFinding[]
+  notes: IncidentNote[]
+}
+
+export interface IncidentListResponse {
+  items: IncidentSummary[]
+  page: number
+  per_page: number
+  total: number
+}
+
+export interface IncidentCreatePayload {
+  title: string
+  description?: string
+  severity: IncidentSeverity
+  assignee_id?: string | null
+  sla_deadline?: string | null
+  finding_ids?: string[]
+}
+
+export interface IncidentUpdatePayload {
+  title?: string
+  status?: IncidentStatus
+  severity?: IncidentSeverity
+  assignee_id?: string | null
+  sla_deadline?: string | null
+}
+
+export const incidentsApi = {
+  list: (params: { status?: string; severity?: string; assignee_id?: string } = {}) => {
+    const qs = new URLSearchParams()
+    if (params.status) qs.set('status', params.status)
+    if (params.severity) qs.set('severity', params.severity)
+    if (params.assignee_id) qs.set('assignee_id', params.assignee_id)
+    const suffix = qs.toString() ? `?${qs}` : ''
+    return api.get<IncidentListResponse>(`/incidents${suffix}`)
+  },
+  get: (id: string) => api.get<IncidentDetail>(`/incidents/${id}`),
+  create: (body: IncidentCreatePayload) => api.post<IncidentSummary>('/incidents', body),
+  update: (id: string, body: IncidentUpdatePayload) =>
+    api.patch<IncidentSummary>(`/incidents/${id}`, body),
+  close: (id: string) => api.delete<IncidentSummary>(`/incidents/${id}`),
+  addFindings: (id: string, findingIds: string[]) =>
+    api.post<{ linked: number }>(`/incidents/${id}/findings`, { finding_ids: findingIds }),
+  removeFinding: (id: string, findingId: string) =>
+    api.delete<void>(`/incidents/${id}/findings/${findingId}`),
+  addNote: (id: string, body: string) =>
+    api.post<IncidentNote>(`/incidents/${id}/notes`, { body }),
+}

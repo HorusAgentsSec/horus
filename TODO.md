@@ -115,9 +115,16 @@
       + `_resolve_cpe` (full name → primer token → wildcard). `cves_for` resuelve el alias cuando
       vendor=None. Probado en vivo: Apache httpd 2.4.41 pasó de 0 a **75 CVEs**. Ampliar el map
       según aparezcan productos sin cobertura.
-- [ ] `🟡 Normal` **NVD CVSS para todos los CVE de KEV** — enriquecer los ~1.6k de KEV con su CVSS
-      (hoy solo se rellena CVSS de los CVE que pasan por correlación on-demand).
-- [ ] `🟡 Normal` **Correlación más rica** — usar también el `service`/banner, no solo product+version.
+- [x] **NVD CVSS para todos los CVE de KEV** — HECHO (2026-06-10): `_fetch_nvd_cvss_batch()` en
+      `core/cve_intel.py`. Tras el upsert KEV+EPSS, busca KEV CVEs con `cvss_score IS NULL` y los
+      enriquece desde NVD API 2.0 en batches rate-limited (4 req/30s sin key, 40 con `NVD_API_KEY`).
+      Fallback v3.1→v3.0→v2, CVSS v2 deriva severidad del score. Best-effort: fallo NVD no aborta sync.
+      Tests en `test_cve_intel.py`.
+- [x] **Correlación más rica** — HECHO (2026-06-10): `correlate_services` en `cpe_intel.py` ahora usa
+      `service` name como fallback cuando nmap no detecta producto (e.g. service=ftp+version →
+      `SERVICE_NAME_FALLBACKS` → producto), limpia `extrainfo`/version con `_normalize_version`, y captura
+      `extrainfo` en `nmap_scanner.py`. `PRODUCT_ALIASES` ampliado con +17 productos. Entries sin product
+      pero con service+version también se correlacionan.
 
 ## ✅ Calidad de findings
 
@@ -167,6 +174,14 @@
       área apilada por severidad + score actual + flecha de tendencia) embebido en el Dashboard.
       Tests: `backend/tests/test_posture.py` (6). Verificado end-to-end: org real risk=43
       (2 critical + 3 low + 2 KEV-active), snapshot persistido y leído.
+- [x] **Dashboard — métricas accionables + personalización** — HECHO (2026-06-10): Dashboard.tsx
+      rediseñado completamente. KPIs primarios: "Act Now" (SSVC act, pulsante si >0), "KEV Exposure"
+      (vulnerabilidades activamente explotadas), "Asset Coverage" (% activos escaneados 7d), "MTTR
+      Critical" (días medio para remediar críticos). Fila secundaria: Findings Trend (new/resolved
+      this week con flecha tendencia), Open by Severity (barras proporcionales), SSVC Priority
+      (barra apilada + grid 2×2). Bottom: Top Risky Assets + Recent Scans (ambos navegables).
+      Personalización: panel "Customize" con 11 widget toggles persistidos en localStorage
+      (`horus_dashboard_widgets`). Nuevo endpoint `GET /dashboard/metrics` en backend.
 - [~] **Progreso del scan en tiempo real** — PARCIAL (2026-06-07): cada agente ahora escribe un
       resumen en `agent_runs.output_state` al completarse (`_agent_detail` en pipeline), y el
       `AgentRunTimeline` (poll cada 2.5s) lo muestra — incluida la **deliberación red/blue expandible**
@@ -207,9 +222,16 @@
 
 ## 🔐 Seguridad / infraestructura
 
-- [ ] `🟡 Normal` **Rate limiting con store compartido (Redis)** — hoy es in-memory por proceso/worker.
-- [ ] `🟢 Muy sencilla` **CSP a nivel de documento** en el host de producción del SPA (React).
-- [ ] `🟡 Normal` **Revocación de sesión** al cambiar contraseña.
+- [x] **Rate limiting con store compartido (Redis)** — HECHO (2026-06-10): `build_limiter(redis_url)` en
+      `core/rate_limit.py`. Cuando `REDIS_URL` está configurado usa `RedisWindowLimiter` (sorted set + Lua
+      script atómico, sin race conditions entre workers). Sin Redis → fallback a `SlidingWindowLimiter`
+      in-memory con warning. `redis==5.0.8` en requirements. `main.py` actualizado.
+- [x] **CSP a nivel de documento** — HECHO (2026-06-10): `<meta http-equiv="Content-Security-Policy">`
+      en `frontend/index.html` con policy restrictiva (default-src 'self', connect-src self+https+wss,
+      frame-ancestors 'none', base-uri 'self'). Más `X-Content-Type-Options` y `X-Frame-Options` como meta.
+- [x] **Revocación de sesión al cambiar contraseña** — HECHO (2026-06-10): `evict_user_sessions(user_id)`
+      en `auth.py` elimina todos los tokens cacheados del usuario tras cambio de contraseña. Llamado desde
+      `account.change_password` justo después de `update_user_by_id`.
 
 ---
 

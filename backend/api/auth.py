@@ -15,6 +15,12 @@ _CACHE: dict[str, tuple[dict, float]] = {}
 _TTL_SECONDS = 30
 
 
+def evict_user_sessions(user_id: str) -> None:
+    """Remove all backend-cached tokens for a user (call after password change)."""
+    global _CACHE
+    _CACHE = {k: v for k, v in _CACHE.items() if v[0].get("id") != user_id}
+
+
 def _resolve_api_key(key: str) -> dict:
     """Resolve an API key (hrs_...) to a user dict scoped to its org and role."""
     key_hash = hashlib.sha256(key.encode()).hexdigest()

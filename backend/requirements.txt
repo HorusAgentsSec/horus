@@ -16,3 +16,6 @@ email-validator==2.2.0
 reportlab==4.2.5
 dnspython==2.6.1
 pytest==8.3.0
+# Optional: shared rate-limit store for multi-worker deployments. Falls back to
+# in-memory when REDIS_URL is not set, so Redis is not required for single-worker dev.
+redis==5.0.8

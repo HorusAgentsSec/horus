@@ -10,7 +10,7 @@ be bypassed or partially applied by the user.
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from backend.api.auth import get_current_user
+from backend.api.auth import get_current_user, evict_user_sessions
 from backend.core.audit import log_action
 from backend.core.password import PasswordPolicyError, validate_password_strength
 from backend.core.supabase_client import supabase
@@ -40,6 +40,10 @@ async def change_password(
     supabase.table("profiles").update(
         {"must_change_password": False}
     ).eq("id", user["id"]).execute()
+
+    # Evict this user from the backend token cache so other active sessions
+    # cannot reuse a cached token that pre-dates the password change.
+    evict_user_sessions(user["id"])
 
     log_action(
         user["org_id"], user["id"], "account.password_changed",

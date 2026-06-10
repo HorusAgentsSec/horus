@@ -104,6 +104,42 @@ PRODUCT_ALIASES: dict[str, tuple[str, str]] = {
     "haproxy": ("haproxy", "haproxy"),
     "openssl": ("openssl", "openssl"),
     "wordpress": ("wordpress", "wordpress"),
+    # Additional common service products
+    "openssh_server": ("openbsd", "openssh"),
+    "dropbear_sshd": ("matt_johnston", "dropbear_ssh_server"),
+    "filezilla_server": ("filezilla-project", "filezilla_server"),
+    "wuftpd": ("washington_university", "wu-ftpd"),
+    "sendmail": ("sendmail", "sendmail"),
+    "courier_imapd": ("courier", "imap"),
+    "courier_pop3d": ("courier", "pop3"),
+    "cyrus_imapd": ("carnegie_mellon_university", "cyrus_imap"),
+    "cyrus_pop3d": ("carnegie_mellon_university", "cyrus_imap"),
+    "isc_dhcpd": ("isc", "dhcp"),
+    "squid": ("squid-cache", "squid"),
+    "varnish": ("varnish-cache", "varnish"),
+    "jenkins": ("jenkins", "jenkins"),
+    "rabbitmq": ("pivotal_software", "rabbitmq"),
+    "elasticsearch": ("elastic", "elasticsearch"),
+    "kibana": ("elastic", "kibana"),
+    "memcached": ("memcached", "memcached"),
+}
+
+# nmap service name (the `name` attribute in <service>) -> product hint when
+# nmap doesn't detect a product name. Allows basic correlation from service type alone.
+SERVICE_NAME_FALLBACKS: dict[str, str] = {
+    "ssh": "openssh",
+    "ftp": "vsftpd",
+    "smtp": "postfix",
+    "pop3": "dovecot",
+    "imap": "dovecot",
+    "http": "apache",
+    "https": "apache",
+    "mysql": "mysql",
+    "postgres": "postgresql",
+    "redis": "redis",
+    "mongodb": "mongodb",
+    "memcache": "memcached",
+    "telnet": "netkit-telnet",
 }
 
 
@@ -237,16 +273,41 @@ def cves_for(product: str, version: str, vendor: str | None = None, refresh: boo
 
 def correlate_services(services: list[dict]) -> dict[str, list[str]]:
     """
-    Batch helper for the pipeline. `services` is [{"product": ..., "version": ...}, ...].
+    Batch helper for the pipeline. `services` is [{"product": ..., "version": ...,
+    "service": ..., "extrainfo": ...}, ...].
     Returns {"product version": [cve_ids]} for each service we could resolve.
+
+    Falls back to service-name-derived product when nmap doesn't detect a product name
+    (e.g. service="ftp" + version="3.0.3" → tries product "vsftpd"). The version is
+    stripped of packaging noise (distro qualifiers) before lookup.
     """
     out: dict[str, list[str]] = {}
     for svc in services:
         product = (svc.get("product") or "").strip()
         version = (svc.get("version") or "").strip()
-        if not product or not version:
+        service_name = (svc.get("service") or "").strip().lower()
+        extrainfo = (svc.get("extrainfo") or "").strip()
+
+        # When the version is empty but extrainfo carries version info (e.g. nmap reports
+        # "Telnet" as product and "Linux telnetd" in extrainfo), try extrainfo as version.
+        if not version and extrainfo:
+            version = extrainfo
+
+        # Strip distro packaging qualifiers from version (e.g. "8.2p1 Ubuntu 4ubuntu0.13"
+        # → "8.2p1") so NVD CPE lookup gets a clean version token.
+        version = _normalize_version(version)
+        if not version:
             continue
-        out[f"{product} {version}"] = cves_for(product, version)
+
+        if product:
+            label = f"{product} {version}"
+            out[label] = cves_for(product, version)
+        elif service_name and service_name in SERVICE_NAME_FALLBACKS:
+            # No product detected — use service-name-derived fallback product.
+            fallback_product = SERVICE_NAME_FALLBACKS[service_name]
+            label = f"{fallback_product} {version} (via {service_name})"
+            out[label] = cves_for(fallback_product, version)
+
     return out
 
 

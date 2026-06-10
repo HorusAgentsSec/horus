@@ -78,6 +78,10 @@ class Settings(BaseSettings):
     rate_limit_sensitive_per_minute: int = 10  # per-IP, write-heavy endpoints
     # Honor X-Forwarded-For only behind a trusted reverse proxy (else it is spoofable).
     trust_proxy_headers: bool = False
+    # Optional Redis URL for shared rate-limit state across workers.
+    # When unset, falls back to per-process in-memory sliding window.
+    # Example: redis://localhost:6379/0  or  redis://:password@redis-host:6379/0
+    redis_url: str | None = None
 
     # ── CVE intelligence sync (CISA KEV + FIRST EPSS) ────────────────────────
     # Global reference data synced into the cve_intel table by a daily job.
