@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -45,6 +45,14 @@ class PermissionPolicyCreate(BaseModel):
     rules: list[dict]
     is_active: bool = True
 
+    @field_validator("name")
+    @classmethod
+    def name_not_blank(cls, v: str) -> str:
+        v = (v or "").strip()
+        if not v:
+            raise ValueError("name is required")
+        return v
+
 
 class PermissionPolicyUpdate(BaseModel):
     name: Optional[str] = None
@@ -53,6 +61,16 @@ class PermissionPolicyUpdate(BaseModel):
     scope_value: Optional[str] = None
     rules: Optional[list[dict]] = None
     is_active: Optional[bool] = None
+
+    @field_validator("name")
+    @classmethod
+    def name_not_blank(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            raise ValueError("name cannot be blank")
+        return v
 
 
 class ScheduleCreate(BaseModel):

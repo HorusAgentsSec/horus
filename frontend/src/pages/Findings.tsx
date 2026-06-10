@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, ChevronRight, Boxes } from 'lucide-react'
-import { api } from '../lib/api'
+import { ChevronDown, ChevronRight, Boxes, Download, Upload } from 'lucide-react'
+import { api, exportApi } from '../lib/api'
 import { useAssets } from '../hooks/useAssets'
 import { FindingCard } from '../components/findings/FindingCard'
 import { SeverityBadge } from '../components/findings/SeverityBadge'
+import { ImportModal } from '../components/ImportModal'
 
 interface Finding {
   id: string
@@ -12,12 +13,18 @@ interface Finding {
   status: string
   last_seen_at: string
   cve_ids?: string[]
+  is_noise?: boolean
   raw_data?: {
     source_service?: string | null
     exploitability?: string | null
     ssvc?: { priority?: string; label?: string } | null
   }
   assets?: { name: string; host: string }
+}
+
+interface FindingsResponse {
+  items: Finding[]
+  noise_count: number
 }
 
 const SEVERITIES = ['', 'critical', 'high', 'medium', 'low', 'info']
@@ -50,10 +57,16 @@ export default function Findings() {
   const [cveFilter, setCveFilter] = useState('')
   const [tool, setTool] = useState('')
   const [orderBy, setOrderBy] = useState('')
+  // "No X found" / scanner-noise findings are hidden by default; the banner toggles them.
+  const [showNoise, setShowNoise] = useState(false)
+  const [noiseCount, setNoiseCount] = useState(0)
 
   // Bulk selection
   const [selecting, setSelecting] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  // Import modal
+  const [showImport, setShowImport] = useState(false)
 
   const { assets } = useAssets()
 
@@ -66,13 +79,15 @@ export default function Findings() {
     if (cveFilter) params.set('cve_id', cveFilter)
     if (tool) params.set('tool', tool)
     if (orderBy) params.set('order_by', orderBy)
-    api.get<Finding[]>(`/findings?${params}`).then((data) => {
-      setFindings(data)
+    if (showNoise) params.set('include_noise', 'true')
+    api.get<FindingsResponse>(`/findings?${params}`).then((data) => {
+      setFindings(data.items)
+      setNoiseCount(data.noise_count)
       setLoading(false)
     })
   }
 
-  useEffect(load, [severity, status, assetId, cveFilter, tool, orderBy])
+  useEffect(load, [severity, status, assetId, cveFilter, tool, orderBy, showNoise])
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -122,8 +137,10 @@ export default function Findings() {
         </button>
       </div>
 
+      <ImportModal open={showImport} onClose={() => setShowImport(false)} onSuccess={load} />
+
       {/* Filter rows */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 items-center">
         <select className={select} value={severity} onChange={(e) => setSeverity(e.target.value)}>
           {SEVERITIES.map((s) => (
             <option key={s} value={s}>{s || 'All severities'}</option>
@@ -159,6 +176,29 @@ export default function Findings() {
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={() => setShowImport(true)}
+            className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-white hover:border-white/40 transition-colors flex items-center gap-1.5"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            Import
+          </button>
+          <button
+            onClick={() => exportApi.exportJsonl(showNoise)}
+            className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-white hover:border-white/40 transition-colors flex items-center gap-1.5"
+          >
+            <Download className="w-3.5 h-3.5" />
+            JSONL
+          </button>
+          <button
+            onClick={() => exportApi.exportCsv(showNoise)}
+            className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-white hover:border-white/40 transition-colors flex items-center gap-1.5"
+          >
+            <Download className="w-3.5 h-3.5" />
+            CSV
+          </button>
+        </div>
       </div>
 
       {/* Bulk action bar */}
@@ -179,6 +219,23 @@ export default function Findings() {
             className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-white transition-colors ml-auto"
           >
             Clear
+          </button>
+        </div>
+      )}
+
+      {/* Noise banner: absence-of-finding results ("No XSS found…") are hidden by default */}
+      {!loading && noiseCount > 0 && (
+        <div className="flex items-center gap-2 text-xs text-muted border border-border/60 rounded-lg px-4 py-2.5 bg-surface/50">
+          <span>
+            {showNoise
+              ? `Showing ${noiseCount} informational/absence result${noiseCount === 1 ? '' : 's'}.`
+              : `${noiseCount} informational/absence result${noiseCount === 1 ? '' : 's'} hidden.`}
+          </span>
+          <button
+            onClick={() => setShowNoise((s) => !s)}
+            className="text-accent hover:underline"
+          >
+            {showNoise ? 'Hide' : 'Show'}
           </button>
         </div>
       )}

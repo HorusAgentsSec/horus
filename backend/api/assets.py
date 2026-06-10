@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from supabase import Client
 from backend.api.auth import get_current_user, get_db
 from backend.api.deps import require_role
+from backend.api.scans import _with_triggered_by_labels
 from backend.core.audit import log_action
 from backend.core.target_validation import validate_scan_target, TargetValidationError
 from backend.models.schemas import AssetCreate, AssetUpdate
@@ -105,7 +106,7 @@ async def list_asset_scans(
     _assert_asset_owned(db, asset_id, user["org_id"])
     scans = (
         db.table("scans")
-        .select("id, status, created_at, started_at, completed_at, triggered_by_label")
+        .select("id, status, created_at, started_at, completed_at, triggered_by, triggered_by_user_id")
         .eq("asset_id", asset_id)
         .eq("org_id", user["org_id"])
         .order("created_at", desc=True)
@@ -113,7 +114,9 @@ async def list_asset_scans(
         .execute()
         .data or []
     )
-    return scans
+    # `triggered_by_label` is derived in Python from triggered_by/triggered_by_user_id;
+    # it is not a real column (selecting it directly returns a 42703 error).
+    return _with_triggered_by_labels(scans, db, user)
 
 
 @router.get("/{asset_id}/findings/summary")

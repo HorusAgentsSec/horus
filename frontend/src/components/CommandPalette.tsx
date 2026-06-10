@@ -84,11 +84,11 @@ export function CommandPalette() {
     setLoaded(true)
     Promise.allSettled([
       api.get<AssetRow[]>('/assets'),
-      api.get<FindingRow[]>('/findings'),
+      api.get<{ items: FindingRow[] }>('/findings'),
       api.get<ScanRow[]>('/scans'),
     ]).then(([a, f, s]) => {
       if (a.status === 'fulfilled') setAssets(a.value)
-      if (f.status === 'fulfilled') setFindings(f.value)
+      if (f.status === 'fulfilled') setFindings(f.value.items)
       if (s.status === 'fulfilled') setScans(s.value)
     })
   }, [open, loaded])

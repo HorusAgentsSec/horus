@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, ChevronRight } from 'lucide-react'
-import { api } from '../lib/api'
+import { api, friendlyErrorMessage } from '../lib/api'
 import { cn, modeBadgeColor } from '../lib/utils'
 
 interface Policy {
@@ -42,15 +42,25 @@ export default function Permissions() {
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
   const [newRules, setNewRules] = useState<Rule[]>([{ action: 'update_library', mode: 'suggest_only' }])
+  const [formError, setFormError] = useState<string | null>(null)
 
   const load = () => api.get<Policy[]>('/permissions').then(setPolicies)
   useEffect(() => { load() }, [])
 
   const createPolicy = async () => {
-    await api.post('/permissions', { name: newName, scope: 'org', rules: newRules })
-    setAdding(false)
-    setNewName('')
-    load()
+    if (!newName.trim()) {
+      setFormError('Policy name is required')
+      return
+    }
+    try {
+      await api.post('/permissions', { name: newName.trim(), scope: 'org', rules: newRules })
+      setAdding(false)
+      setNewName('')
+      setFormError(null)
+      load()
+    } catch (e) {
+      setFormError(friendlyErrorMessage(e, 'Failed to create policy'))
+    }
   }
 
   const deletePolicy = async (id: string) => {
@@ -107,7 +117,13 @@ export default function Permissions() {
               <h2 className="text-sm font-medium">New Policy</h2>
               <div>
                 <label className="text-xs text-muted mb-1 block">Policy name</label>
-                <input className={`${field} w-full`} value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. Internal asset automation" />
+                <input
+                  className={cn(field, 'w-full', formError && !newName.trim() && 'border-severity-critical')}
+                  value={newName}
+                  onChange={(e) => { setNewName(e.target.value); if (formError) setFormError(null) }}
+                  placeholder="e.g. Internal asset automation"
+                />
+                {formError && <p className="text-xs text-severity-critical mt-1">{formError}</p>}
               </div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -132,7 +148,7 @@ export default function Permissions() {
                 ))}
               </div>
               <div className="flex justify-end gap-3">
-                <button onClick={() => setAdding(false)} className="text-sm text-muted hover:text-white transition-colors">Cancel</button>
+                <button onClick={() => { setAdding(false); setFormError(null) }} className="text-sm text-muted hover:text-white transition-colors">Cancel</button>
                 <button onClick={createPolicy} className="text-sm bg-accent text-bg px-4 py-1.5 rounded hover:bg-accent/90 transition-colors">Save</button>
               </div>
             </div>

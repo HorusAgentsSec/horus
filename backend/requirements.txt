@@ -1,5 +1,6 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.0
+python-multipart==0.0.6
 # OpenAI-compatible SDK — works with OpenRouter, Ollama, and any provider
 openai==1.54.0
 supabase==2.9.0
@@ -13,4 +14,5 @@ python-nmap==0.7.1
 email-validator==2.2.0
 # Server-side PDF generation for the board-ready posture report
 reportlab==4.2.5
+dnspython==2.6.1
 pytest==8.3.0

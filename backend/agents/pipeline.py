@@ -320,6 +320,7 @@ def _persist_results(state: ScanState):
         logger.exception("inventory persistence failed for scan %s", state.scan_id)
 
     from backend.core import ssvc
+    from backend.core.noise import is_absence_finding
 
     seen_sigs: set[tuple] = set()
     for finding in state.analyzed_findings:
@@ -356,6 +357,9 @@ def _persist_results(state: ScanState):
                 "cvss_score": finding.cvss_score,
                 "cve_ids": finding.cve_ids,
                 "fingerprint": finding.id,
+                # "No X found" / scanner self-noise: persisted for completeness but hidden
+                # from the default findings list (see backend/core/noise.py).
+                "is_noise": is_absence_finding(finding.title, finding.severity),
                 "raw_data": {
                     "confidence": finding.confidence,
                     "rationale": finding.rationale,

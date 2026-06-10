@@ -354,6 +354,241 @@ def run_watchtower(lookback_days: int | None = None) -> dict:
     return result
 
 
+def run_ransomware_check(org_id: str, db=None) -> dict:
+    """
+    Check all assets in an org against ransomware.live victim database.
+
+    For each asset's domain, queries ransomware.live and creates a finding
+    for each match. Returns a summary: {checked: N, matches: M}.
+
+    If db is None, imports supabase_client (lazy import for testing).
+    """
+    from backend.core.ransomware_intel import check_domain, normalize_victim
+    from backend.core.supabase_client import supabase
+
+    if db is None:
+        db = supabase
+
+    logger.info(f"ransomware.live: checking org {org_id}")
+
+    # Fetch all assets for the org
+    try:
+        assets_rows = db.table("assets").select("id, host").eq("org_id", org_id).eq("is_active", True).execute().data or []
+    except Exception as e:
+        logger.error(f"ransomware.live: failed to fetch assets for org {org_id}: {e}")
+        return {"checked": 0, "matches": 0}
+
+    if not assets_rows:
+        logger.info(f"ransomware.live: no active assets for org {org_id}")
+        return {"checked": 0, "matches": 0}
+
+    now = datetime.now(timezone.utc).isoformat()
+    checked = 0
+    matches = 0
+    findings_created = []
+
+    for asset in assets_rows:
+        asset_id = asset["id"]
+        host = (asset.get("host") or "").strip()
+        if not host:
+            continue
+
+        checked += 1
+
+        # Check this asset's domain against ransomware.live
+        victims = check_domain(host)
+        if not victims:
+            continue
+
+        # For each victim match, create a finding
+        for victim in victims:
+            normalized = normalize_victim(victim)
+            group = normalized.get("group", "Unknown Group")
+            discovered = normalized.get("discovered_at", "Unknown Date")
+
+            # Deterministic fingerprint: ransomware:{group}:{domain}
+            domain_normalized = (host or "").lower().strip()
+            fingerprint = hashlib.sha256(
+                f"ransomware:{group}:{domain_normalized}".encode()
+            ).hexdigest()[:32]
+
+            title = f"Ransomware group {group} listed {domain_normalized} as victim"
+            description = (
+                f"The ransomware group '{group}' has listed {domain_normalized} "
+                f"as a victim on their leak site. Discovered: {discovered}. "
+                f"Post title: {normalized.get('title', 'N/A')}"
+            )
+
+            try:
+                res = db.table("findings").upsert(
+                    {
+                        "org_id": org_id,
+                        "asset_id": asset_id,
+                        "title": title,
+                        "description": description,
+                        "severity": "critical",
+                        "source": "ransomware.live",
+                        "is_noise": False,
+                        "fingerprint": fingerprint,
+                        "raw_data": {
+                            "source": "ransomware.live",
+                            **normalized,
+                        },
+                        "last_seen_at": now,
+                    },
+                    on_conflict="org_id,fingerprint",
+                ).execute()
+                if res.data:
+                    matches += 1
+                    findings_created.append(res.data[0].get("id"))
+            except Exception as e:
+                logger.warning(f"ransomware.live: failed to upsert finding for {group}/{domain_normalized}: {e}")
+
+    logger.info(
+        f"ransomware.live: checked {checked} assets, found {matches} ransomware matches for org {org_id}"
+    )
+    return {"checked": checked, "matches": matches}
+
+
+def run_ioc_check(org_id: str, db=None) -> dict:
+    """
+    Check all assets in an org against ThreatFox and URLhaus IOC databases.
+
+    For each asset's host (IP or domain), queries both ThreatFox and URLhaus and creates
+    findings for matches. Returns a summary: {checked: N, threatfox_matches: M, urlhaus_matches: K}.
+
+    If db is None, imports supabase_client (lazy import for testing).
+    """
+    from backend.core.abuse_intel import check_threatfox, check_urlhaus
+    from backend.core.supabase_client import supabase
+
+    if db is None:
+        db = supabase
+
+    logger.info(f"ioc_check: checking org {org_id}")
+
+    # Fetch all assets for the org
+    try:
+        assets_rows = db.table("assets").select("id, host").eq("org_id", org_id).eq("is_active", True).execute().data or []
+    except Exception as e:
+        logger.error(f"ioc_check: failed to fetch assets for org {org_id}: {e}")
+        return {"checked": 0, "threatfox_matches": 0, "urlhaus_matches": 0}
+
+    if not assets_rows:
+        logger.info(f"ioc_check: no active assets for org {org_id}")
+        return {"checked": 0, "threatfox_matches": 0, "urlhaus_matches": 0}
+
+    now = datetime.now(timezone.utc).isoformat()
+    checked = 0
+    threatfox_matches = 0
+    urlhaus_matches = 0
+
+    for asset in assets_rows:
+        asset_id = asset["id"]
+        host = (asset.get("host") or "").strip()
+        if not host:
+            continue
+
+        checked += 1
+
+        # Check against ThreatFox
+        threatfox_result = check_threatfox(host)
+        if threatfox_result.get("found"):
+            for threat in threatfox_result.get("threats", []):
+                malware = threat.get("malware") or threat.get("threat_type") or "Unknown"
+                fingerprint = hashlib.sha256(
+                    f"threatfox:{host}:{malware}".encode()
+                ).hexdigest()[:32]
+
+                title = f"Asset {host} listed as IOC in ThreatFox ({malware})"
+                description = (
+                    f"The asset {host} is listed in ThreatFox as an indicator of compromise. "
+                    f"Threat type: {threat.get('threat_type', 'Unknown')}. "
+                    f"Malware: {malware}. "
+                    f"Confidence: {threat.get('confidence_level', 'Unknown')}%. "
+                    f"First seen: {threat.get('first_seen', 'Unknown')}."
+                )
+
+                try:
+                    res = db.table("findings").upsert(
+                        {
+                            "org_id": org_id,
+                            "asset_id": asset_id,
+                            "title": title,
+                            "description": description,
+                            "severity": "critical",
+                            "source": "threatfox",
+                            "is_noise": False,
+                            "fingerprint": fingerprint,
+                            "raw_data": {
+                                "source": "threatfox",
+                                "ioc_type": threat.get("ioc_type"),
+                                "threat_type": threat.get("threat_type"),
+                                "malware": malware,
+                                "confidence_level": threat.get("confidence_level"),
+                                "first_seen": threat.get("first_seen"),
+                                "last_seen": threat.get("last_seen"),
+                                "reference": threat.get("reference"),
+                                "tags": threat.get("tags"),
+                            },
+                            "last_seen_at": now,
+                        },
+                        on_conflict="org_id,fingerprint",
+                    ).execute()
+                    if res.data:
+                        threatfox_matches += 1
+                except Exception as e:
+                    logger.warning(f"ioc_check: failed to upsert ThreatFox finding for {host}: {e}")
+
+        # Check against URLhaus
+        urlhaus_result = check_urlhaus(host)
+        if urlhaus_result.get("found"):
+            fingerprint = hashlib.sha256(
+                f"urlhaus:{host}".encode()
+            ).hexdigest()[:32]
+
+            title = f"Asset {host} hosts malicious URLs (URLhaus)"
+            url_count = len(urlhaus_result.get("urls", []))
+            url_list = ", ".join([u.get("url", "") for u in urlhaus_result.get("urls", [])[:5]])
+            if url_count > 5:
+                url_list += f", ... and {url_count - 5} more"
+
+            description = (
+                f"The asset {host} is listed in URLhaus as hosting malicious content. "
+                f"Found {url_count} malicious URL(s): {url_list}"
+            )
+
+            try:
+                res = db.table("findings").upsert(
+                    {
+                        "org_id": org_id,
+                        "asset_id": asset_id,
+                        "title": title,
+                        "description": description,
+                        "severity": "high",
+                        "source": "urlhaus",
+                        "is_noise": False,
+                        "fingerprint": fingerprint,
+                        "raw_data": {
+                            "source": "urlhaus",
+                            "urls": urlhaus_result.get("urls", []),
+                            "url_count": url_count,
+                        },
+                        "last_seen_at": now,
+                    },
+                    on_conflict="org_id,fingerprint",
+                ).execute()
+                if res.data:
+                    urlhaus_matches += 1
+            except Exception as e:
+                logger.warning(f"ioc_check: failed to upsert URLhaus finding for {host}: {e}")
+
+    logger.info(
+        f"ioc_check: checked {checked} assets, found {threatfox_matches} ThreatFox + {urlhaus_matches} URLhaus matches for org {org_id}"
+    )
+    return {"checked": checked, "threatfox_matches": threatfox_matches, "urlhaus_matches": urlhaus_matches}
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     print(run_watchtower())

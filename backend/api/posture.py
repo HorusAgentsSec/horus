@@ -56,7 +56,7 @@ async def normalized_metrics(
 
     critical_findings = (
         db.table("findings")
-        .select("status, created_at, updated_at")
+        .select("status, created_at, last_seen_at")
         .eq("org_id", org_id)
         .eq("severity", "critical")
         .execute()
@@ -67,11 +67,13 @@ async def normalized_metrics(
         f for f in critical_findings
         if f["status"] in ("resolved", "accepted_risk", "false_positive")
     ]
+    # findings has no updated_at; last_seen_at is the closest proxy for "when it was closed"
+    # (once remediated, the scanner stops detecting it, so last_seen_at ≈ resolution time).
     fast_closed = [
         f for f in closed_critical
-        if f.get("updated_at") and f.get("created_at")
+        if f.get("last_seen_at") and f.get("created_at")
         and (
-            datetime.fromisoformat(f["updated_at"].replace("Z", "+00:00"))
+            datetime.fromisoformat(f["last_seen_at"].replace("Z", "+00:00"))
             - datetime.fromisoformat(f["created_at"].replace("Z", "+00:00"))
         ).days <= 7
     ]

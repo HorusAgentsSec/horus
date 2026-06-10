@@ -28,7 +28,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     api.get<Stats>('/dashboard/stats').then(setStats)
-    api.get<unknown[]>('/findings?per_page=10').then(setFindings)
+    api.get<{ items: unknown[] }>('/findings?per_page=10').then((r) => setFindings(r.items))
     supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) return
       const { data: profile } = await supabase
@@ -45,7 +45,7 @@ export default function Dashboard() {
   })
 
   useRealtime('findings', orgId, () => {
-    api.get<unknown[]>('/findings?per_page=10').then(setFindings)
+    api.get<{ items: unknown[] }>('/findings?per_page=10').then((r) => setFindings(r.items))
   })
 
   if (!stats) return <div className="text-white/60 text-sm">Loading…</div>

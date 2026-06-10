@@ -141,6 +141,10 @@ export const api = {
     getCache.clear()
     return request<T>(path, { method: 'POST', body: JSON.stringify(body) })
   },
+  put: <T>(path: string, body?: unknown) => {
+    getCache.clear()
+    return request<T>(path, { method: 'PUT', body: JSON.stringify(body) })
+  },
   patch: <T>(path: string, body?: unknown) => {
     getCache.clear()
     return request<T>(path, { method: 'PATCH', body: JSON.stringify(body) })
@@ -150,4 +154,159 @@ export const api = {
     return request<T>(path, { method: 'DELETE' })
   },
   download,
+}
+
+// ── BreachDirectory credential check ─────────────────────────────────────────
+
+export interface BreachDirectorySource {
+  name: string
+  date: string | null
+  count: number
+}
+
+export interface BreachDirectoryResult {
+  found: boolean
+  sources: BreachDirectorySource[]
+  sha1_hash: string | null
+}
+
+export async function checkBreachDirectory(
+  term: string,
+  type: 'email' | 'domain' = 'email'
+): Promise<BreachDirectoryResult> {
+  return api.post<BreachDirectoryResult>('/hibp/breach-directory/check', { term, type })
+}
+
+// ── Jira ticketing ──────────────────────────────────────────────────────────
+
+export interface JiraTicket {
+  id: string
+  finding_id: string
+  provider: string
+  ticket_key: string
+  ticket_url: string
+  created_at: string
+}
+
+export interface JiraStatus {
+  configured: boolean
+  enabled: boolean
+  project_key: string | null
+}
+
+export const jiraApi = {
+  status: () => api.get<JiraStatus>('/integrations/jira/status'),
+  testConnection: () => api.post<{ ok: boolean; account: string }>('/integrations/jira/test'),
+  createTicket: (findingId: string) =>
+    api.post<JiraTicket & { created: boolean }>('/integrations/jira/tickets', { finding_id: findingId }),
+  getTickets: (findingId: string) =>
+    api.get<JiraTicket[]>(`/integrations/jira/tickets?finding_id=${encodeURIComponent(findingId)}`),
+}
+
+// ── SIEM export ─────────────────────────────────────────────────────────────
+
+export const exportApi = {
+  exportJsonl: (includeNoise = false) =>
+    api.download(`/findings/export?format=jsonl&include_noise=${includeNoise}`, 'findings.jsonl'),
+  exportCsv: (includeNoise = false) =>
+    api.download(`/findings/export?format=csv&include_noise=${includeNoise}`, 'findings.csv'),
+}
+
+// ── IntelligenceX dark web search ──────────────────────────────────────────
+
+export interface IntelRecord {
+  name: string
+  date: string
+  bucket: string
+  source: string
+}
+
+export interface IntelSearchResponse {
+  results: IntelRecord[]
+  total: number
+  darkweb_count: number
+}
+
+export const intelApi = {
+  search: (term: string, type: 'domain' | 'ip' | 'email' = 'domain') =>
+    api.post<IntelSearchResponse>('/intel/search', { term, type }),
+}
+
+// ── Ransomware.live monitoring ──────────────────────────────────────────────
+
+export interface RansomwareCheckResult {
+  checked: number
+  matches: number
+  status: string
+}
+
+export interface RansomwareVictim {
+  id: string
+  title: string
+  severity: string
+  source: string
+  raw_data: {
+    source: string
+    title: string
+    group: string
+    victim: string
+    discovered_at: string
+    leak_url: string
+    description: string
+    website: string
+    country: string
+  }
+  first_seen_at: string
+}
+
+export const ransomwareApi = {
+  checkNow: () =>
+    api.post<RansomwareCheckResult>('/watchtower/ransomware-check'),
+  listVictims: () =>
+    api.get<RansomwareVictim[]>('/watchtower/ransomware-victims'),
+}
+
+// abuse.ch ThreatFox + URLhaus IOC feeds
+export interface IOCCheckResult {
+  term: string
+  threatfox: {
+    found: boolean
+    threats: Array<{
+      ioc_type: string
+      threat_type: string
+      malware: string | null
+      confidence_level: number
+      first_seen: string
+      reference: string
+      source: string
+    }>
+  }
+  urlhaus: {
+    found: boolean
+    urls: Array<{
+      url: string
+      url_status: string
+      threat: string
+      date_added: string
+      urlhaus_link: string
+      source: string
+    }>
+  }
+}
+
+export interface IOCScanResult {
+  checked: number
+  threatfox_matches: number
+  urlhaus_matches: number
+  status: string
+  org_id: string
+}
+
+export const threatFeedsApi = {
+  checkIOC: (term: string) =>
+    api.post<IOCCheckResult>('/threat-feeds/check-ioc', { term }),
+  scanAssets: () =>
+    api.post<IOCScanResult>('/threat-feeds/scan-assets'),
+  listFindings: () =>
+    api.get<any[]>('/threat-feeds/findings'),
 }

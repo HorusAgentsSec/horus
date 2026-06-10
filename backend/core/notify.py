@@ -1,5 +1,5 @@
 """
-Notification dispatch — Slack + email + PagerDuty + OpsGenie.
+Notification dispatch — Slack + email + PagerDuty + OpsGenie + outgoing webhooks.
 
 Best-effort by design (like core.audit): a failing or misconfigured integration must
 NEVER break a scan. After a scan completes, `notify_scan_complete` builds a findings
@@ -11,10 +11,18 @@ Integration config (stored in the integrations.config jsonb, read with service-r
           optional SMTP overrides: smtp_host/smtp_port/smtp_user/smtp_password/from_addr/use_tls}
   PagerDuty: {"integration_key": "..."}
   OpsGenie: {"api_key": "..."}
+  Webhook: {"url": "https://...", "secret": "<optional HMAC key>"}
+    Outgoing automation hook: fires `finding.critical.new` when a scan surfaces NEW critical
+    findings (first seen by that scan). The JSON body is signed with HMAC-SHA256 in the
+    `X-Horus-Signature: sha256=<hex>` header so the receiver can verify authenticity.
 """
 
+import hashlib
+import hmac
+import json
 import logging
 import smtplib
+from datetime import datetime, timezone
 from email.message import EmailMessage
 
 import httpx
@@ -172,6 +180,21 @@ def _opsgenie_trigger(
     resp.raise_for_status()
 
 
+def _webhook_post(url: str, secret: str, event: str, data: dict) -> None:
+    """POST a signed JSON event to an outgoing webhook. The body is signed with
+    HMAC-SHA256 over the exact bytes sent, exposed as `X-Horus-Signature: sha256=<hex>`."""
+    body = json.dumps(
+        {"event": event, "sent_at": datetime.now(timezone.utc).isoformat(), "data": data},
+        default=str,
+    ).encode()
+    headers = {"Content-Type": "application/json", "X-Horus-Event": event}
+    if secret:
+        sig = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+        headers["X-Horus-Signature"] = f"sha256={sig}"
+    resp = httpx.post(url, content=body, headers=headers, timeout=_HTTP_TIMEOUT)
+    resp.raise_for_status()
+
+
 def _ssvc_pagerduty_severity(ssvc_priority: str) -> str:
     """Map SSVC priority to PagerDuty severity string."""
     return {"act": "critical", "attend": "error"}.get(ssvc_priority, "warning")
@@ -188,8 +211,9 @@ def _dispatch(integration: dict, summary: dict) -> None:
     itype = integration["type"]
     config = integration.get("config") or {}
 
-    # PagerDuty and OpsGenie are SSVC-driven — dispatched separately in notify_scan_complete.
-    if itype in ("pagerduty", "opsgenie"):
+    # PagerDuty/OpsGenie (SSVC-driven), webhooks (new-critical-driven) and Jira (on-demand
+    # ticketing) don't take the scan summary — they're dispatched through their own paths.
+    if itype in ("pagerduty", "opsgenie", "webhook", "jira"):
         return
 
     min_sev = config.get("min_severity") or settings.notify_default_min_severity
@@ -324,6 +348,55 @@ def notify_scan_complete(scan_id: str, org_id: str) -> None:
                 _dispatch_ssvc_act(integration, asset_name, act_findings)
             except Exception:
                 logger.exception("notify: ssvc-act integration %s failed", integration.get("id"))
+
+    # Outgoing webhooks: fire only on NEW critical findings (first seen by this scan), so a
+    # downstream automation (playbook runner, ticket bot, SIEM) can act exactly once per finding.
+    webhooks = [i for i in integrations if i["type"] == "webhook"]
+    if webhooks:
+        try:
+            new_criticals = _new_critical_findings(scan_id, scan.get("started_at"))
+        except Exception:
+            logger.exception("notify: could not load new critical findings for scan %s", scan_id)
+            new_criticals = []
+        if new_criticals:
+            payload = {
+                "org_id": org_id,
+                "scan_id": scan_id,
+                "asset": asset_name,
+                "findings": new_criticals,
+            }
+            for integration in webhooks:
+                config = integration.get("config") or {}
+                url = config.get("url")
+                if not url:
+                    logger.warning("notify: webhook %s has no 'url', skipping", integration.get("id"))
+                    continue
+                try:
+                    _webhook_post(url, config.get("secret", ""), "finding.critical.new", payload)
+                    logger.info("notify: webhook delivered for scan %s", scan_id)
+                except Exception:
+                    logger.exception("notify: webhook integration %s failed", integration.get("id"))
+
+
+def _new_critical_findings(scan_id: str, started_at: str | None) -> list[dict]:
+    """Critical findings this scan saw for the first time (first_seen_at >= scan start),
+    excluding likely false positives — same suppression the posture score applies."""
+    from backend.core.posture import is_suppressed
+
+    q = (
+        supabase.table("findings")
+        .select("id, title, severity, cve_ids, first_seen_at, raw_data")
+        .eq("scan_id", scan_id)
+        .eq("severity", "critical")
+    )
+    if started_at:
+        q = q.gte("first_seen_at", started_at)
+    rows = q.execute().data or []
+    return [
+        {k: f.get(k) for k in ("id", "title", "severity", "cve_ids", "first_seen_at")}
+        for f in rows
+        if not is_suppressed(f.get("raw_data"))
+    ]
 
 
 # ── Watchtower alerts ─────────────────────────────────────────────────────────
@@ -579,5 +652,18 @@ def send_test(integration: dict) -> None:
             priority="P5",
             tags=["horus", "test"],
         )
+    elif itype == "webhook":
+        url = config.get("url", "")
+        if not url:
+            raise ValueError("webhook integration missing 'url'")
+        _webhook_post(
+            url,
+            config.get("secret", ""),
+            "test",
+            {"message": "Horus webhook test — verify the HMAC in X-Horus-Signature"},
+        )
+    elif itype == "jira":
+        from backend.core.ticketing import test_connection
+        test_connection(config)  # raises JiraError with an actionable message on failure
     else:
         raise ValueError(f"unknown integration type: {itype}")

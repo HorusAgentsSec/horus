@@ -24,17 +24,52 @@ interface AuditResponse {
 }
 
 // Maps known action strings to a readable label and a tone color.
+// Keep in sync with the log_action(...) calls across the backend.
 const ACTION_META: Record<string, { label: string; tone: string }> = {
+  // Team
   'team.member_invited': { label: 'Member invited', tone: 'text-accent' },
   'team.role_changed': { label: 'Role changed', tone: 'text-mode-approval' },
   'team.member_removed': { label: 'Member removed', tone: 'text-severity-critical' },
+  // Account / org
+  'account.password_changed': { label: 'Password changed', tone: 'text-mode-approval' },
+  'org.created': { label: 'Organization created', tone: 'text-mode-auto' },
+  'settings.updated': { label: 'Settings updated', tone: 'text-mode-approval' },
+  // Assets
+  'asset.created': { label: 'Asset created', tone: 'text-mode-auto' },
+  'asset.updated': { label: 'Asset updated', tone: 'text-mode-approval' },
   'asset.deleted': { label: 'Asset deleted', tone: 'text-severity-critical' },
+  // Scans
   'scan.triggered': { label: 'Scan triggered', tone: 'text-accent' },
+  'scan.scan_all': { label: 'Scan all triggered', tone: 'text-accent' },
+  'scan.canceled': { label: 'Scan canceled', tone: 'text-severity-high' },
+  'scan.cancel_active': { label: 'Active scan canceled', tone: 'text-severity-high' },
+  'job.canceled': { label: 'Job canceled', tone: 'text-severity-high' },
+  // Discovery
+  'discovery.run': { label: 'Discovery run', tone: 'text-accent' },
+  // Permissions
   'permission_policy.created': { label: 'Policy created', tone: 'text-mode-auto' },
   'permission_policy.updated': { label: 'Policy updated', tone: 'text-mode-approval' },
   'permission_policy.deleted': { label: 'Policy deleted', tone: 'text-severity-critical' },
+  // Suggestions
   'suggestion.approved': { label: 'Suggestion approved', tone: 'text-mode-auto' },
   'suggestion.rejected': { label: 'Suggestion rejected', tone: 'text-severity-high' },
+  // Integrations
+  'integration.created': { label: 'Integration created', tone: 'text-mode-auto' },
+  'integration.updated': { label: 'Integration updated', tone: 'text-mode-approval' },
+  'integration.deleted': { label: 'Integration deleted', tone: 'text-severity-critical' },
+  // Adversarial
+  'adversarial.run_triggered': { label: 'Adversarial run', tone: 'text-accent' },
+  'adversarial.finding_updated': { label: 'Adversarial finding updated', tone: 'text-mode-approval' },
+  // Phishing / human attack surface
+  'campaign.created': { label: 'Campaign created', tone: 'text-mode-auto' },
+  'campaign.launched': { label: 'Campaign launched', tone: 'text-accent' },
+  'campaign.deleted': { label: 'Campaign deleted', tone: 'text-severity-critical' },
+  'phishing.campaign_launched': { label: 'Phishing campaign launched', tone: 'text-accent' },
+  'employee.created': { label: 'Employee added', tone: 'text-mode-auto' },
+  'employee.deleted': { label: 'Employee removed', tone: 'text-severity-critical' },
+  'employee.import': { label: 'Employees imported', tone: 'text-mode-auto' },
+  // Credential exposure
+  'hibp.check': { label: 'Breach check run', tone: 'text-accent' },
 }
 
 const ACTION_FILTERS = ['', ...Object.keys(ACTION_META)]

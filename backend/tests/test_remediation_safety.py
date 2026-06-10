@@ -6,7 +6,7 @@ key trust guarantee end-to-end: a permission rule that says "auto" cannot make a
 auto-execute — the RiskManager caps it.
 """
 
-from backend.agents.risk_manager_agent import RiskManagerAgent
+from backend.agents.risk_manager_agent import run_risk_manager
 from backend.agents.state import (
     AnalyzedFinding, AssetInfo, EnrichedFinding, RemediationSuggestion, ScanState,
 )
@@ -66,7 +66,7 @@ def _state(action_type, command, rules):
 def test_auto_rule_cannot_auto_run_destructive():
     rules = [{"name": "trust-all", "action": "*", "mode": "auto"}]
     state = _state("update_library", "rm -rf /data", rules)
-    RiskManagerAgent().run(state)
+    run_risk_manager(state)
     d = state.risk_decisions[0]
     assert d.safety_tier == rs.DESTRUCTIVE
     assert d.mode == "suggest_only"          # capped despite the auto rule
@@ -76,7 +76,7 @@ def test_auto_rule_cannot_auto_run_destructive():
 def test_auto_rule_allowed_for_reversible():
     rules = [{"name": "trust-all", "action": "*", "mode": "auto"}]
     state = _state("block_ip", "iptables -A INPUT -s 1.2.3.4 -j DROP", rules)
-    RiskManagerAgent().run(state)
+    run_risk_manager(state)
     d = state.risk_decisions[0]
     assert d.safety_tier == rs.REVERSIBLE
     assert d.mode == "auto"                  # reversible may auto-run
@@ -85,7 +85,7 @@ def test_auto_rule_allowed_for_reversible():
 def test_ssvc_path_also_clamped():
     # No matching rule → SSVC decides, then safety still caps a destructive fix.
     state = _state("patch_config", "drop database prod;", rules=[])
-    RiskManagerAgent().run(state)
+    run_risk_manager(state)
     d = state.risk_decisions[0]
     assert d.safety_tier == rs.DESTRUCTIVE
     assert d.mode == "suggest_only"

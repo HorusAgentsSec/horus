@@ -1,22 +1,19 @@
 """
-ThreatIntelAgent — enriches analyzed findings with CVE context and exploitability.
+run_threat_intel — enriches analyzed findings with CVE context and exploitability.
 
-DETERMINISTIC: this agent no longer asks the LLM to recall CVE/exploit data (which
-was expensive and hallucinated fake CVE-IDs and references). It now does a single
-lookup against the local `cve_intel` table (CISA KEV + FIRST EPSS), synced daily by
-backend.core.cve_intel. Zero tokens, trusted data.
+DETERMINISTIC: single lookup against the local cve_intel table (CISA KEV + FIRST EPSS),
+synced daily by backend.core.cve_intel. Zero tokens, trusted data.
 
 Exploitability is derived from real signals:
-  - in KEV (exploited in the wild)      -> "active"
+  - in KEV (exploited in the wild)        -> "active"
   - EPSS >= 0.5 (high exploit probability) -> "high"
-  - EPSS >= 0.1                          -> "medium"
-  - EPSS > 0                             -> "low"
-  - otherwise / no CVE match             -> "none"
+  - EPSS >= 0.1                            -> "medium"
+  - EPSS > 0                               -> "low"
+  - otherwise / no CVE match               -> "none"
 """
 
 import logging
 
-from backend.agents.base import BaseAgent
 from backend.agents.state import ScanState, EnrichedFinding
 from backend.core.cve_intel import lookup_cves
 
@@ -68,39 +65,35 @@ def _threat_context(row: dict | None) -> str:
     return " ".join(parts) or "CVE present in catalog; no active-exploitation signal."
 
 
-class ThreatIntelAgent(BaseAgent):
-    agent_type = "threat_intel"
-
-    def run(self, state: ScanState) -> ScanState:
-        if not state.analyzed_findings:
-            return state
-
-        # One DB round-trip for every CVE referenced across all findings.
-        all_cves = [c for f in state.analyzed_findings for c in f.cve_ids]
-        intel = lookup_cves(all_cves)
-
-        enriched = []
-        kev_hits = 0
-        for f in state.analyzed_findings:
-            row = _best_intel(f.cve_ids, intel)
-            in_kev = bool(row and row.get("in_kev"))
-            epss = row.get("epss_score") if row else None
-            if in_kev:
-                kev_hits += 1
-            enriched.append(
-                EnrichedFinding(
-                    finding_id=f.id,
-                    threat_context=_threat_context(row),
-                    exploitability=_exploitability(in_kev, epss),
-                    public_exploits_exist=in_kev or (epss is not None and epss >= 0.5),
-                    references=(row.get("refs") or []) if row else [],
-                )
-            )
-
-        state.enriched_findings = enriched
-        logger.info(
-            "ThreatIntelAgent: enriched %d findings via cve_intel (%d in KEV), 0 tokens",
-            len(enriched),
-            kev_hits,
-        )
+def run_threat_intel(state: ScanState) -> ScanState:
+    if not state.analyzed_findings:
         return state
+
+    all_cves = [c for f in state.analyzed_findings for c in f.cve_ids]
+    intel = lookup_cves(all_cves)
+
+    enriched = []
+    kev_hits = 0
+    for f in state.analyzed_findings:
+        row = _best_intel(f.cve_ids, intel)
+        in_kev = bool(row and row.get("in_kev"))
+        epss = row.get("epss_score") if row else None
+        if in_kev:
+            kev_hits += 1
+        enriched.append(
+            EnrichedFinding(
+                finding_id=f.id,
+                threat_context=_threat_context(row),
+                exploitability=_exploitability(in_kev, epss),
+                public_exploits_exist=in_kev or (epss is not None and epss >= 0.5),
+                references=(row.get("refs") or []) if row else [],
+            )
+        )
+
+    state.enriched_findings = enriched
+    logger.info(
+        "run_threat_intel: enriched %d findings via cve_intel (%d in KEV), 0 tokens",
+        len(enriched),
+        kev_hits,
+    )
+    return state

@@ -27,6 +27,7 @@ import Adversarial from './pages/Adversarial'
 import AdversarialDetail from './pages/AdversarialDetail'
 import AuthPhishing from './pages/AuthPhishing'
 import CredentialExposure from './pages/CredentialExposure'
+import NotFound from './pages/NotFound'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, mustChangePassword } = useAuth()
@@ -108,6 +109,12 @@ export default function App() {
           <Route path="adversarial/:id" element={<AdversarialDetail />} />
           <Route path="auth-phishing" element={<AuthPhishing />} />
           <Route path="credential-exposure" element={<CredentialExposure />} />
+          {/* Legacy paths (old bookmarks / muscle memory) — redirect, don't 404. */}
+          <Route path="red-blue" element={<Navigate to="/adversarial" replace />} />
+          <Route path="red-blue/:id" element={<Navigate to="/adversarial" replace />} />
+          <Route path="audit-log" element={<Navigate to="/audit" replace />} />
+          {/* Catch-all: friendly 404 inside the layout instead of a blank screen. */}
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -13,8 +13,15 @@ export function ShortcutsOverlay() {
   }, [active, elements]);
 
   useEffect(() => {
+    const isInputFocused = () => {
+      const el = document.activeElement;
+      if (!el) return false;
+      const tag = el.tagName.toLowerCase();
+      return tag === 'input' || tag === 'textarea' || tag === 'select' || (el as HTMLElement).isContentEditable;
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Shift' && !e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      if (e.key === 'Shift' && !e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey && !isInputFocused()) {
         setActive(true);
         const clickable = Array.from(document.querySelectorAll('button, a, [role="button"]'))
             .filter(el => {
@@ -31,7 +38,7 @@ export function ShortcutsOverlay() {
         setElements(els);
       }
       
-      if (activeRef.current && e.key !== 'Shift') {
+      if (activeRef.current && e.key !== 'Shift' && !isInputFocused()) {
         const char = e.key.toUpperCase();
         const target = elementsRef.current.find(item => item.key === char);
         if (target) {

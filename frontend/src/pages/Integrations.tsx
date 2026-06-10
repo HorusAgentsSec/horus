@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Bell, Slack, Mail, Plus, Trash2, Send, X, FileText, AlertTriangle } from 'lucide-react'
-import { api, friendlyErrorMessage } from '../lib/api'
+import { Bell, Slack, Mail, Plus, Trash2, Send, X, FileText, AlertTriangle, Ticket, Webhook } from 'lucide-react'
+import { api, jiraApi, friendlyErrorMessage } from '../lib/api'
 import { useRole } from '../hooks/useRole'
 import { cn } from '../lib/utils'
 
-type IntegrationType = 'slack' | 'email' | 'pagerduty' | 'opsgenie'
+type IntegrationType = 'slack' | 'email' | 'pagerduty' | 'opsgenie' | 'jira' | 'webhook'
 
 interface Integration {
   id: string
@@ -53,13 +53,18 @@ export default function Integrations() {
     load()
   }
 
-  const test = async (id: string) => {
-    setStatus({ id, msg: 'Sending…', ok: true })
+  const test = async (it: Integration) => {
+    setStatus({ id: it.id, msg: it.type === 'jira' ? 'Testing connection…' : 'Sending…', ok: true })
     try {
-      await api.post(`/integrations/${id}/test`)
-      setStatus({ id, msg: 'Test sent ✓', ok: true })
+      if (it.type === 'jira') {
+        const res = await jiraApi.testConnection()
+        setStatus({ id: it.id, msg: `Connected as ${res.account} ✓`, ok: true })
+      } else {
+        await api.post(`/integrations/${it.id}/test`)
+        setStatus({ id: it.id, msg: 'Test sent ✓', ok: true })
+      }
     } catch (e) {
-      setStatus({ id, msg: friendlyErrorMessage(e, 'Test failed'), ok: false })
+      setStatus({ id: it.id, msg: friendlyErrorMessage(e, 'Test failed'), ok: false })
     }
   }
 
@@ -104,16 +109,24 @@ export default function Integrations() {
                   <Slack className="w-5 h-5 text-accent shrink-0" />
                 ) : it.type === 'email' ? (
                   <Mail className="w-5 h-5 text-accent shrink-0" />
+                ) : it.type === 'jira' ? (
+                  <Ticket className="w-5 h-5 text-accent shrink-0" />
+                ) : it.type === 'webhook' ? (
+                  <Webhook className="w-5 h-5 text-accent shrink-0" />
                 ) : (
                   <AlertTriangle className="w-5 h-5 text-accent shrink-0" />
                 )}
                 <div className="min-w-0">
-                  <p className="text-white capitalize">{it.type === 'pagerduty' ? 'PagerDuty' : it.type === 'opsgenie' ? 'OpsGenie' : it.type}</p>
+                  <p className="text-white capitalize">{it.type === 'pagerduty' ? 'PagerDuty' : it.type === 'opsgenie' ? 'OpsGenie' : it.type === 'jira' ? 'Jira' : it.type === 'webhook' ? 'Outgoing webhook' : it.type}</p>
                   <p className="text-xs text-muted truncate">
                     {it.type === 'slack'
                       ? it.config.webhook_url || 'webhook'
                       : it.type === 'email'
                       ? (it.config.to || []).join(', ') || 'no recipients'
+                      : it.type === 'jira'
+                      ? `${it.config.base_url || 'no URL'} · project ${it.config.project_key || '?'} · tickets from findings`
+                      : it.type === 'webhook'
+                      ? `${it.config.url || 'no URL'} · fires on new critical findings · HMAC-signed`
                       : it.type === 'pagerduty'
                       ? 'Events API v2 · SSVC-Act triggers P1'
                       : 'Alerts API · SSVC-Act triggers P1'}
@@ -143,10 +156,10 @@ export default function Integrations() {
                   </button>
                 )}
                 <button
-                  onClick={() => test(it.id)}
+                  onClick={() => test(it)}
                   className="flex items-center gap-1 text-xs text-muted hover:text-white transition-colors"
                 >
-                  <Send className="w-3.5 h-3.5" /> Test
+                  <Send className="w-3.5 h-3.5" /> {it.type === 'jira' ? 'Test connection' : 'Test'}
                 </button>
                 <button
                   onClick={() => toggle(it)}
@@ -181,6 +194,8 @@ function AddForm({ onCreated }: { onCreated: () => void }) {
   const [boardReport, setBoardReport] = useState(false)
   const [pdKey, setPdKey] = useState('')
   const [ogKey, setOgKey] = useState('')
+  const [jira, setJira] = useState({ base_url: '', user_email: '', api_token: '', project_key: '' })
+  const [hook, setHook] = useState({ url: '', secret: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -206,6 +221,19 @@ function AddForm({ onCreated }: { onCreated: () => void }) {
     } else if (type === 'opsgenie') {
       if (!ogKey.trim()) return setError('API key is required')
       config.api_key = ogKey.trim()
+    } else if (type === 'jira') {
+      if (!jira.base_url.trim()) return setError('Base URL is required (https://yourcompany.atlassian.net)')
+      if (!jira.user_email.trim()) return setError('User email is required')
+      if (!jira.api_token.trim()) return setError('API token is required')
+      if (!jira.project_key.trim()) return setError('Project key is required')
+      config.base_url = jira.base_url.trim()
+      config.user_email = jira.user_email.trim()
+      config.api_token = jira.api_token.trim()
+      config.project_key = jira.project_key.trim().toUpperCase()
+    } else if (type === 'webhook') {
+      if (!hook.url.trim()) return setError('Webhook URL is required')
+      config.url = hook.url.trim()
+      if (hook.secret.trim()) config.secret = hook.secret.trim()
     }
     setSaving(true)
     try {
@@ -223,6 +251,8 @@ function AddForm({ onCreated }: { onCreated: () => void }) {
     { value: 'email', label: 'Email', icon: <Mail className="w-4 h-4" /> },
     { value: 'pagerduty', label: 'PagerDuty', icon: <AlertTriangle className="w-4 h-4" /> },
     { value: 'opsgenie', label: 'OpsGenie', icon: <AlertTriangle className="w-4 h-4" /> },
+    { value: 'jira', label: 'Jira', icon: <Ticket className="w-4 h-4" /> },
+    { value: 'webhook', label: 'Webhook', icon: <Webhook className="w-4 h-4" /> },
   ]
 
   const showSeveritySelector = type === 'slack' || type === 'email'
@@ -305,7 +335,7 @@ function AddForm({ onCreated }: { onCreated: () => void }) {
           </div>
           <p className="text-xs text-muted">Triggers P1 incidents for SSVC &lsquo;Act&rsquo; findings</p>
         </div>
-      ) : (
+      ) : type === 'opsgenie' ? (
         <div className="space-y-3">
           <div>
             <label className={label}>API Key</label>
@@ -318,6 +348,79 @@ function AddForm({ onCreated }: { onCreated: () => void }) {
             />
           </div>
           <p className="text-xs text-muted">Creates P1 alerts for SSVC &lsquo;Act&rsquo; findings</p>
+        </div>
+      ) : type === 'jira' ? (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={label}>Base URL</label>
+              <input
+                className={input}
+                value={jira.base_url}
+                onChange={(e) => setJira({ ...jira, base_url: e.target.value })}
+                placeholder="https://yourcompany.atlassian.net"
+              />
+            </div>
+            <div>
+              <label className={label}>Project key</label>
+              <input
+                className={input}
+                value={jira.project_key}
+                onChange={(e) => setJira({ ...jira, project_key: e.target.value })}
+                placeholder="SEC"
+              />
+            </div>
+            <div>
+              <label className={label}>User email</label>
+              <input
+                className={input}
+                value={jira.user_email}
+                onChange={(e) => setJira({ ...jira, user_email: e.target.value })}
+                placeholder="bot@yourcompany.com"
+              />
+            </div>
+            <div>
+              <label className={label}>API token</label>
+              <input
+                className={input}
+                type="password"
+                value={jira.api_token}
+                onChange={(e) => setJira({ ...jira, api_token: e.target.value })}
+                placeholder="Atlassian API token"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted">
+            Create Jira issues from findings. After saving, use &ldquo;Test connection&rdquo; on the
+            card to verify the credentials.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div>
+            <label className={label}>Webhook URL</label>
+            <input
+              className={input}
+              value={hook.url}
+              onChange={(e) => setHook({ ...hook, url: e.target.value })}
+              placeholder="https://automation.yourcompany.com/horus"
+            />
+          </div>
+          <div>
+            <label className={label}>Signing secret (optional)</label>
+            <input
+              className={input}
+              type="password"
+              value={hook.secret}
+              onChange={(e) => setHook({ ...hook, secret: e.target.value })}
+              placeholder="Used to HMAC-SHA256 sign the payload (X-Horus-Signature)"
+            />
+          </div>
+          <p className="text-xs text-muted">
+            POSTs a JSON event when a scan finds <span className="text-white">new critical
+            findings</span>. Verify the body with HMAC-SHA256 of the secret against the
+            X-Horus-Signature header.
+          </p>
         </div>
       )}
 

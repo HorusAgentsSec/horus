@@ -9,10 +9,10 @@ import pytest
 
 from backend.agents import base
 from backend.agents.analyst_agent import AnalystAgent
-from backend.agents.threat_intel_agent import ThreatIntelAgent
+from backend.agents.threat_intel_agent import run_threat_intel
 from backend.agents.validation_agent import ValidationAgent
 from backend.agents.remediation_agent import RemediationAgent
-from backend.agents.risk_manager_agent import RiskManagerAgent
+from backend.agents.risk_manager_agent import run_risk_manager
 from backend.agents.reporter_agent import ReporterAgent
 from backend.agents.state import AssetInfo, RawFinding, ScanState
 from backend.core import verdict_memory
@@ -52,7 +52,7 @@ def test_full_pipeline_runs_without_llm(no_cloud):
     assert all(f.confidence == 0.5 for f in state.analyzed_findings)
     assert all("no-cloud" in f.rationale for f in state.analyzed_findings)
 
-    state = ThreatIntelAgent().run(state)
+    state = run_threat_intel(state)
     assert len(state.enriched_findings) == 2
 
     state = ValidationAgent().run(state)
@@ -63,7 +63,7 @@ def test_full_pipeline_runs_without_llm(no_cloud):
     state = RemediationAgent().run(state)
     assert state.remediation_suggestions == []  # remediation drafting needs an LLM → skipped
 
-    state = RiskManagerAgent().run(state)  # SSVC, deterministic (no suggestions → no decisions)
+    state = run_risk_manager(state)  # SSVC, deterministic (no suggestions → no decisions)
 
     state = ReporterAgent().run(state)
     assert state.report is not None
@@ -75,7 +75,7 @@ def test_full_pipeline_runs_without_llm(no_cloud):
 
 def test_no_cloud_report_leads_with_urgent(no_cloud):
     state = _state()
-    for agent in (AnalystAgent(), ThreatIntelAgent(), ValidationAgent(), ReporterAgent()):
-        state = agent.run(state)
+    for fn in (AnalystAgent().run, run_threat_intel, ValidationAgent().run, ReporterAgent().run):
+        state = fn(state)
     # 2 findings, severity high/medium on an external asset → report mentions the count.
     assert "2 open finding" in state.report.summary

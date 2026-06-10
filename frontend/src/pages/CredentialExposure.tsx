@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { ShieldAlert, RefreshCw, AlertTriangle, BadgeCheck, Users } from 'lucide-react'
-import { api, friendlyErrorMessage } from '../lib/api'
+import { ShieldAlert, RefreshCw, AlertTriangle, BadgeCheck, Users, Search, Settings } from 'lucide-react'
+import { api, friendlyErrorMessage, checkBreachDirectory, type BreachDirectoryResult } from '../lib/api'
 import { cn } from '../lib/utils'
 import { useRole } from '../hooks/useRole'
+import { useNavigate } from 'react-router-dom'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -88,21 +89,31 @@ function StatCard({
 
 export default function CredentialExposure() {
   const { can } = useRole()
+  const navigate = useNavigate()
   const [stats, setStats] = useState<BreachStats | null>(null)
   const [breaches, setBreaches] = useState<Breach[]>([])
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
   const [status, setStatus] = useState<{ msg: string; ok: boolean } | null>(null)
+  const [karmaEnabled, setKarmaEnabled] = useState(true)
+  const [breachDirConfigured, setBreachDirConfigured] = useState(false)
+  const [bdSearchTerm, setBdSearchTerm] = useState('')
+  const [bdSearchType, setBdSearchType] = useState<'email' | 'domain'>('email')
+  const [bdSearching, setBdSearching] = useState(false)
+  const [bdResult, setBdResult] = useState<BreachDirectoryResult | null>(null)
 
   const load = () => {
     setLoading(true)
     Promise.all([
       api.get<BreachStats>('/hibp/stats'),
       api.get<Breach[]>('/hibp/breaches'),
+      api.get<{ employee_karma_enabled: boolean; breach_directory_api_key_set: boolean }>('/settings'),
     ])
-      .then(([s, b]) => {
+      .then(([s, b, settings]) => {
         setStats(s)
         setBreaches(b)
+        setKarmaEnabled(settings.employee_karma_enabled ?? true)
+        setBreachDirConfigured(settings.breach_directory_api_key_set ?? false)
       })
       .catch((err) => {
         setStatus({ msg: friendlyErrorMessage(err), ok: false })
@@ -122,6 +133,20 @@ export default function CredentialExposure() {
       setStatus({ msg: friendlyErrorMessage(err), ok: false })
     } finally {
       setChecking(false)
+    }
+  }
+
+  const runBreachDirSearch = async () => {
+    if (!bdSearchTerm.trim()) return
+    setBdSearching(true)
+    setBdResult(null)
+    try {
+      const result = await checkBreachDirectory(bdSearchTerm.trim(), bdSearchType)
+      setBdResult(result)
+    } catch (err) {
+      setStatus({ msg: friendlyErrorMessage(err), ok: false })
+    } finally {
+      setBdSearching(false)
     }
   }
 
@@ -167,7 +192,7 @@ export default function CredentialExposure() {
 
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className={cn('grid gap-4', karmaEnabled ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2')}>
           <StatCard
             label="Breaches found"
             value={stats.total_breaches}
@@ -178,12 +203,14 @@ export default function CredentialExposure() {
             value={stats.employees_affected}
             icon={Users}
           />
-          <StatCard
-            label="Avg. karma score"
-            value={stats.avg_karma_score}
-            valueClass={karmaCardColor(stats.avg_karma_score)}
-            icon={BadgeCheck}
-          />
+          {karmaEnabled && stats.avg_karma_score !== undefined && (
+            <StatCard
+              label="Avg. karma score"
+              value={stats.avg_karma_score}
+              valueClass={karmaCardColor(stats.avg_karma_score)}
+              icon={BadgeCheck}
+            />
+          )}
         </div>
       )}
 
@@ -218,7 +245,7 @@ export default function CredentialExposure() {
                   <th className="text-left px-4 py-2 font-medium">Breach</th>
                   <th className="text-left px-4 py-2 font-medium">Date</th>
                   <th className="text-left px-4 py-2 font-medium">Sensitive</th>
-                  <th className="text-left px-4 py-2 font-medium">Karma</th>
+                  {karmaEnabled && <th className="text-left px-4 py-2 font-medium">Karma</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -270,21 +297,123 @@ export default function CredentialExposure() {
                         )}
                       </td>
 
-                      {/* Karma score */}
-                      <td className="px-4 py-3">
-                        {emp ? (
-                          <span className={cn('font-semibold tabular-nums', karmaColor(emp.karma_score))}>
-                            {emp.karma_score}
-                          </span>
-                        ) : (
-                          <span className="text-muted opacity-40">—</span>
-                        )}
-                      </td>
+                      {/* Karma score (conditional) */}
+                      {karmaEnabled && (
+                        <td className="px-4 py-3">
+                          {emp ? (
+                            <span className={cn('font-semibold tabular-nums', karmaColor(emp.karma_score))}>
+                              {emp.karma_score}
+                            </span>
+                          ) : (
+                            <span className="text-muted opacity-40">—</span>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   )
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      {/* BreachDirectory section */}
+      <div className="space-y-4 mt-8 pt-6 border-t border-border">
+        <div className="flex items-center gap-2">
+          <Search className="w-5 h-5 text-accent" />
+          <h2 className="text-lg font-semibold">BreachDirectory</h2>
+        </div>
+
+        <p className="text-sm text-muted">
+          Cross-reference email addresses or domains against BreachDirectory.org to supplement HIBP
+          with additional breach intelligence from alternative sources.
+        </p>
+
+        {!breachDirConfigured ? (
+          <div className="bg-amber-900/20 border border-amber-800/40 rounded-lg px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-400" />
+              <span className="text-sm text-amber-300">
+                Configure a BreachDirectory API key in Settings to enable this feature.
+              </span>
+            </div>
+            {can('admin') && (
+              <button
+                onClick={() => navigate('/settings')}
+                className="flex items-center gap-1.5 text-sm bg-amber-400/10 text-amber-300 px-3 py-1.5 rounded-md hover:bg-amber-400/20 transition-colors whitespace-nowrap"
+              >
+                <Settings className="w-4 h-4" />
+                Configure
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
+            {/* Search form */}
+            <div className="flex gap-2">
+              <select
+                value={bdSearchType}
+                onChange={(e) => setBdSearchType(e.target.value as 'email' | 'domain')}
+                className="px-3 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white/90 focus:outline-none focus:ring-1 focus:ring-accent"
+              >
+                <option value="email">Email</option>
+                <option value="domain">Domain</option>
+              </select>
+              <input
+                type="text"
+                placeholder={bdSearchType === 'email' ? 'user@example.com' : 'example.com'}
+                value={bdSearchTerm}
+                onChange={(e) => setBdSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && runBreachDirSearch()}
+                className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-md text-sm text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+              <button
+                onClick={runBreachDirSearch}
+                disabled={bdSearching || !bdSearchTerm.trim()}
+                className="flex items-center gap-1.5 text-sm bg-accent/10 text-accent px-3 py-2 rounded-md hover:bg-accent/20 transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                <Search className={cn('w-4 h-4', bdSearching && 'animate-spin')} />
+                {bdSearching ? 'Searching…' : 'Search'}
+              </button>
+            </div>
+
+            {/* Results */}
+            {bdResult && (
+              <div className="space-y-3">
+                {bdResult.found ? (
+                  <>
+                    <div className="bg-severity-critical/10 border border-severity-critical/30 rounded-md px-3 py-2 text-sm text-severity-critical">
+                      Found in {bdResult.sources.length} breach source{bdResult.sources.length !== 1 ? 's' : ''}
+                    </div>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {bdResult.sources.map((src, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm"
+                        >
+                          <div className="font-medium text-white">{src.name}</div>
+                          <div className="text-xs text-muted flex gap-4 mt-1">
+                            {src.date && <span>Date: {src.date}</span>}
+                            <span>Entries: {src.count}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {bdResult.sha1_hash && (
+                      <div className="bg-white/5 border border-white/10 rounded-md px-3 py-2 text-xs text-muted break-all">
+                        <span className="font-medium">SHA1:</span> {bdResult.sha1_hash}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="bg-green-900/20 border border-green-800/40 rounded-md px-3 py-2 text-sm text-green-300 flex items-center gap-2">
+                    <BadgeCheck className="w-4 h-4" />
+                    Not found in any known breach.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

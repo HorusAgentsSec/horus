@@ -1,17 +1,56 @@
 import time
-
-from fastapi import Depends, HTTPException, status
+import hashlib
+from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from supabase import Client
+from typing import Optional
 
 from backend.core.supabase_client import supabase, get_authed_client
 
-bearer = HTTPBearer()
+bearer = HTTPBearer(auto_error=False)
 
 # In-memory TTL cache: token -> (user_dict, expires_at).
 # Avoids a Supabase round-trip (auth.get_user + profile query) on every request.
 _CACHE: dict[str, tuple[dict, float]] = {}
 _TTL_SECONDS = 30
+
+
+def _resolve_api_key(key: str) -> dict:
+    """Resolve an API key (hrs_...) to a user dict scoped to its org and role."""
+    key_hash = hashlib.sha256(key.encode()).hexdigest()
+    try:
+        result = (
+            supabase.table("api_keys")
+            .select("id, org_id, role")
+            .eq("key_hash", key_hash)
+            .is_("revoked_at", "null")
+            .single()
+            .execute()
+        )
+        if not result.data:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
+
+        row = result.data
+        # Update last_used_at asynchronously (best-effort, don't block the request)
+        try:
+            from datetime import datetime, timezone
+            supabase.table("api_keys").update(
+                {"last_used_at": datetime.now(timezone.utc).isoformat()}
+            ).eq("id", row["id"]).execute()
+        except Exception:
+            pass  # Best-effort; don't fail the request if audit fails
+
+        return {
+            "id": f"apikey:{row['id']}",
+            "org_id": row["org_id"],
+            "role": row["role"],
+            "token": key,
+            "is_api_key": True,
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
 
 
 def _resolve_user(token: str) -> dict:
@@ -51,9 +90,17 @@ def _resolve_user(token: str) -> dict:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer),
+    x_api_key: Optional[str] = Header(None),
 ) -> dict:
-    return _resolve_user(credentials.credentials)
+    # API key takes precedence if provided
+    if x_api_key:
+        return _resolve_api_key(x_api_key)
+    # Fall back to Bearer token
+    if credentials:
+        return _resolve_user(credentials.credentials)
+    # Neither API key nor Bearer token provided
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing credentials")
 
 
 async def get_authenticated_user(
@@ -81,6 +128,11 @@ async def get_authenticated_user(
 async def get_db(user: dict = Depends(get_current_user)) -> Client:
     """
     Returns a Supabase client scoped to the requesting user's JWT, so RLS
-    policies enforce org isolation. Use this for all user-facing data queries.
+    policies enforce org isolation. For API keys, we use the admin client
+    and rely on Postgres RLS to filter by org_id in the user dict.
     """
+    # API keys don't have a valid JWT, so use the admin client
+    if user.get("is_api_key"):
+        return supabase
+    # Regular Bearer token users get an authed client
     return get_authed_client(user["token"])

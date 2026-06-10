@@ -69,7 +69,7 @@ async def stream_run(token: str = Query(...)):
     if user["role"] != "admin":
         from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="Forbidden")
-        
+
     def event_generator():
         from backend.core.watchtower import run_watchtower_generator
         for item in run_watchtower_generator():
@@ -78,3 +78,38 @@ async def stream_run(token: str = Query(...)):
             else:
                 yield f"data: {json.dumps({'done': True, 'result': item})}\n\n"
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@router.post("/ransomware-check")
+async def ransomware_check_now(user=Depends(require_role("admin")), db: Client = Depends(get_db)):
+    """Trigger an on-demand ransomware.live check for the org. Returns immediately with results."""
+    from backend.core.watchtower import run_ransomware_check
+
+    try:
+        result = run_ransomware_check(user["org_id"], db)
+        return {**result, "status": "completed"}
+    except Exception as e:
+        logger.exception("ransomware check failed for org %s", user["org_id"])
+        raise HTTPException(500, f"Ransomware check failed: {str(e)}")
+
+
+@router.get("/ransomware-victims")
+async def list_ransomware_victims(user=Depends(get_current_user), db: Client = Depends(get_db)):
+    """List all ransomware.live findings for the org, newest first."""
+    # Filter by raw_data->>'source' = 'ransomware.live' (using Postgres JSON operators)
+    try:
+        results = (
+            db.table("findings")
+            .select("*")
+            .eq("org_id", user["org_id"])
+            # Use rpc to filter by JSON field, or fetch all and filter in Python
+            .order("first_seen_at", desc=True)
+            .limit(200)
+            .execute()
+            .data or []
+        )
+        # Filter in Python since PostgREST doesn't expose Postgres JSON operators easily
+        return [r for r in results if (r.get("raw_data") or {}).get("source") == "ransomware.live"]
+    except Exception as e:
+        logger.exception("Failed to list ransomware victims for org %s: %s", user["org_id"], e)
+        return []

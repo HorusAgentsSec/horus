@@ -31,6 +31,7 @@ class NucleiScanner(BaseScanner):
             "-disable-update-check",
         ]
 
+        process = None
         try:
             process = subprocess.Popen(
                 cmd,
@@ -44,21 +45,23 @@ class NucleiScanner(BaseScanner):
                 register_process(scan_id, process)
             process.communicate(timeout=300)
         except subprocess.TimeoutExpired:
-            if scan_id:
-                from backend.core.process_registry import unregister_process
-                unregister_process(scan_id, process)
-            try:
-                import os
-                os.killpg(process.pid, subprocess.signal.SIGKILL)
-            except Exception:
-                pass
             logger.warning(f"NucleiScanner timed out on {target}")
+            if process is not None:
+                try:
+                    import os
+                    os.killpg(process.pid, subprocess.signal.SIGKILL)
+                except Exception:
+                    pass
+                try:
+                    process.communicate()  # drain pipes after kill
+                except Exception:
+                    pass
             return []
         except FileNotFoundError:
             logger.error("nuclei binary not found — skipping Nuclei scan")
             return []
         finally:
-            if scan_id and "process" in locals():
+            if scan_id and process is not None:
                 from backend.core.process_registry import unregister_process
                 unregister_process(scan_id, process)
 

@@ -1,9 +1,10 @@
 import { useEffect, useState, type ElementType } from 'react'
 import {
   Users, ShieldAlert, Crosshair, Plus, Upload, RefreshCw,
-  Mail, CheckCircle2, AlertTriangle, XCircle, ChevronDown,
+  Mail, CheckCircle2, AlertTriangle, XCircle, ChevronDown, ArrowRight,
   Play, Eye, Trash2, BarChart3
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { api, friendlyErrorMessage } from '../lib/api'
 import { cn } from '../lib/utils'
 import { useRole } from '../hooks/useRole'
@@ -103,7 +104,6 @@ function EmployeesTab() {
   const [newName, setNewName] = useState('')
   const [newDept, setNewDept] = useState('')
   const [csvText, setCsvText] = useState('')
-  const [expandedBreaches, setExpandedBreaches] = useState<string | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -148,12 +148,8 @@ function EmployeesTab() {
     setCheckingHibp(true)
     setStatus(null)
     try {
-      const res = await api.post<{ employees_affected: number; breach_records: number; skipped?: boolean }>('/phishing/hibp/check')
-      if (res.skipped) {
-        setStatus({ msg: 'HIBP check skipped — configure hibp_api_key in .env', ok: false })
-      } else {
-        setStatus({ msg: `Check complete: ${res.employees_affected} employees affected, ${res.breach_records} breach records`, ok: true })
-      }
+      const res = await api.post<{ status: string; domain?: string }>('/hibp/check')
+      setStatus({ msg: 'Queued — check will run in background', ok: true })
       load()
     } catch (e) {
       setStatus({ msg: friendlyErrorMessage(e), ok: false })
@@ -162,13 +158,12 @@ function EmployeesTab() {
     }
   }
 
-  const totalBreaches = employees.reduce((s, e) => s + (e.credential_breaches?.length || 0), 0)
   const atRisk = employees.filter(e => (e.credential_breaches?.length || 0) > 0).length
 
   return (
     <div className="space-y-4">
-      {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Summary cards + Credential Exposure link */}
+      <div className="grid grid-cols-2 gap-3">
         <div className="glass rounded-lg p-4 border border-white/10">
           <p className="text-xs text-white/50 mb-1">Total employees</p>
           <p className="text-2xl font-bold text-horus-ivory">{employees.length}</p>
@@ -177,11 +172,14 @@ function EmployeesTab() {
           <p className="text-xs text-white/50 mb-1">With exposed credentials</p>
           <p className={cn('text-2xl font-bold', atRisk > 0 ? 'text-red-400' : 'text-green-400')}>{atRisk}</p>
         </div>
-        <div className="glass rounded-lg p-4 border border-white/10">
-          <p className="text-xs text-white/50 mb-1">Total breach records</p>
-          <p className={cn('text-2xl font-bold', totalBreaches > 0 ? 'text-yellow-400' : 'text-green-400')}>{totalBreaches}</p>
-        </div>
       </div>
+
+      {/* Link to consolidated Credential Exposure view */}
+      <Link to="/credential-exposure" className="flex items-center gap-2 p-3 rounded-lg bg-blue-900/20 border border-blue-800/40 text-blue-300 hover:bg-blue-900/30 transition-colors">
+        <ShieldAlert className="w-4 h-4 shrink-0" />
+        <span className="text-sm">View all credential breaches in Credential Exposure</span>
+        <ArrowRight className="w-3.5 h-3.5 ml-auto shrink-0" />
+      </Link>
 
       {/* Actions */}
       {status && (
@@ -247,66 +245,40 @@ function EmployeesTab() {
               <tr className="border-b border-white/10 text-white/40 text-xs">
                 <th className="text-left px-4 py-3">Employee</th>
                 <th className="text-left px-4 py-3">Department</th>
-                <th className="text-center px-4 py-3">Karma</th>
-                <th className="text-center px-4 py-3">Breaches</th>
+                <th className="text-center px-4 py-3">Credential breaches</th>
                 <th className="text-left px-4 py-3">Last checked</th>
                 {can('admin') && <th className="px-4 py-3" />}
               </tr>
             </thead>
             <tbody>
               {employees.map(emp => (
-                <>
-                  <tr key={emp.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="text-white/90">{emp.full_name || emp.email}</p>
-                      {emp.full_name && <p className="text-white/40 text-xs">{emp.email}</p>}
-                    </td>
-                    <td className="px-4 py-3 text-white/50">{emp.department || '—'}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={cn('font-bold', karmaColor(emp.karma_score))}>{emp.karma_score}</span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {emp.credential_breaches?.length > 0 ? (
-                        <button onClick={() => setExpandedBreaches(expandedBreaches === emp.id ? null : emp.id)} className="flex items-center gap-1 mx-auto text-red-400 hover:text-red-300">
-                          <ShieldAlert className="w-4 h-4" />
-                          <span className="font-medium">{emp.credential_breaches.length}</span>
-                          <ChevronDown className={cn('w-3 h-3 transition-transform', expandedBreaches === emp.id && 'rotate-180')} />
-                        </button>
-                      ) : (
-                        <CheckCircle2 className="w-4 h-4 text-green-400/60 mx-auto" />
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-white/40 text-xs">
-                      {emp.hibp_checked_at ? new Date(emp.hibp_checked_at).toLocaleDateString() : 'Never'}
-                    </td>
-                    {can('admin') && (
-                      <td className="px-4 py-3">
-                        <button onClick={() => deleteEmployee(emp.id)} className="text-white/20 hover:text-red-400 transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
+                <tr key={emp.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                  <td className="px-4 py-3">
+                    <p className="text-white/90">{emp.full_name || emp.email}</p>
+                    {emp.full_name && <p className="text-white/40 text-xs">{emp.email}</p>}
+                  </td>
+                  <td className="px-4 py-3 text-white/50">{emp.department || '—'}</td>
+                  <td className="px-4 py-3 text-center">
+                    {emp.credential_breaches?.length > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-red-400 font-medium">
+                        <ShieldAlert className="w-4 h-4" />
+                        {emp.credential_breaches.length}
+                      </span>
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-green-400/60 mx-auto" />
                     )}
-                  </tr>
-                  {expandedBreaches === emp.id && emp.credential_breaches?.length > 0 && (
-                    <tr key={`${emp.id}-breaches`} className="bg-red-950/20 border-b border-white/5">
-                      <td colSpan={can('admin') ? 6 : 5} className="px-6 py-3">
-                        <div className="space-y-1.5">
-                          {emp.credential_breaches.map(b => (
-                            <div key={b.id} className="flex items-start gap-3 text-xs">
-                              <AlertTriangle className="w-3.5 h-3.5 text-red-400 mt-0.5 shrink-0" />
-                              <div>
-                                <span className="text-white/80 font-medium">{b.breach_name}</span>
-                                {b.breach_date && <span className="text-white/40 ml-2">{b.breach_date}</span>}
-                                {b.is_sensitive && <span className="ml-2 text-red-400 font-medium">⚠ Passwords exposed</span>}
-                                <div className="text-white/40 mt-0.5">{b.data_classes.join(', ')}</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
+                  </td>
+                  <td className="px-4 py-3 text-white/40 text-xs">
+                    {emp.hibp_checked_at ? new Date(emp.hibp_checked_at).toLocaleDateString() : 'Never'}
+                  </td>
+                  {can('admin') && (
+                    <td className="px-4 py-3">
+                      <button onClick={() => deleteEmployee(emp.id)} className="text-white/20 hover:text-red-400 transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
                   )}
-                </>
+                </tr>
               ))}
             </tbody>
           </table>
@@ -511,9 +483,11 @@ function CampaignsTab() {
         </div>
       )}
 
-      {/* Results modal */}
+      {/* Results modal. Anchored to the content area (left-60 = 240px sidebar) instead of
+          inset-0: the sidebar is an opaque flex sibling at z-10, so a viewport-centered modal
+          gets clipped behind it on narrower screens. */}
       {viewResults && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-y-0 left-60 right-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="glass border border-white/10 rounded-xl w-full max-w-2xl max-h-[80vh] overflow-auto">
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <h2 className="font-semibold text-white">{viewResults.campaign.name} — Results</h2>

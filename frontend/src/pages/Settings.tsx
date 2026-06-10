@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { ShieldCheck, ShieldAlert } from 'lucide-react'
-import { api } from '../lib/api'
+import { api, friendlyErrorMessage } from '../lib/api'
 import { cn } from '../lib/utils'
+import { ApiKeysSection } from '../components/ApiKeysSection'
+
+const MASK = '••••••••'
 
 interface Privacy {
   mode: string
@@ -81,12 +84,56 @@ function Stat({ label, value, mono }: { label: string; value: string; mono?: boo
 
 export default function Settings() {
   const [shodanKey, setShodanKey] = useState('')
+  const [keySet, setKeySet] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [karmaEnabled, setKarmaEnabled] = useState(false)
+  const [savingKarma, setSavingKarma] = useState(false)
 
-  const save = () => {
-    // Persisted via backend integrations endpoint (future implementation)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  useEffect(() => {
+    api
+      .get<{ shodan_api_key_set: boolean; employee_karma_enabled: boolean }>('/settings')
+      .then((s) => {
+        setKeySet(s.shodan_api_key_set)
+        setKarmaEnabled(s.employee_karma_enabled ?? false)
+        // Show the mask as a placeholder value when a key already exists; sending it back
+        // unchanged is a no-op server-side, so editing-then-saving still works.
+        if (s.shodan_api_key_set) setShodanKey(MASK)
+      })
+      .catch(() => {})
+  }, [])
+
+  const save = async () => {
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await api.put<{ shodan_api_key_set: boolean }>('/settings', {
+        shodan_api_key: shodanKey,
+      })
+      setKeySet(res.shodan_api_key_set)
+      if (res.shodan_api_key_set) setShodanKey(MASK)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (e) {
+      setError(friendlyErrorMessage(e, 'Failed to save settings'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveKarmaToggle = async () => {
+    setSavingKarma(true)
+    try {
+      const res = await api.put<{ employee_karma_enabled: boolean }>('/settings', {
+        employee_karma_enabled: !karmaEnabled,
+      })
+      setKarmaEnabled(res.employee_karma_enabled)
+    } catch (e) {
+      setError(friendlyErrorMessage(e, 'Failed to update karma setting'))
+    } finally {
+      setSavingKarma(false)
+    }
   }
 
   const field = 'bg-bg border border-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-accent w-full font-mono'
@@ -100,20 +147,26 @@ export default function Settings() {
       <section className="bg-surface border border-border rounded-lg p-6 space-y-4">
         <h2 className="text-sm font-medium text-white">Integrations</h2>
         <div>
-          <label className="text-xs text-muted mb-1 block">Shodan API Key</label>
+          <label className="text-xs text-muted mb-1 block">
+            Shodan API Key
+            {keySet && <span className="ml-2 text-mode-auto">• configured</span>}
+          </label>
           <input
             className={field}
             type="password"
             value={shodanKey}
+            onFocus={() => { if (shodanKey === MASK) setShodanKey('') }}
             onChange={(e) => setShodanKey(e.target.value)}
             placeholder="••••••••••••••••"
           />
         </div>
+        {error && <p className="text-xs text-severity-critical">{error}</p>}
         <button
           onClick={save}
-          className="text-sm bg-accent text-bg px-4 py-1.5 rounded hover:bg-accent/90 transition-colors"
+          disabled={saving}
+          className="text-sm bg-accent text-bg px-4 py-1.5 rounded hover:bg-accent/90 transition-colors disabled:opacity-50"
         >
-          {saved ? 'Saved' : 'Save Changes'}
+          {saving ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
         </button>
       </section>
 
@@ -125,6 +178,33 @@ export default function Settings() {
           <p className="mt-2">Per-agent overrides: <span className="font-mono">LLM_ANALYST_MODEL</span>, <span className="font-mono">LLM_THREAT_INTEL_MODEL</span>, etc.</p>
         </div>
       </section>
+
+      <section className="bg-surface border border-border rounded-lg p-6 space-y-4">
+        <h2 className="text-sm font-medium text-white">Employee Privacy</h2>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <label className="text-sm font-medium text-white block mb-1">Employee karma scoring</label>
+            <p className="text-xs text-muted leading-relaxed">
+              Scores individual employees by phishing simulation outcomes. Disabled by default — review with HR/works council before enabling in EU jurisdictions (GDPR Art. 88, employee profiling and monitoring).
+            </p>
+          </div>
+          <button
+            onClick={saveKarmaToggle}
+            disabled={savingKarma}
+            className={cn(
+              'px-3 py-1.5 rounded text-sm font-medium shrink-0 transition-colors',
+              karmaEnabled
+                ? 'bg-red-600/30 text-red-300 hover:bg-red-600/40 border border-red-700/40'
+                : 'bg-green-600/30 text-green-300 hover:bg-green-600/40 border border-green-700/40',
+              savingKarma && 'opacity-50 cursor-not-allowed',
+            )}
+          >
+            {savingKarma ? 'Saving…' : karmaEnabled ? 'Disable' : 'Enable'}
+          </button>
+        </div>
+      </section>
+
+      <ApiKeysSection />
     </div>
   )
 }

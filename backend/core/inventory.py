@@ -46,6 +46,7 @@ def record_inventory(org_id: str, asset_id: str, services: list[dict]) -> int:
                 "product": product,
                 "version": version,
                 "port": port,
+                "service_name": (svc.get("service") or "").strip() or None,
                 "last_seen_at": now,
             }
         )

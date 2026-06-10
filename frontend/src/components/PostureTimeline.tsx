@@ -59,11 +59,21 @@ function fmtDate(d: string): string {
   return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
+// The raw score (severity-weighted open findings; critical=10, high=5, KEV +25 each) has no
+// intuitive ceiling, so translate it into a band that reads at a glance.
+function riskBand(score: number): { label: string; cls: string } {
+  if (score < 25) return { label: 'Low', cls: 'text-mode-auto' }
+  if (score < 100) return { label: 'Moderate', cls: 'text-severity-medium' }
+  if (score < 250) return { label: 'High', cls: 'text-severity-high' }
+  return { label: 'Critical', cls: 'text-severity-critical' }
+}
+
 export function PostureTimeline({ days = 90 }: { days?: number }) {
   const [data, setData] = useState<Timeline | null>(null)
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
+  const [exportOk, setExportOk] = useState(false)
   const [emailing, setEmailing] = useState(false)
   const [emailStatus, setEmailStatus] = useState<{ msg: string; ok: boolean } | null>(null)
   const [normalized, setNormalized] = useState<NormalizedMetrics | null>(null)
@@ -89,8 +99,11 @@ export function PostureTimeline({ days = 90 }: { days?: number }) {
   async function exportPdf() {
     setExporting(true)
     setExportError(null)
+    setExportOk(false)
     try {
       await api.download(`/posture/report.pdf?days=${days}`, 'posture-report.pdf')
+      setExportOk(true)
+      setTimeout(() => setExportOk(false), 3000)
     } catch (err) {
       setExportError(friendlyErrorMessage(err, 'Could not export PDF'))
     } finally {
@@ -132,11 +145,18 @@ export function PostureTimeline({ days = 90 }: { days?: number }) {
               <div className="text-right">
                 <div className="text-2xl font-semibold text-white leading-none">{current.risk_score}</div>
                 <div className="text-[10px] text-white/60 uppercase tracking-wide">risk score</div>
+                <div className={cn('text-[10px] uppercase tracking-wide font-semibold', riskBand(current.risk_score).cls)}>
+                  {riskBand(current.risk_score).label}
+                </div>
               </div>
               <div className={cn('flex items-center gap-1', trendColor)}>
                 <TrendIcon className="w-4 h-4" />
                 <span className="text-sm font-medium">
-                  {flat ? 'no change' : `${improving ? '' : '+'}${delta}`}
+                  {flat
+                    ? 'no change'
+                    : improving
+                    ? `${Math.abs(delta)} improving`
+                    : `+${delta} worse`}
                 </span>
               </div>
             </>
@@ -175,20 +195,21 @@ export function PostureTimeline({ days = 90 }: { days?: number }) {
           )}
         </div>
       </div>
-      {(exportError || emailStatus) && (
+      {(exportError || exportOk || emailStatus) && (
         <p
           className={cn(
             'text-xs mb-2 -mt-2',
-            exportError || !emailStatus?.ok ? 'text-severity-critical' : 'text-mode-auto',
+            exportError || (emailStatus && !emailStatus.ok) ? 'text-severity-critical' : 'text-mode-auto',
           )}
         >
-          {exportError ?? emailStatus?.msg}
+          {exportError ?? (exportOk ? 'PDF downloaded ✓' : emailStatus?.msg)}
         </p>
       )}
 
       <p className="text-xs text-muted mb-4 -mt-2">
         Lower is better. Severity-weighted open findings over time — the trend you can show your
         board. {improving && !flat && 'Risk is trending down. '}
+        {!improving && !flat && 'Risk is trending up — usually new findings or newly discovered assets. '}
       </p>
 
       {loading ? (
@@ -281,19 +302,31 @@ export function PostureTimeline({ days = 90 }: { days?: number }) {
           </div>
           <div className="flex gap-3">
             <div className="flex-1 glass rounded-md p-3">
-              <div className={cn(
-                'text-xl font-semibold leading-none',
-                normalized.pct_critical_closed_in_7d >= 80
-                  ? 'text-mode-auto'
-                  : normalized.pct_critical_closed_in_7d >= 50
-                  ? 'text-yellow-400'
-                  : 'text-severity-critical',
-              )}>
-                {normalized.pct_critical_closed_in_7d}%
-              </div>
-              <div className="text-[10px] text-white/50 mt-1 uppercase tracking-wide">
-                Critical findings closed ≤7d
-              </div>
+              {normalized.total_critical === 0 ? (
+                <>
+                  <div className="text-xl font-semibold leading-none text-white/40">—</div>
+                  <div className="text-[10px] text-white/50 mt-1 uppercase tracking-wide">
+                    Critical findings closed ≤7d
+                  </div>
+                  <div className="text-[10px] text-white/40 mt-0.5">No critical findings recorded</div>
+                </>
+              ) : (
+                <>
+                  <div className={cn(
+                    'text-xl font-semibold leading-none',
+                    normalized.pct_critical_closed_in_7d >= 80
+                      ? 'text-mode-auto'
+                      : normalized.pct_critical_closed_in_7d >= 50
+                      ? 'text-yellow-400'
+                      : 'text-severity-critical',
+                  )}>
+                    {normalized.pct_critical_closed_in_7d}%
+                  </div>
+                  <div className="text-[10px] text-white/50 mt-1 uppercase tracking-wide">
+                    Critical findings closed ≤7d
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex-1 glass rounded-md p-3">
               <div className={cn(

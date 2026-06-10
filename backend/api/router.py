@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from supabase import Client
 from backend.api.auth import get_current_user, get_db
 from backend.core import scheduler
-from backend.api import assets, scans, findings, agents, permissions, team, audit, account, onboarding, metrics, integrations, discovery, watchtower, posture, jobs, privacy, adversarial, phishing, hibp
+from backend.api import assets, scans, findings, agents, permissions, team, audit, account, onboarding, metrics, integrations, discovery, watchtower, posture, jobs, privacy, adversarial, phishing, hibp, settings, api_keys, intel, threat_feeds
 
 api_router = APIRouter(prefix="/api")
 
@@ -25,6 +25,10 @@ api_router.include_router(privacy.router)
 api_router.include_router(adversarial.router)
 api_router.include_router(phishing.router)
 api_router.include_router(hibp.router)
+api_router.include_router(settings.router)
+api_router.include_router(api_keys.router)
+api_router.include_router(intel.router)
+api_router.include_router(threat_feeds.router)
 
 
 # ── Schedules ──────────────────────────────────────────────────────────────────

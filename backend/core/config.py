@@ -164,6 +164,41 @@ class Settings(BaseSettings):
     # Optional integrations
     shodan_api_key: Optional[str] = None
 
+    # ── HaveIBeenPwned (HIBP) — credential breach monitoring ─────────────────
+    # Domain Search API key — get one at https://haveibeenpwned.com/API/Key
+    # Without a key the HIBP check is disabled (the endpoint requires auth).
+    hibp_api_key: Optional[str] = None
+    hibp_check_enabled: bool = True
+    hibp_check_cron: str = "0 3 * * *"   # daily 03:00, before the CVE sync chain
+    hibp_api_base: str = "https://haveibeenpwned.com/api/v3"
+    hibp_timeout_seconds: float = 30.0
+
+    # ── Red/Blue adversarial agents ─────────────────────────────────────────
+    adversarial_enabled: bool = True
+    adversarial_cron: str = "0 2 * * *"  # daily 02:00, before the CVE/KEV sync chain
+    llm_red_model: Optional[str] = None   # override for RedAgent (falls back to llm_default_model)
+    llm_blue_model: Optional[str] = None  # override for BlueAgent
+    # Web search key (Tavily — https://tavily.com). If absent, search is disabled.
+    tavily_api_key: Optional[str] = None
+    # GitHub personal token for exploit/PoC searches. Rate-limit is 10 req/min without one.
+    github_token: Optional[str] = None
+
+    # ── Phishing simulation ──────────────────────────────────────────────────
+    # Base URL used to build honeypot tracking links; should point to this server.
+    phishing_base_url: str = "http://localhost:8000"
+    # LLM model for the PhishingAgent (falls back to llm_default_model)
+    llm_phishing_model: Optional[str] = None
+
+    # ── Ransomware.live deep web intelligence ────────────────────────────────
+    # Check assets against ransomware.live victim database (free API, no auth).
+    ransomware_check_enabled: bool = True
+    ransomware_check_cron: str = "30 6 * * *"  # 06:30 AM, after watchtower (watchtower_cron + 1h)
+
+    # ── abuse.ch IOC feeds (ThreatFox + URLhaus) ────────────────────────────────
+    # Check assets against ThreatFox and URLhaus IOC databases (free APIs, no auth).
+    ioc_check_enabled: bool = True
+    ioc_check_cron: str = "0 6 * * *"  # 6:00 AM, after ransomware check
+
     class Config:
         env_file = ".env"
         extra = "ignore"

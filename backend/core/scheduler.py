@@ -240,14 +240,251 @@ def load_discovery_sources():
         discovery_job(s)
 
 
+def _run_adversarial():
+    from backend.core.adversarial import run_adversarial_cycle
+    try:
+        with jobs.job_run(jobs.ADVERSARIAL) as d:
+            d.update(run_adversarial_cycle() or {})
+    except Exception as e:
+        logger.error(f"Adversarial cycle failed: {e}")
+
+
+def _register_adversarial():
+    """Daily Red→Blue adversarial cycle across all orgs (runs before CVE sync chain)."""
+    if not settings.adversarial_enabled:
+        return
+    try:
+        scheduler.add_job(
+            _run_adversarial,
+            CronTrigger.from_crontab(settings.adversarial_cron),
+            id="adversarial",
+            replace_existing=True,
+        )
+    except Exception as e:
+        logger.warning(f"Could not register adversarial job: {e}")
+
+
+def _run_ransomware_check_all_orgs():
+    """Daily ransomware.live victim check across all orgs."""
+    from backend.core.watchtower import run_ransomware_check
+    try:
+        with jobs.job_run("ransomware_check") as d:
+            orgs = supabase.table("organizations").select("id").execute().data or []
+            total_checked = 0
+            total_matches = 0
+            for org in orgs:
+                result = run_ransomware_check(org["id"])
+                total_checked += result.get("checked", 0)
+                total_matches += result.get("matches", 0)
+            d["checked"] = total_checked
+            d["matches"] = total_matches
+            d["orgs"] = len(orgs)
+    except Exception as e:
+        logger.error(f"Ransomware check failed: {e}")
+
+
+def _register_ransomware_check():
+    """Daily ransomware.live victim database check across all orgs (runs after watchtower)."""
+    if not settings.ransomware_check_enabled:
+        return
+    try:
+        scheduler.add_job(
+            _run_ransomware_check_all_orgs,
+            CronTrigger.from_crontab(settings.ransomware_check_cron),
+            id="ransomware_check",
+            replace_existing=True,
+        )
+    except Exception as e:
+        logger.warning(f"Could not register ransomware check job: {e}")
+
+
+def _run_ioc_check_all_orgs():
+    """Daily abuse.ch IOC (ThreatFox + URLhaus) check across all orgs."""
+    from backend.core.watchtower import run_ioc_check
+    try:
+        with jobs.job_run("ioc_check") as d:
+            orgs = supabase.table("organizations").select("id").execute().data or []
+            total_checked = 0
+            total_threatfox = 0
+            total_urlhaus = 0
+            for org in orgs:
+                result = run_ioc_check(org["id"])
+                total_checked += result.get("checked", 0)
+                total_threatfox += result.get("threatfox_matches", 0)
+                total_urlhaus += result.get("urlhaus_matches", 0)
+            d["checked"] = total_checked
+            d["threatfox_matches"] = total_threatfox
+            d["urlhaus_matches"] = total_urlhaus
+            d["orgs"] = len(orgs)
+    except Exception as e:
+        logger.error(f"IOC check failed: {e}")
+
+
+def _register_ioc_check():
+    """Daily abuse.ch IOC database check (ThreatFox + URLhaus) across all orgs (runs after ransomware check)."""
+    if not settings.ioc_check_enabled:
+        return
+    try:
+        scheduler.add_job(
+            _run_ioc_check_all_orgs,
+            CronTrigger.from_crontab(settings.ioc_check_cron),
+            id="ioc_check",
+            replace_existing=True,
+        )
+    except Exception as e:
+        logger.warning(f"Could not register IOC check job: {e}")
+
+
+# ── per-org adversarial schedules ─────────────────────────────────────────────
+
+def _run_scheduled_adversarial(schedule_id: str, trigger: str = "cron"):
+    from backend.core.adversarial import run_adversarial_cycle
+
+    org_id = None
+    try:
+        row = supabase.table("adversarial_schedules").select("org_id").eq("id", schedule_id).single().execute()
+        org_id = (row.data or {}).get("org_id")
+    except Exception:
+        pass
+    try:
+        with jobs.job_run("adversarial_schedule", org_id=org_id, ref_id=schedule_id, trigger=trigger) as d:
+            d.update(run_adversarial_cycle(org_id=org_id) or {})
+    except Exception as e:
+        logger.error(f"Scheduled adversarial {schedule_id} failed: {e}")
+
+
+def schedule_adversarial_job(s: dict) -> None:
+    job_id = f"adversarial:{s['id']}"
+    if not s.get("enabled", True):
+        unschedule_job(job_id)
+        return
+    try:
+        scheduler.add_job(
+            _run_scheduled_adversarial,
+            CronTrigger.from_crontab(s["cron_expression"]),
+            args=[s["id"]],
+            id=job_id,
+            replace_existing=True,
+        )
+    except Exception as e:
+        logger.warning(f"Could not schedule adversarial {s['id']}: {e}")
+
+
+def load_adversarial_schedules():
+    rows = supabase.table("adversarial_schedules").select("*").eq("enabled", True).execute()
+    for s in rows.data:
+        schedule_adversarial_job(s)
+
+
+# ── per-org phishing schedules ────────────────────────────────────────────────
+
+def _run_scheduled_phishing(schedule_id: str, trigger: str = "cron"):
+    import secrets as _secrets
+    from datetime import datetime, timezone
+
+    try:
+        s = supabase.table("phishing_schedules").select("*").eq("id", schedule_id).single().execute().data
+        if not s:
+            logger.error(f"Phishing schedule {schedule_id} not found")
+            return
+
+        org_id      = s["org_id"]
+        contact_ids = s.get("contact_ids") or []
+        asset_ids   = s.get("context_asset_ids") or []
+        objective   = s.get("objective", "click")
+
+        if not contact_ids:
+            logger.warning(f"Phishing schedule {schedule_id} has no contacts — skipping")
+            return
+
+        contacts = (
+            supabase.table("phishing_contacts")
+            .select("id, name, email")
+            .in_("id", contact_ids)
+            .eq("org_id", org_id)
+            .execute()
+            .data or []
+        )
+        if not contacts:
+            logger.warning(f"Phishing schedule {schedule_id}: contacts not found — skipping")
+            return
+
+        camp = supabase.table("phishing_campaigns").insert({
+            "org_id":            org_id,
+            "name":              f"{s['name']} ({datetime.now(timezone.utc).strftime('%Y-%m-%d')})",
+            "objective":         objective,
+            "context_asset_ids": asset_ids,
+            "status":            "running",
+            "launched_at":       datetime.now(timezone.utc).isoformat(),
+        }).execute().data[0]
+
+        campaign_id = camp["id"]
+
+        target_rows = [
+            {
+                "campaign_id":    campaign_id,
+                "org_id":         org_id,
+                "employee_name":  c["name"],
+                "employee_email": c["email"],
+                "tracking_token": _secrets.token_hex(24),
+            }
+            for c in contacts
+        ]
+        supabase.table("phishing_targets").insert(target_rows).execute()
+
+        job_row = supabase.table("jobs").insert({
+            "org_id":     org_id,
+            "job_type":   "phishing_schedule",
+            "ref_id":     schedule_id,
+            "trigger":    trigger,
+            "status":     "running",
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "detail":     {"campaign": camp["name"], "targets": len(target_rows)},
+        }).execute().data[0]
+
+        from backend.api.phishing import _launch_campaign
+        _launch_campaign(campaign_id, org_id, job_row["id"])
+
+    except Exception as e:
+        logger.error(f"Scheduled phishing {schedule_id} failed: {e}")
+
+
+def schedule_phishing_job(s: dict) -> None:
+    job_id = f"phishing:{s['id']}"
+    if not s.get("enabled", True):
+        unschedule_job(job_id)
+        return
+    try:
+        scheduler.add_job(
+            _run_scheduled_phishing,
+            CronTrigger.from_crontab(s["cron_expression"]),
+            args=[s["id"]],
+            id=job_id,
+            replace_existing=True,
+        )
+    except Exception as e:
+        logger.warning(f"Could not schedule phishing {s['id']}: {e}")
+
+
+def load_phishing_schedules():
+    rows = supabase.table("phishing_schedules").select("*").eq("enabled", True).execute()
+    for s in rows.data:
+        schedule_phishing_job(s)
+
+
 def start():
     load_schedules()
     load_discovery_sources()
+    load_adversarial_schedules()
+    load_phishing_schedules()
     _register_cve_sync()
     _register_watchtower()
+    _register_ransomware_check()
+    _register_ioc_check()
     _register_posture_snapshot()
     _register_posture_report()
     _register_community_refresh()
+    _register_adversarial()
     scheduler.start()
 
 

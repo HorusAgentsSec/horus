@@ -1,16 +1,18 @@
 """
-AuthPhishing — employee management, HIBP breach checks, phishing simulation campaigns.
+AuthPhishing — employee management, phishing simulation campaigns.
 
 Endpoints:
   Employees  GET/POST/DELETE /phishing/employees
              POST /phishing/employees/import  (bulk CSV)
-  HIBP       POST /phishing/hibp/check        (manual trigger)
-             GET  /phishing/breaches           (breach list for the org)
   Campaigns  GET/POST   /phishing/campaigns
              GET/PATCH  /phishing/campaigns/:id
              POST       /phishing/campaigns/:id/launch
              GET        /phishing/campaigns/:id/results
   Honeypot   GET  /phishing/track/:token       (no auth — the employee follows this link)
+
+DEPRECATED (use /hibp/* instead):
+  HIBP       POST /phishing/hibp/check        → use /hibp/check
+             GET  /phishing/breaches          → use /hibp/breaches
 """
 
 import csv
@@ -68,14 +70,29 @@ class LaunchRequest(BaseModel):
 
 @router.get("/employees")
 async def list_employees(user=Depends(require_role("analyst")), db: Client = Depends(get_db)):
+    settings_row = db.table("org_settings").select("employee_karma_enabled").eq("org_id", user["org_id"]).execute().data
+    karma_enabled = settings_row[0].get("employee_karma_enabled", False) if settings_row else False
+
+    select_clause = (
+        "*, credential_breaches(id, breach_name, breach_date, data_classes, is_sensitive)"
+        if not karma_enabled
+        else "*, credential_breaches(id, breach_name, breach_date, data_classes, is_sensitive), karma_score"
+    )
+
     employees = (
         db.table("employees")
-        .select("*, credential_breaches(id, breach_name, breach_date, data_classes, is_sensitive)")
+        .select(select_clause)
         .eq("org_id", user["org_id"])
         .order("email")
         .execute()
         .data
     )
+
+    # If karma disabled, strip it out (Supabase may include it regardless)
+    if not karma_enabled:
+        for emp in employees:
+            emp.pop("karma_score", None)
+
     return employees
 
 
@@ -149,11 +166,13 @@ async def delete_employee(
     log_action(user["org_id"], user["id"], "employee.deleted", entity_type="employee", entity_id=employee_id)
 
 
-# ── HIBP ──────────────────────────────────────────────────────────────────────
+# ── HIBP ── DEPRECATED: use /hibp/* instead ───────────────────────────────────
 
+# DEPRECATED: POST /hibp/check (in backend.api.hibp) is the canonical endpoint.
+# This endpoint is kept for backward compatibility only and will be removed in v2.0.
 @router.post("/hibp/check")
 async def hibp_check(user=Depends(require_role("admin")), db: Client = Depends(get_db)):
-    """Manually trigger a HIBP domain check for this org."""
+    """DEPRECATED: Use POST /hibp/check instead. Manually trigger a HIBP domain check for this org."""
     if not settings.hibp_check_enabled:
         raise HTTPException(400, "HIBP check is disabled in settings")
     if not settings.hibp_api_key:
@@ -170,8 +189,11 @@ async def hibp_check(user=Depends(require_role("admin")), db: Client = Depends(g
     return result
 
 
+# DEPRECATED: GET /hibp/breaches (in backend.api.hibp) is the canonical endpoint.
+# This endpoint is kept for backward compatibility only and will be removed in v2.0.
 @router.get("/breaches")
 async def list_breaches(user=Depends(require_role("analyst")), db: Client = Depends(get_db)):
+    """DEPRECATED: Use GET /hibp/breaches instead."""
     breaches = (
         db.table("credential_breaches")
         .select("*, employees(email, full_name, karma_score)")
@@ -451,6 +473,10 @@ def _try_send_phishing_email(
 async def campaign_results(
     campaign_id: str, user=Depends(require_role("analyst")), db: Client = Depends(get_db)
 ):
+    # Check if karma is enabled
+    settings_row = db.table("org_settings").select("employee_karma_enabled").eq("org_id", user["org_id"]).execute().data
+    karma_enabled = settings_row[0].get("employee_karma_enabled", False) if settings_row else False
+
     # Verify access
     campaign = (
         db.table("phishing_campaigns")
@@ -474,16 +500,20 @@ async def campaign_results(
     # Enrich with employee data (manual join — no PostgREST FK declared)
     emp_ids = list({t["employee_id"] for t in targets if t.get("employee_id")})
     if emp_ids:
+        select_fields = "id, email, full_name" + (", karma_score" if karma_enabled else "")
         emp_rows = (
             db.table("employees")
-            .select("id, email, full_name, karma_score")
+            .select(select_fields)
             .in_("id", emp_ids)
             .execute()
             .data
         )
         emp_map = {e["id"]: e for e in emp_rows}
         for t in targets:
-            t["employees"] = emp_map.get(t.get("employee_id"))
+            emp_data = emp_map.get(t.get("employee_id"))
+            if emp_data and not karma_enabled:
+                emp_data.pop("karma_score", None)
+            t["employees"] = emp_data
 
     total = len(targets)
     clicked = sum(1 for t in targets if t.get("link_clicked_at"))

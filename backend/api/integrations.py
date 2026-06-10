@@ -15,7 +15,7 @@ from supabase import Client
 
 from backend.api.auth import get_current_user, get_db
 from backend.api.deps import require_role
-from backend.core import notify
+from backend.core import notify, ticketing
 from backend.core.audit import log_action
 from backend.models.schemas import IntegrationCreate, IntegrationUpdate
 
@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
-VALID_TYPES = {"slack", "email", "pagerduty", "opsgenie"}
-_SECRET_KEYS = {"webhook_url", "smtp_password", "integration_key", "api_key"}
+VALID_TYPES = {"slack", "email", "pagerduty", "opsgenie", "webhook", "jira"}
+_SECRET_KEYS = {"webhook_url", "smtp_password", "integration_key", "api_key", "api_token", "secret"}
 
 
 def _redact(integration: dict) -> dict:
@@ -142,6 +142,163 @@ async def set_board_report(
         metadata={"posture_report": body.enabled},
     )
     return _redact(updated)
+
+
+# ── Jira ticketing ────────────────────────────────────────────────────────────
+# Registered before the /{integration_id}/* routes so "/jira/…" isn't swallowed by the
+# path parameter. Config lives in the integrations table (type="jira"), managed with the
+# generic CRUD above; these routes add connection testing and finding → issue creation.
+
+
+class JiraTicketCreate(BaseModel):
+    finding_id: str
+
+    def model_post_init(self, __context):
+        import uuid as _uuid
+        try:
+            _uuid.UUID(self.finding_id)
+        except (ValueError, AttributeError):
+            from fastapi import HTTPException as _H
+            raise _H(400, "finding_id must be a valid UUID")
+
+
+def _jira_integration(db: Client, org_id: str) -> dict | None:
+    rows = (
+        db.table("integrations")
+        .select("*")
+        .eq("org_id", org_id)
+        .eq("type", "jira")
+        .limit(1)
+        .execute()
+        .data
+    )
+    return rows[0] if rows else None
+
+
+@router.get("/jira/status")
+async def jira_status(user=Depends(get_current_user), db: Client = Depends(get_db)):
+    """Lightweight, secret-free status for any authed user (the finding page needs to know
+    whether to enable the 'Create Jira ticket' button; listing integrations is admin-only)."""
+    integ = _jira_integration(db, user["org_id"])
+    config = (integ or {}).get("config") or {}
+    return {
+        "configured": bool(integ) and all(config.get(k) for k in ticketing.REQUIRED_KEYS),
+        "enabled": bool(integ and integ.get("enabled")),
+        "project_key": config.get("project_key"),
+    }
+
+
+@router.post("/jira/test")
+async def jira_test_connection(user=Depends(require_role("admin")), db: Client = Depends(get_db)):
+    """Calls Jira's GET /myself with the stored credentials. Returns ok + account, or a 400
+    whose detail says exactly what to fix (bad URL, bad token, no access)."""
+    integ = _jira_integration(db, user["org_id"])
+    if not integ:
+        raise HTTPException(400, "Jira is not configured — add the Jira integration first")
+    try:
+        return ticketing.test_connection(integ.get("config") or {})
+    except ticketing.JiraError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/jira/tickets", status_code=201)
+async def create_jira_ticket(
+    body: JiraTicketCreate, user=Depends(require_role("analyst")), db: Client = Depends(get_db)
+):
+    """Create a Jira issue from a finding. Idempotent: if the finding already has a jira
+    ticket, the existing reference is returned (created=False) instead of duplicating."""
+    org_id = user["org_id"]
+    existing = (
+        db.table("finding_tickets")
+        .select("*")
+        .eq("org_id", org_id)
+        .eq("finding_id", body.finding_id)
+        .eq("provider", "jira")
+        .execute()
+        .data
+    )
+    if existing:
+        return {**existing[0], "created": False}
+
+    integ = _jira_integration(db, org_id)
+    if not integ:
+        raise HTTPException(400, "Jira is not configured — an admin must add it in Integrations")
+    if not integ.get("enabled"):
+        raise HTTPException(400, "the Jira integration is disabled — enable it in Integrations")
+
+    findings = (
+        db.table("findings")
+        .select("*, assets(name, host)")
+        .eq("id", body.finding_id)
+        .eq("org_id", org_id)
+        .execute()
+        .data
+    )
+    if not findings:
+        raise HTTPException(404, "finding not found")
+
+    try:
+        ticket = ticketing.create_issue(integ.get("config") or {}, findings[0])
+    except ticketing.JiraError as e:
+        raise HTTPException(502, f"could not create the Jira issue: {e}")
+
+    try:
+        row = (
+            db.table("finding_tickets")
+            .insert(
+                {
+                    "org_id": org_id,
+                    "finding_id": body.finding_id,
+                    "provider": "jira",
+                    "ticket_key": ticket["ticket_key"],
+                    "ticket_url": ticket["ticket_url"],
+                    "created_by": user["id"],
+                }
+            )
+            .execute()
+            .data[0]
+        )
+    except Exception:
+        # Unique(finding_id, provider) race: someone created it concurrently — return theirs.
+        logger.warning("finding_tickets insert conflict for finding %s", body.finding_id)
+        rows = (
+            db.table("finding_tickets")
+            .select("*")
+            .eq("org_id", org_id)
+            .eq("finding_id", body.finding_id)
+            .eq("provider", "jira")
+            .execute()
+            .data
+        )
+        if not rows:
+            raise HTTPException(
+                502,
+                f"Jira issue {ticket['ticket_key']} was created but saving the reference failed — "
+                "check the issue in Jira before retrying",
+            )
+        return {**rows[0], "created": False}
+
+    log_action(
+        org_id, user["id"], "ticket.created",
+        entity_type="finding", entity_id=body.finding_id,
+        metadata={"provider": "jira", "ticket_key": ticket["ticket_key"]},
+    )
+    return {**row, "created": True}
+
+
+@router.get("/jira/tickets")
+async def get_jira_tickets(
+    finding_id: str, user=Depends(get_current_user), db: Client = Depends(get_db)
+):
+    return (
+        db.table("finding_tickets")
+        .select("*")
+        .eq("org_id", user["org_id"])
+        .eq("finding_id", finding_id)
+        .eq("provider", "jira")
+        .execute()
+        .data
+    )
 
 
 @router.post("/{integration_id}/test")
