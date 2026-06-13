@@ -35,6 +35,24 @@ Output schema:
   "pretext": "<one sentence describing the social-engineering pretext used>"
 }"""
 
+_TEMPLATE_SYSTEM = """You are a cybersecurity awareness trainer generating INTERNAL phishing simulation email TEMPLATES.
+Templates use placeholders instead of real employee data. These templates will be saved and reused across campaigns.
+
+Rules:
+- Use {{employee_name}} where the recipient's name appears.
+- Use {{tracking_url}} as the href for the single call-to-action link/button.
+- Use {{employee_email}} if the employee's email address is needed.
+- The HTML must be self-contained, professional-looking, and realistic.
+- Never include actual malware or exploits.
+- Output ONLY valid JSON — no markdown, no extra text.
+
+Output schema:
+{
+  "subject": "<email subject line>",
+  "body_html": "<full HTML email body using {{employee_name}} and {{tracking_url}} placeholders>",
+  "pretext": "<one sentence describing the social-engineering scenario>"
+}"""
+
 
 class PhishingAgent(BaseAgent):
     agent_type = "phishing"
@@ -114,3 +132,65 @@ Personalise with the employee's name. Output valid JSON only."""
             ),
             "pretext": f"Fake security alert about {asset_name} to test click-through rate.",
         }
+
+    def generate_template(
+        self,
+        objective: str,
+        scenario: str,
+        org_name: str = "",
+    ) -> dict:
+        """
+        Generate a reusable phishing template with placeholders.
+
+        Returns dict with keys: subject, body_html, pretext
+        Placeholders in body_html: {{employee_name}}, {{tracking_url}}, {{employee_email}}
+        """
+        objective_guidance = {
+            "click": "The lure should get the reader to click a link (urgency/curiosity angle).",
+            "credentials": "The lure should prompt the reader to log in (expired session / security alert).",
+            "report": "The lure should look slightly suspicious — a security-aware employee would report it.",
+        }.get(objective, "")
+
+        user_content = f"""Generate a phishing simulation email TEMPLATE for:
+Organisation: {org_name or 'the company'}
+Objective: {objective} — {objective_guidance}
+Scenario: {scenario}
+
+Use {{{{employee_name}}}} as the recipient name placeholder.
+Use {{{{tracking_url}}}} as the href for the call-to-action link/button.
+Output valid JSON only."""
+
+        try:
+            result, _ = self.call_llm_json(_TEMPLATE_SYSTEM, user_content, max_tokens=1500)
+            if isinstance(result, dict) and "subject" in result and "body_html" in result:
+                return result
+            logger.warning("PhishingAgent.generate_template unexpected JSON: %s", result)
+        except Exception as e:
+            logger.error("PhishingAgent.generate_template LLM call failed: %s", e)
+
+        return {
+            "subject": f"[Security Notice] Action required — {scenario[:60]}",
+            "body_html": (
+                "<p>Hi {{employee_name}},</p>"
+                f"<p>{scenario}</p>"
+                '<p><a href="{{tracking_url}}" style="background:#0055cc;color:#fff;padding:10px 20px;'
+                'text-decoration:none;border-radius:4px">Take Action</a></p>'
+                "<p>If you did not expect this, contact IT security immediately.</p>"
+            ),
+            "pretext": scenario,
+        }
+
+    @staticmethod
+    def apply_template(body_html: str, subject: str, employee_name: str, employee_email: str, tracking_url: str) -> dict:
+        """Replace template placeholders with real values for a specific target."""
+        replacements = {
+            "{{employee_name}}": employee_name,
+            "{{employee_email}}": employee_email,
+            "{{tracking_url}}": tracking_url,
+        }
+        rendered_body = body_html
+        rendered_subject = subject
+        for placeholder, value in replacements.items():
+            rendered_body = rendered_body.replace(placeholder, value)
+            rendered_subject = rendered_subject.replace(placeholder, value)
+        return {"subject": rendered_subject, "body_html": rendered_body}

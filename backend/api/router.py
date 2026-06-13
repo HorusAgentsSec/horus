@@ -279,7 +279,7 @@ async def dashboard_metrics(user=Depends(get_current_user), db: Client = Depends
         .select("id")
         .eq("org_id", org_id)
         .in_("status", ["resolved", "accepted_risk", "false_positive"])
-        .gte("updated_at", week_ago)
+        .gte("last_seen_at", week_ago)
         .execute()
         .data
         or []

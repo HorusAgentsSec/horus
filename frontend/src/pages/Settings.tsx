@@ -88,15 +88,12 @@ export default function Settings() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [karmaEnabled, setKarmaEnabled] = useState(false)
-  const [savingKarma, setSavingKarma] = useState(false)
 
   useEffect(() => {
     api
-      .get<{ shodan_api_key_set: boolean; employee_karma_enabled: boolean }>('/settings')
+      .get<{ shodan_api_key_set: boolean }>('/settings')
       .then((s) => {
         setKeySet(s.shodan_api_key_set)
-        setKarmaEnabled(s.employee_karma_enabled ?? false)
         // Show the mask as a placeholder value when a key already exists; sending it back
         // unchanged is a no-op server-side, so editing-then-saving still works.
         if (s.shodan_api_key_set) setShodanKey(MASK)
@@ -119,20 +116,6 @@ export default function Settings() {
       setError(friendlyErrorMessage(e, 'Failed to save settings'))
     } finally {
       setSaving(false)
-    }
-  }
-
-  const saveKarmaToggle = async () => {
-    setSavingKarma(true)
-    try {
-      const res = await api.put<{ employee_karma_enabled: boolean }>('/settings', {
-        employee_karma_enabled: !karmaEnabled,
-      })
-      setKarmaEnabled(res.employee_karma_enabled)
-    } catch (e) {
-      setError(friendlyErrorMessage(e, 'Failed to update karma setting'))
-    } finally {
-      setSavingKarma(false)
     }
   }
 
@@ -176,31 +159,6 @@ export default function Settings() {
           <p>Configured via environment variables on the backend.</p>
           <p className="font-mono bg-bg rounded px-2 py-1 border border-border">LLM_BASE_URL, LLM_API_KEY, LLM_DEFAULT_MODEL</p>
           <p className="mt-2">Per-agent overrides: <span className="font-mono">LLM_ANALYST_MODEL</span>, <span className="font-mono">LLM_THREAT_INTEL_MODEL</span>, etc.</p>
-        </div>
-      </section>
-
-      <section className="bg-surface border border-border rounded-lg p-6 space-y-4">
-        <h2 className="text-sm font-medium text-white">Employee Privacy</h2>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <label className="text-sm font-medium text-white block mb-1">Employee karma scoring</label>
-            <p className="text-xs text-muted leading-relaxed">
-              Scores individual employees by phishing simulation outcomes. Disabled by default — review with HR/works council before enabling in EU jurisdictions (GDPR Art. 88, employee profiling and monitoring).
-            </p>
-          </div>
-          <button
-            onClick={saveKarmaToggle}
-            disabled={savingKarma}
-            className={cn(
-              'px-3 py-1.5 rounded text-sm font-medium shrink-0 transition-colors',
-              karmaEnabled
-                ? 'bg-red-600/30 text-red-300 hover:bg-red-600/40 border border-red-700/40'
-                : 'bg-green-600/30 text-green-300 hover:bg-green-600/40 border border-green-700/40',
-              savingKarma && 'opacity-50 cursor-not-allowed',
-            )}
-          >
-            {savingKarma ? 'Saving…' : karmaEnabled ? 'Disable' : 'Enable'}
-          </button>
         </div>
       </section>
 

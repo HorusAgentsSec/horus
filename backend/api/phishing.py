@@ -1,9 +1,12 @@
 """
-AuthPhishing — employee management, phishing simulation campaigns.
+AuthPhishing — employee management, phishing simulation campaigns, and email templates.
 
 Endpoints:
   Employees  GET/POST/DELETE /phishing/employees
              POST /phishing/employees/import  (bulk CSV)
+  Templates  GET/POST        /phishing/templates
+             POST            /phishing/templates/generate  (AI generation)
+             GET/PATCH/DELETE /phishing/templates/:id
   Campaigns  GET/POST   /phishing/campaigns
              GET/PATCH  /phishing/campaigns/:id
              POST       /phishing/campaigns/:id/launch
@@ -27,6 +30,7 @@ from supabase import Client
 
 from backend.api.auth import get_db
 from backend.api.deps import require_role
+from backend.api.phishing_library import SYSTEM_TEMPLATES
 from backend.core.config import settings
 from backend.core.audit import log_action
 
@@ -47,11 +51,33 @@ class EmployeeImport(BaseModel):
     csv_text: str   # raw CSV: email[,full_name[,department]]
 
 
+class TemplateCreate(BaseModel):
+    name: str
+    subject: str = ""
+    body_html: str = ""
+    is_public: bool = False
+
+
+class TemplateUpdate(BaseModel):
+    name: str | None = None
+    subject: str | None = None
+    body_html: str | None = None
+    is_public: bool | None = None
+
+
+class TemplateGenerateRequest(BaseModel):
+    name: str
+    objective: str = "click"
+    scenario: str   # free-text description of the phishing scenario
+    is_public: bool = False
+
+
 class CampaignCreate(BaseModel):
     name: str
     objective: str = "click"
     context_asset_ids: list[str] = []
     schedule_cron: str | None = None
+    template_id: str | None = None
 
 
 class CampaignUpdate(BaseModel):
@@ -70,29 +96,14 @@ class LaunchRequest(BaseModel):
 
 @router.get("/employees")
 async def list_employees(user=Depends(require_role("analyst")), db: Client = Depends(get_db)):
-    settings_row = db.table("org_settings").select("employee_karma_enabled").eq("org_id", user["org_id"]).execute().data
-    karma_enabled = settings_row[0].get("employee_karma_enabled", False) if settings_row else False
-
-    select_clause = (
-        "*, credential_breaches(id, breach_name, breach_date, data_classes, is_sensitive)"
-        if not karma_enabled
-        else "*, credential_breaches(id, breach_name, breach_date, data_classes, is_sensitive), karma_score"
-    )
-
     employees = (
         db.table("employees")
-        .select(select_clause)
+        .select("id, email, full_name, department, hibp_checked_at, credential_breaches(id, breach_name, breach_date, data_classes, is_sensitive)")
         .eq("org_id", user["org_id"])
         .order("email")
         .execute()
         .data
     )
-
-    # If karma disabled, strip it out (Supabase may include it regardless)
-    if not karma_enabled:
-        for emp in employees:
-            emp.pop("karma_score", None)
-
     return employees
 
 
@@ -196,13 +207,200 @@ async def list_breaches(user=Depends(require_role("analyst")), db: Client = Depe
     """DEPRECATED: Use GET /hibp/breaches instead."""
     breaches = (
         db.table("credential_breaches")
-        .select("*, employees(email, full_name, karma_score)")
+        .select("*, employees(email, full_name)")
         .eq("org_id", user["org_id"])
         .order("discovered_at", desc=True)
         .execute()
         .data
     )
     return breaches
+
+
+# ── Templates ─────────────────────────────────────────────────────────────────
+
+@router.get("/templates")
+async def list_templates(user=Depends(require_role("analyst")), db: Client = Depends(get_db)):
+    return (
+        db.table("phishing_templates")
+        .select("*")
+        .eq("org_id", user["org_id"])
+        .order("created_at", desc=True)
+        .execute()
+        .data
+    )
+
+
+@router.post("/templates", status_code=201)
+async def create_template(
+    body: TemplateCreate, user=Depends(require_role("admin")), db: Client = Depends(get_db)
+):
+    row = (
+        db.table("phishing_templates")
+        .insert({
+            "org_id": user["org_id"],
+            "name": body.name,
+            "subject": body.subject,
+            "body_html": body.body_html,
+            "is_public": body.is_public,
+            "created_by": user["id"],
+        })
+        .execute()
+        .data[0]
+    )
+    log_action(user["org_id"], user["id"], "template.created", entity_type="phishing_template", entity_id=row["id"])
+    return row
+
+
+@router.post("/templates/generate", status_code=201)
+async def generate_template(
+    body: TemplateGenerateRequest, user=Depends(require_role("admin")), db: Client = Depends(get_db)
+):
+    """Generate a phishing email template via AI and save it."""
+    valid_objectives = {"click", "credentials", "report"}
+    if body.objective not in valid_objectives:
+        raise HTTPException(400, f"objective must be one of {sorted(valid_objectives)}")
+
+    org_row = db.table("organizations").select("name").eq("id", user["org_id"]).single().execute()
+    org_name = (org_row.data or {}).get("name", "")
+
+    from backend.agents.phishing_agent import PhishingAgent
+    agent = PhishingAgent()
+    generated = agent.generate_template(
+        objective=body.objective,
+        scenario=body.scenario,
+        org_name=org_name,
+    )
+
+    row = (
+        db.table("phishing_templates")
+        .insert({
+            "org_id": user["org_id"],
+            "name": body.name,
+            "subject": generated.get("subject", ""),
+            "body_html": generated.get("body_html", ""),
+            "is_public": body.is_public,
+            "created_by": user["id"],
+        })
+        .execute()
+        .data[0]
+    )
+    log_action(user["org_id"], user["id"], "template.generated", entity_type="phishing_template", entity_id=row["id"])
+    return {**row, "pretext": generated.get("pretext", "")}
+
+
+@router.get("/templates/community")
+async def list_community_templates(user=Depends(require_role("analyst")), db: Client = Depends(get_db)):
+    """Return all public templates — system library + user-contributed — enriched with org name."""
+    rows = (
+        _service_supabase.table("phishing_templates")
+        .select("id, name, subject, body_html, created_at, org_id, organizations(name)")
+        .eq("is_public", True)
+        .order("created_at", desc=True)
+        .execute()
+        .data
+    )
+    result = []
+    for r in rows:
+        org_data = r.pop("organizations", None) or {}
+        r["org_name"] = org_data.get("name", "Unknown org")
+        r["is_own"] = r["org_id"] == user["org_id"]
+        result.append(r)
+
+    # Append built-in library templates (always available, org-independent)
+    sys_ids_in_db = {r["id"] for r in result}
+    for tpl in SYSTEM_TEMPLATES:
+        if tpl["id"] not in sys_ids_in_db:
+            result.append({**tpl, "is_own": False})
+
+    return result
+
+
+@router.get("/templates/{template_id}")
+async def get_template(
+    template_id: str, user=Depends(require_role("analyst")), db: Client = Depends(get_db)
+):
+    rows = (
+        db.table("phishing_templates")
+        .select("*")
+        .eq("id", template_id)
+        .eq("org_id", user["org_id"])
+        .execute()
+        .data
+    )
+    if not rows:
+        raise HTTPException(404, "template not found")
+    return rows[0]
+
+
+@router.patch("/templates/{template_id}")
+async def update_template(
+    template_id: str, body: TemplateUpdate,
+    user=Depends(require_role("admin")), db: Client = Depends(get_db)
+):
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(400, "no fields to update")
+    updates["updated_at"] = "now()"
+    rows = (
+        db.table("phishing_templates")
+        .update(updates)
+        .eq("id", template_id)
+        .eq("org_id", user["org_id"])
+        .execute()
+        .data
+    )
+    if not rows:
+        raise HTTPException(404, "template not found")
+    return rows[0]
+
+
+@router.delete("/templates/{template_id}", status_code=204)
+async def delete_template(
+    template_id: str, user=Depends(require_role("admin")), db: Client = Depends(get_db)
+):
+    db.table("phishing_templates").delete().eq("id", template_id).eq("org_id", user["org_id"]).execute()
+    log_action(user["org_id"], user["id"], "template.deleted", entity_type="phishing_template", entity_id=template_id)
+
+
+@router.post("/templates/{template_id}/fork", status_code=201)
+async def fork_template(
+    template_id: str, user=Depends(require_role("admin")), db: Client = Depends(get_db)
+):
+    """Clone a public community template into the current org's library."""
+    # System library templates are resolved from the built-in list (no DB row)
+    if template_id.startswith("sys-"):
+        matches = [t for t in SYSTEM_TEMPLATES if t["id"] == template_id]
+        if not matches:
+            raise HTTPException(404, "system template not found")
+        source = matches[0]
+    else:
+        rows = (
+            _service_supabase.table("phishing_templates")
+            .select("name, subject, body_html")
+            .eq("id", template_id)
+            .eq("is_public", True)
+            .execute()
+            .data
+        )
+        if not rows:
+            raise HTTPException(404, "public template not found")
+        source = rows[0]
+    row = (
+        db.table("phishing_templates")
+        .insert({
+            "org_id": user["org_id"],
+            "name": source["name"],
+            "subject": source["subject"],
+            "body_html": source["body_html"],
+            "is_public": False,
+            "created_by": user["id"],
+        })
+        .execute()
+        .data[0]
+    )
+    log_action(user["org_id"], user["id"], "template.forked", entity_type="phishing_template", entity_id=row["id"],
+               metadata={"source_id": template_id})
+    return row
 
 
 # ── Campaigns ─────────────────────────────────────────────────────────────────
@@ -234,6 +432,7 @@ async def create_campaign(
             "objective": body.objective,
             "context_asset_ids": body.context_asset_ids,
             "schedule_cron": body.schedule_cron,
+            "template_id": body.template_id,
             "created_by": user["id"],
         })
         .execute()
@@ -348,6 +547,19 @@ async def launch_campaign(
     org_row = db.table("organizations").select("name").eq("id", user["org_id"]).single().execute()
     org_name = (org_row.data or {}).get("name", "")
 
+    # Load template if campaign has one
+    template = None
+    if campaign.get("template_id"):
+        tpl_rows = (
+            db.table("phishing_templates")
+            .select("subject, body_html")
+            .eq("id", campaign["template_id"])
+            .eq("org_id", user["org_id"])
+            .execute()
+            .data
+        )
+        template = tpl_rows[0] if tpl_rows else None
+
     from backend.agents.phishing_agent import PhishingAgent
     agent = PhishingAgent()
 
@@ -360,15 +572,25 @@ async def launch_campaign(
     for emp in employees:
         token = secrets.token_urlsafe(32)
         tracking_url = f"{settings.phishing_base_url}/api/phishing/track/{token}"
+        emp_name = emp.get("full_name") or emp["email"].split("@")[0]
 
-        email_content = agent.generate_email(
-            employee_name=emp.get("full_name") or emp["email"].split("@")[0],
-            employee_email=emp["email"],
-            objective=campaign["objective"],
-            asset_context=assets,
-            tracking_url=tracking_url,
-            org_name=org_name,
-        )
+        if template:
+            email_content = PhishingAgent.apply_template(
+                body_html=template["body_html"],
+                subject=template["subject"],
+                employee_name=emp_name,
+                employee_email=emp["email"],
+                tracking_url=tracking_url,
+            )
+        else:
+            email_content = agent.generate_email(
+                employee_name=emp_name,
+                employee_email=emp["email"],
+                objective=campaign["objective"],
+                asset_context=assets,
+                tracking_url=tracking_url,
+                org_name=org_name,
+            )
 
         # Upsert target row with generated content
         target = (
@@ -473,10 +695,6 @@ def _try_send_phishing_email(
 async def campaign_results(
     campaign_id: str, user=Depends(require_role("analyst")), db: Client = Depends(get_db)
 ):
-    # Check if karma is enabled
-    settings_row = db.table("org_settings").select("employee_karma_enabled").eq("org_id", user["org_id"]).execute().data
-    karma_enabled = settings_row[0].get("employee_karma_enabled", False) if settings_row else False
-
     # Verify access
     campaign = (
         db.table("phishing_campaigns")
@@ -500,20 +718,16 @@ async def campaign_results(
     # Enrich with employee data (manual join — no PostgREST FK declared)
     emp_ids = list({t["employee_id"] for t in targets if t.get("employee_id")})
     if emp_ids:
-        select_fields = "id, email, full_name" + (", karma_score" if karma_enabled else "")
         emp_rows = (
             db.table("employees")
-            .select(select_fields)
+            .select("id, email, full_name")
             .in_("id", emp_ids)
             .execute()
             .data
         )
         emp_map = {e["id"]: e for e in emp_rows}
         for t in targets:
-            emp_data = emp_map.get(t.get("employee_id"))
-            if emp_data and not karma_enabled:
-                emp_data.pop("karma_score", None)
-            t["employees"] = emp_data
+            t["employees"] = emp_map.get(t.get("employee_id"))
 
     total = len(targets)
     clicked = sum(1 for t in targets if t.get("link_clicked_at"))
@@ -573,36 +787,21 @@ from backend.core.supabase_client import supabase as _service_supabase
 async def honeypot_track(token: str, request: Request):
     """
     Called when a targeted employee clicks the phishing link.
-    Records the event, lowers the employee's karma score, redirects to awareness page.
+    Records the click event and shows the security awareness page.
     No auth — the employee is not logged into Horus.
     """
     try:
         rows = (
             _service_supabase.table("phishing_targets")
-            .select("id, employee_id, link_clicked_at, campaign_id")
+            .select("id, link_clicked_at")
             .eq("tracking_token", token)
             .execute()
             .data
         )
         if rows and not rows[0].get("link_clicked_at"):
-            target = rows[0]
             _service_supabase.table("phishing_targets").update(
                 {"link_clicked_at": "now()"}
-            ).eq("id", target["id"]).execute()
-            # Deduct 15 karma points for clicking (floor 0)
-            emp = (
-                _service_supabase.table("employees")
-                .select("karma_score")
-                .eq("id", target["employee_id"])
-                .single()
-                .execute()
-                .data
-            )
-            if emp:
-                new_karma = max(0, (emp.get("karma_score") or 100) - 15)
-                _service_supabase.table("employees").update(
-                    {"karma_score": new_karma}
-                ).eq("id", target["employee_id"]).execute()
+            ).eq("id", rows[0]["id"]).execute()
     except Exception as e:
         logger.warning("honeypot track error for token %s: %s", token[:8], e)
 

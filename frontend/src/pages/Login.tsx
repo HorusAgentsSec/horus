@@ -11,7 +11,7 @@ export default function Login() {
   const sessionExpired = searchParams.get('expired') === '1'
 
   useEffect(() => {
-    // Redirigir si ya hay sesión activa
+    // Redirect if session already exists
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate('/dashboard', { replace: true })
     })
