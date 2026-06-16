@@ -1,0 +1,10 @@
+# Local variable files with real secrets — never commit these.
+*.tfvars
+!*.tfvars.example
+
+# Terraform working directories and state (use remote state in GCS for teams).
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+tfplan

@@ -1,0 +1,45 @@
+# Copy this file to terraform.tfvars and fill in real values.
+# terraform.tfvars is git-ignored — never commit secrets.
+
+# ── GCP project ───────────────────────────────────────────────────────────────
+project_id = "my-gcp-project-id"
+region     = "us-central1"
+
+# ── GitHub repo (for Workload Identity Federation) ────────────────────────────
+github_org  = "HorusAgentsSec"
+github_repo = "horus"
+
+# ── Cloud Run sizing ──────────────────────────────────────────────────────────
+min_instances = 0      # 0 = scale to zero when idle (cheapest)
+max_instances = 10
+cpu           = "2"
+memory        = "2Gi"
+
+# ── Supabase ──────────────────────────────────────────────────────────────────
+supabase_url              = "https://xxxx.supabase.co"
+supabase_anon_key         = "eyJ..."
+supabase_service_role_key = "eyJ..."
+
+# ── LLM provider ──────────────────────────────────────────────────────────────
+llm_base_url      = "https://openrouter.ai/api/v1"
+llm_api_key       = "sk-or-..."
+llm_default_model = "anthropic/claude-opus-4-5"
+
+# ── App secret ────────────────────────────────────────────────────────────────
+# Generate: openssl rand -hex 32
+secret_key = "changeme-generate-a-real-random-value"
+
+# ── Optional: Shodan & BreachDirectory ────────────────────────────────────────
+shodan_api_key           = ""
+breach_directory_api_key = ""
+
+# ── Optional: SMTP notifications ──────────────────────────────────────────────
+smtp_host     = ""
+smtp_port     = 587
+smtp_user     = ""
+smtp_password = ""
+smtp_from     = ""
+
+# ── Optional: Redis (shared rate-limit state across Cloud Run instances) ──────
+# Leave empty to use per-instance in-memory limiting.
+redis_url = ""
