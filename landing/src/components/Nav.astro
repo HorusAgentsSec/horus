@@ -1,0 +1,36 @@
+---
+interface Props {
+  activePage?: 'home' | 'platform' | 'pricing';
+}
+const { activePage = 'home' } = Astro.props;
+---
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-mark">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+      Horus
+    </a>
+    <div class="nav-links">
+      <a href="/services" class={`nav-link${activePage === 'platform' ? ' active' : ''}`}>Platform</a>
+      <a href="/pricing" class={`nav-link${activePage === 'pricing' ? ' active' : ''}`}>Pricing</a>
+      <a href="https://docs.horus.security" class="nav-link">Docs</a>
+      <a href="https://github.com/horusec/horus" class="nav-link">GitHub</a>
+    </div>
+    <div class="nav-ctas">
+      <a href="https://app.horus.security/login" class="nav-ghost">Sign in</a>
+      <a href="https://app.horus.security/login?demo=1" class="nav-gold">Try demo →</a>
+    </div>
+  </div>
+</nav>
+
+<script>
+  const nav = document.querySelector('.nav');
+  if (nav) {
+    const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+</script>

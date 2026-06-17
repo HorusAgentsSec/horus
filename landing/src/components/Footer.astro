@@ -1,0 +1,26 @@
+---
+interface Props {
+  homeLink?: string;
+}
+const { homeLink = '/' } = Astro.props;
+---
+
+<footer>
+  <div class="container foot">
+    <div class="foot-logo">
+      <div class="nav-logo-mark">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+      Horus
+      <span style="color:var(--muted);font-weight:400;font-size:12px;">· Cybersecurity Intelligence</span>
+    </div>
+    <div class="foot-links">
+      <a href="/services" class="foot-link">Platform</a>
+      <a href="/pricing" class="foot-link">Pricing</a>
+      <a href="https://github.com/horusec/horus" class="foot-link">GitHub</a>
+      <a href="https://docs.horus.security" class="foot-link">Docs</a>
+      <a href="mailto:contact@horusagents.com" class="foot-link">Contact</a>
+      <span class="foot-link" style="cursor:default;">MIT License · © 2026</span>
+    </div>
+  </div>
+</footer>

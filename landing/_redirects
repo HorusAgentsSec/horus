@@ -1,0 +1,3 @@
+# Netlify / Cloudflare Pages redirects
+# All paths serve index.html (single-page)
+/*    /index.html    200

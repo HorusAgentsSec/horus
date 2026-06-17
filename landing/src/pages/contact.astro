@@ -1,0 +1,257 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+
+const plan = Astro.url.searchParams.get('plan') ?? 'pro';
+const error = Astro.url.searchParams.get('error');
+
+const planLabels: Record<string, string> = {
+  pro:       'Pro — managed cloud',
+  sovereign: 'Sovereign — on-prem / enterprise',
+};
+const errorMessages: Record<string, string> = {
+  missing: 'Name, email and company are required.',
+  send:    'Could not send your message. Please try again or email contact@horusagents.com directly.',
+  config:  'Configuration error. Please email contact@horusagents.com directly.',
+};
+---
+
+<Layout
+  title="Contact Horus — Get a quote"
+  description="Tell us about your company and we'll get back to you with pricing tailored to your team size and sector."
+>
+  <Nav />
+
+  <div class="form-page">
+    <div class="container">
+
+      <div class="form-layout">
+
+        <!-- Left: copy -->
+        <div class="form-copy">
+          <div class="eyebrow ey-gold"><span class="dot"></span>Get a quote</div>
+          <h1>Let's talk<br>about your<br>security needs.</h1>
+          <p>Pricing is per user, adapted to your team size and sector. Fill in the form and we'll get back to you within one business day.</p>
+
+          <div class="form-trust">
+            <div class="trust-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Response in &lt; 1 business day</span>
+            </div>
+            <div class="trust-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>No sales pressure, no spam</span>
+            </div>
+            <div class="trust-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Live demo always available at no cost</span>
+            </div>
+          </div>
+
+          <a href="https://app.horus.security/login?demo=1" class="demo-link">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Or try the live demo first — no signup required
+          </a>
+        </div>
+
+        <!-- Right: form -->
+        <div class="form-card">
+          {error && (
+            <div class="form-error">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              {errorMessages[error] ?? 'Something went wrong. Please try again.'}
+            </div>
+          )}
+
+          <form method="POST" action="/api/contact" novalidate>
+
+            <input type="hidden" name="plan" value={plan} />
+
+            <div class="field-row">
+              <div class="field">
+                <label for="name">Full name <span class="req">*</span></label>
+                <input type="text" id="name" name="name" placeholder="Jane Smith" required autocomplete="name" />
+              </div>
+              <div class="field">
+                <label for="email">Work email <span class="req">*</span></label>
+                <input type="email" id="email" name="email" placeholder="jane@company.com" required autocomplete="email" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="company">Company name <span class="req">*</span></label>
+              <input type="text" id="company" name="company" placeholder="Acme Corp" required autocomplete="organization" />
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label for="employees">Company size</label>
+                <select id="employees" name="employees">
+                  <option value="">Select…</option>
+                  <option value="1-10">1–10 employees</option>
+                  <option value="11-50">11–50 employees</option>
+                  <option value="51-200">51–200 employees</option>
+                  <option value="201-1000">201–1,000 employees</option>
+                  <option value="1000+">1,000+ employees</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="sector">Industry</label>
+                <select id="sector" name="sector">
+                  <option value="">Select…</option>
+                  <option value="Technology">Technology / SaaS</option>
+                  <option value="Finance">Finance / Banking</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Government">Government / Public sector</option>
+                  <option value="Defense">Defense / Aerospace</option>
+                  <option value="Retail">Retail / E-commerce</option>
+                  <option value="Manufacturing">Manufacturing</option>
+                  <option value="Energy">Energy / Utilities</option>
+                  <option value="Education">Education</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="plan-select">Plan of interest</label>
+              <select id="plan-select" name="plan">
+                <option value="pro"       selected={plan === 'pro'}>Pro — managed cloud</option>
+                <option value="sovereign" selected={plan === 'sovereign'}>Sovereign — on-prem / enterprise</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="tools">Current security tooling <span class="opt">(optional)</span></label>
+              <input type="text" id="tools" name="tools" placeholder="e.g. Wiz, Snyk, Qualys, manual reviews…" />
+            </div>
+
+            <div class="field">
+              <label for="message">Anything else? <span class="opt">(optional)</span></label>
+              <textarea id="message" name="message" rows="3" placeholder="Main pain points, timeline, specific requirements…"></textarea>
+            </div>
+
+            <button type="submit" class="submit-btn">
+              Send enquiry
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+
+            <p class="form-legal">We'll only use this to respond to your enquiry. No marketing lists.</p>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>
+
+<style>
+  .form-page { padding: 72px 0 80px; min-height: calc(100vh - 56px); }
+
+  .form-layout {
+    display: grid; grid-template-columns: 1fr 1.1fr; gap: 72px; align-items: start;
+  }
+
+  /* ── Copy ── */
+  .form-copy h1 {
+    font-size: clamp(32px, 4vw, 52px); font-weight: 800; line-height: 1.06;
+    letter-spacing: -0.03em; color: #fff; margin-bottom: 18px;
+  }
+  .form-copy p { font-size: 15px; color: var(--muted); line-height: 1.7; margin-bottom: 32px; }
+
+  .form-trust { display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; }
+  .trust-item { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--muted); }
+
+  .demo-link {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 13px; color: var(--gold); opacity: .75;
+    transition: opacity .15s;
+  }
+  .demo-link:hover { opacity: 1; }
+
+  /* ── Form card ── */
+  .form-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 36px;
+  }
+
+  .form-error {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--red);
+    background: rgba(224,82,82,0.08); border: 1px solid rgba(224,82,82,0.2);
+    border-radius: 8px; padding: 12px 14px; margin-bottom: 24px;
+  }
+
+  form { display: flex; flex-direction: column; gap: 18px; }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+
+  label {
+    font-size: 12px; font-weight: 600; color: var(--ivory);
+    letter-spacing: 0.01em;
+  }
+  .req { color: var(--gold); }
+  .opt { color: var(--muted); font-weight: 400; }
+
+  input[type="text"],
+  input[type="email"],
+  select,
+  textarea {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 10px 13px;
+    font-family: inherit; font-size: 13px; color: var(--ivory);
+    outline: none; transition: border-color .15s, box-shadow .15s;
+    width: 100%;
+  }
+  input::placeholder, textarea::placeholder { color: rgba(122,132,153,0.5); }
+  select { cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237A8499' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    padding-right: 34px;
+  }
+  select option { background: var(--surface2); color: var(--ivory); }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: rgba(232,185,74,0.5);
+    box-shadow: 0 0 0 3px rgba(232,185,74,0.08);
+  }
+  textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
+
+  .submit-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 14px; font-weight: 700; background: var(--gold); color: #0A0E1A;
+    padding: 12px 24px; border-radius: 9px; border: none; cursor: pointer;
+    box-shadow: 0 2px 16px rgba(232,185,74,0.28);
+    transition: background .15s, box-shadow .15s, transform .1s;
+    margin-top: 4px; width: 100%;
+    position: relative; overflow: hidden;
+  }
+  .submit-btn:hover { background: #f0c44e; box-shadow: 0 4px 24px rgba(232,185,74,0.38); transform: translateY(-1px); }
+  .submit-btn::after {
+    content: ''; position: absolute; top: 0; left: -130%; width: 55%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent);
+    transform: skewX(-18deg); pointer-events: none;
+  }
+  .submit-btn:hover::after { animation: shine .85s ease; }
+  @keyframes shine { to { left: 150%; } }
+
+  .form-legal { font-size: 11px; color: rgba(122,132,153,0.5); text-align: center; margin-top: -4px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 860px) {
+    .form-layout { grid-template-columns: 1fr; gap: 40px; }
+    .form-page { padding: 48px 0 64px; }
+  }
+  @media (max-width: 540px) {
+    .field-row { grid-template-columns: 1fr; }
+    .form-card { padding: 24px; }
+    :global(.nav-link) { display: none; }
+  }
+</style>

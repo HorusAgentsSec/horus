@@ -1,0 +1,57 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+
+<Layout
+  title="Thanks — We'll be in touch"
+  description="Your enquiry has been received. We'll get back to you within one business day."
+>
+  <Nav />
+
+  <div class="thanks-page">
+    <div class="container">
+      <div class="thanks-card">
+        <div class="thanks-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h1>Message received.</h1>
+        <p>We'll get back to you at your work email within one business day with pricing tailored to your company.</p>
+        <p class="sub">While you wait, explore the live demo — it's pre-loaded with real CVE findings, Red/Blue debate transcripts, and a full incident timeline.</p>
+        <div class="thanks-ctas">
+          <a href="https://app.horus.security/login?demo=1" class="btn-gold btn-gold-lg">
+            Open live demo →
+          </a>
+          <a href="/" class="btn-ghost">Back to home</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>
+
+<style>
+  .thanks-page {
+    min-height: calc(100vh - 56px); display: flex;
+    align-items: center; justify-content: center;
+    padding: 64px 0;
+  }
+  .thanks-card {
+    max-width: 480px; margin: 0 auto; text-align: center;
+  }
+  .thanks-icon {
+    width: 60px; height: 60px; border-radius: 50%;
+    background: rgba(39,194,182,0.1); border: 1px solid rgba(39,194,182,0.25);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 28px;
+  }
+  h1 {
+    font-size: clamp(28px,4vw,44px); font-weight: 800;
+    letter-spacing: -0.03em; color: #fff; margin-bottom: 14px;
+  }
+  p { font-size: 15px; color: var(--muted); line-height: 1.65; margin-bottom: 10px; }
+  .sub { font-size: 13px; margin-bottom: 32px; }
+  .thanks-ctas { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+</style>

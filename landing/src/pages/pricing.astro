@@ -1,0 +1,441 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+
+const features: { label: string; open: boolean; pro: boolean; sovereign: boolean }[] = [
+  // Core pipeline
+  { label: 'Full 8-agent pipeline (Recon → Reporter)', open: true,  pro: true,  sovereign: true  },
+  { label: 'Asset discovery (CT logs + nmap CIDR sweep)', open: true,  pro: true,  sovereign: true  },
+  { label: 'Vulnerability scanning (nmap + nuclei)',     open: true,  pro: true,  sovereign: true  },
+  { label: 'CVE correlation — 338k+ NVD entries',        open: true,  pro: true,  sovereign: true  },
+  { label: 'SSVC prioritization (deterministic, 0 LLM tokens)', open: true, pro: true, sovereign: true },
+  { label: 'CISA KEV + FIRST EPSS daily sync',           open: true,  pro: true,  sovereign: true  },
+  { label: 'Watchtower — KEV & EPSS spike alerts',       open: true,  pro: true,  sovereign: true  },
+  { label: 'Red / Blue adversarial validation',          open: true,  pro: true,  sovereign: true  },
+  { label: 'Phishing campaigns (asset-aware lures)',     open: true,  pro: true,  sovereign: true  },
+  { label: 'Auth phishing simulation (MFA/OTP)',         open: true,  pro: true,  sovereign: true  },
+  { label: 'Credential exposure (HIBP integration)',     open: true,  pro: true,  sovereign: true  },
+  { label: 'Dark web + IOC feeds (ThreatFox/URLhaus)',   open: true,  pro: true,  sovereign: true  },
+  { label: 'Incidents & case management',                open: true,  pro: true,  sovereign: true  },
+  { label: 'Posture timeline & risk scoring',            open: true,  pro: true,  sovereign: true  },
+  { label: 'Executive dashboard (11 widgets)',           open: true,  pro: true,  sovereign: true  },
+  { label: 'Audit log (append-only)',                    open: true,  pro: true,  sovereign: true  },
+  { label: 'RBAC — Admin / Analyst / Viewer',            open: true,  pro: true,  sovereign: true  },
+  { label: 'REST API + API keys',                        open: true,  pro: true,  sovereign: true  },
+  { label: 'Permission policies (AI action gates)',      open: true,  pro: true,  sovereign: true  },
+  { label: 'Community verdict memory (k-anonymity)',     open: true,  pro: true,  sovereign: true  },
+  // Pro / managed
+  { label: 'Managed infrastructure & updates',          open: false, pro: true,  sovereign: true  },
+  { label: 'Data redacted before LLM calls',            open: false, pro: true,  sovereign: true  },
+  { label: 'Slack, Email, PagerDuty, OpsGenie alerts',  open: false, pro: true,  sovereign: true  },
+  { label: 'Email support',                             open: false, pro: true,  sovereign: true  },
+  { label: 'MCP integration',                           open: false, pro: true,  sovereign: true  },
+  // Sovereign
+  { label: 'On-prem / air-gapped deployment',           open: false, pro: false, sovereign: true  },
+  { label: 'BYO model (Ollama / vLLM)',                 open: false, pro: false, sovereign: true  },
+  { label: 'SSO / SAML',                               open: false, pro: false, sovereign: true  },
+  { label: 'Tenant isolation & encryption at rest',     open: false, pro: false, sovereign: true  },
+  { label: 'Dedicated SLA',                            open: false, pro: false, sovereign: true  },
+  { label: '24/7 priority support',                    open: false, pro: false, sovereign: true  },
+  { label: 'Private Slack channel',                    open: false, pro: false, sovereign: true  },
+];
+
+const sections = [
+  { label: 'Core pipeline', from: 0, to: 20 },
+  { label: 'Pro & managed', from: 20, to: 25 },
+  { label: 'Sovereign / enterprise', from: 25, to: 32 },
+];
+---
+
+<Layout
+  title="Horus Pricing — Open, Pro, Sovereign"
+  description="Free self-hosted, Pro managed cloud (per user), or fully sovereign on-prem. All tiers run the same 8-agent pipeline."
+  ogTitle="Horus Pricing"
+  ogDescription="Same pipeline. You choose where your data lives."
+>
+  <Nav activePage="pricing" />
+
+  <!-- Hero -->
+  <div class="pricing-hero">
+    <div class="container">
+      <div class="eyebrow ey-gold"><span class="dot"></span>Pricing</div>
+      <h1>Same pipeline.<br>You choose where<br>your data lives.</h1>
+      <p class="hero-sub">Every tier runs the full 8-agent pipeline. No feature gating on the security capabilities that matter. The difference is where the stack runs and who keeps it updated.</p>
+    </div>
+  </div>
+
+  <!-- Plan cards -->
+  <div class="plan-cards-wrap">
+    <div class="container">
+      <div class="plan-cards">
+
+        <div class="plan-card">
+          <div class="plan-tier">Open</div>
+          <div class="plan-price">Free</div>
+          <div class="plan-cadence">self-hosted · MIT license</div>
+          <p class="plan-desc">Full feature set. You run it, you own it. Bring your own LLM or use Ollama locally.</p>
+          <a href="https://github.com/horusec/horus" class="plan-cta plan-cta-ghost">
+            Deploy on GitHub
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          </a>
+        </div>
+
+        <div class="plan-card plan-card-hl">
+          <div class="plan-badge">POPULAR</div>
+          <div class="plan-tier">Pro</div>
+          <div class="plan-price-wrap">
+            <span class="plan-price-label">Per user · monthly</span>
+            <span class="plan-price-sub">Pricing tailored to your team size and sector</span>
+          </div>
+          <p class="plan-desc">Managed. We run it, keep it updated, and redact your infrastructure data before any LLM call.</p>
+          <a href="/contact?plan=pro" class="plan-cta plan-cta-gold">
+            Get a quote →
+          </a>
+        </div>
+
+        <div class="plan-card">
+          <div class="plan-tier">Sovereign</div>
+          <div class="plan-price-wrap">
+            <span class="plan-price-label">Custom</span>
+            <span class="plan-price-sub">On-prem · enterprise</span>
+          </div>
+          <p class="plan-desc">Zero data leaving your perimeter. BYO LLM, SSO, 24/7 support, dedicated SLA, and private Slack channel.</p>
+          <a href="/contact?plan=sovereign" class="plan-cta plan-cta-ghost">
+            Talk to us →
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature comparison table -->
+  <div class="compare-wrap">
+    <div class="container">
+
+      <div class="compare-table" role="table" aria-label="Feature comparison">
+
+        <!-- Sticky header row -->
+        <div class="compare-head" role="row">
+          <div class="compare-head-label" role="columnheader">Features</div>
+          <div class="compare-head-col" role="columnheader">
+            <span class="col-tier">Open</span>
+            <span class="col-sub">free · self-hosted</span>
+          </div>
+          <div class="compare-head-col col-hl" role="columnheader">
+            <span class="col-tier">Pro</span>
+            <span class="col-sub">per user · mo</span>
+          </div>
+          <div class="compare-head-col" role="columnheader">
+            <span class="col-tier">Sovereign</span>
+            <span class="col-sub">custom</span>
+          </div>
+        </div>
+
+        {sections.map(sec => (
+          <div class="compare-section">
+            <div class="compare-section-label" role="rowgroup">{sec.label}</div>
+            {features.slice(sec.from, sec.to).map(f => (
+              <div class="compare-row" role="row">
+                <div class="compare-feat" role="cell">{f.label}</div>
+                <div class="compare-cell" role="cell">
+                  {f.open
+                    ? <svg class="icon-yes" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    : <svg class="icon-no"  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  }
+                </div>
+                <div class="compare-cell cell-hl" role="cell">
+                  {f.pro
+                    ? <svg class="icon-yes" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    : <svg class="icon-no"  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  }
+                </div>
+                <div class="compare-cell" role="cell">
+                  {f.sovereign
+                    ? <svg class="icon-yes" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    : <svg class="icon-no"  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  }
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+
+        <!-- Bottom CTA row -->
+        <div class="compare-cta-row">
+          <div></div>
+          <div class="compare-cell">
+            <a href="https://github.com/horusec/horus" class="cta-sm cta-sm-ghost">GitHub →</a>
+          </div>
+          <div class="compare-cell cell-hl">
+            <a href="/contact?plan=pro" class="cta-sm cta-sm-gold">Get a quote →</a>
+          </div>
+          <div class="compare-cell">
+            <a href="/contact?plan=sovereign" class="cta-sm cta-sm-ghost">Contact →</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ strip -->
+  <div class="faq-wrap">
+    <div class="container">
+      <div class="faq-grid">
+        <div class="faq-item">
+          <h3>Can I switch tiers later?</h3>
+          <p>Yes. The Open tier uses the same Docker images as Pro and Sovereign. Migration is a config change, not a re-deployment.</p>
+        </div>
+        <div class="faq-item">
+          <h3>What LLMs does it use?</h3>
+          <p>Open: Ollama locally or any OpenAI-compatible API. Pro: Claude Sonnet with data redaction. Sovereign: BYO — Ollama, vLLM, or any private endpoint.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Does the deterministic core cost LLM tokens?</h3>
+          <p>No. SSVC prioritization, CVE correlation, KEV matching, EPSS scoring, and Watchtower alerts are 100% deterministic. Zero LLM calls, zero per-query cost.</p>
+        </div>
+        <div class="faq-item">
+          <h3>What does "data redacted" mean in Pro?</h3>
+          <p>Before any prompt reaches the LLM, Horus pseudonymizes hostnames, IPs, and emails using a stable per-org map. The LLM never sees real asset names. De-pseudonymization happens on the response side.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Is there a free trial for Pro?</h3>
+          <p>Yes — the live demo is pre-loaded with 30 days of scan history, real CVE findings, Red/Blue debate transcripts, and phishing campaign results. No card required.</p>
+        </div>
+        <div class="faq-item">
+          <h3>What's included in Sovereign support?</h3>
+          <p>24/7 priority support, dedicated SLA, a private Slack channel with the Horus team, assisted deployment, and priority access to new agent releases. Pricing is per user.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Final CTA -->
+  <div class="final">
+    <div class="container">
+      <h2>Configure it once.<br>Your agents start tonight.</h2>
+      <p>The demo is pre-loaded with 30 days of posture history, real CVE findings, Red/Blue debate transcripts, and phishing campaign results.</p>
+      <div class="final-ctas">
+        <a href="https://app.horus.security/login?demo=1" class="btn-gold btn-gold-lg">
+          Open live demo
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <a href="https://github.com/horusec/horus" class="btn-ghost">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          Self-host free
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>
+
+<style>
+  /* ── Hero ── */
+  .pricing-hero {
+    padding: 80px 0 64px;
+    position: relative; overflow: hidden; isolation: isolate;
+    border-bottom: 1px solid var(--border);
+  }
+  .pricing-hero::before {
+    content: ''; position: absolute; inset: -25% -12% auto -12%; height: 150%; z-index: -1;
+    background:
+      radial-gradient(560px 340px at 5% 0%,  rgba(232,185,74,0.09), transparent 60%),
+      radial-gradient(620px 380px at 95% 8%, rgba(44,107,237,0.11), transparent 55%);
+    animation: heroDrift 24s ease-in-out infinite alternate;
+  }
+  @keyframes heroDrift {
+    0%   { transform: translate3d(0,0,0) scale(1); }
+    100% { transform: translate3d(-3%,2%,0) scale(1.08); }
+  }
+  .pricing-hero h1 {
+    font-size: clamp(38px,5vw,64px); font-weight: 800; line-height: 1.06;
+    letter-spacing: -0.03em; color: #fff; margin-bottom: 20px; max-width: 640px;
+  }
+  .hero-sub {
+    font-size: 17px; color: var(--muted); max-width: 520px; line-height: 1.65; margin-bottom: 0;
+  }
+  .hero-sub strong { color: var(--ivory); font-weight: 500; }
+
+  /* ── Plan cards ── */
+  .plan-cards-wrap { padding: 56px 0 0; }
+  .plan-cards {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 1px;
+    background: var(--border); border-radius: 16px; overflow: hidden;
+  }
+  .plan-card {
+    background: var(--surface); padding: 32px 28px;
+    display: flex; flex-direction: column;
+    position: relative;
+    transition: background .2s;
+  }
+  .plan-card-hl { background: var(--surface2); }
+  .plan-badge {
+    position: absolute; top: -1px; right: 22px;
+    font-size: 10px; font-weight: 700; letter-spacing: .05em;
+    background: var(--gold); color: #0A0E1A;
+    padding: 3px 10px; border-radius: 0 0 7px 7px;
+  }
+  .plan-tier {
+    font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 10px;
+  }
+  .plan-price {
+    font-size: 38px; font-weight: 800; letter-spacing: -0.03em; color: #fff;
+    line-height: 1; margin-bottom: 4px;
+  }
+  .plan-price-wrap { margin-bottom: 16px; }
+  .plan-price-label {
+    display: block; font-size: 20px; font-weight: 700; color: #fff;
+    letter-spacing: -0.01em; margin-bottom: 3px;
+  }
+  .plan-price-sub { font-size: 12px; color: var(--muted); }
+  .plan-cadence { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+  .plan-desc { font-size: 13px; color: var(--muted); line-height: 1.6; flex: 1; margin-bottom: 24px; }
+  .plan-cta {
+    display: block; text-align: center; font-size: 13px; font-weight: 600;
+    padding: 10px 16px; border-radius: 8px; transition: background .15s, box-shadow .15s, border-color .15s;
+  }
+  .plan-cta-ghost {
+    border: 1px solid var(--border2); color: var(--ivory);
+  }
+  .plan-cta-ghost:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.22); }
+  .plan-cta-gold {
+    background: var(--gold); color: #0A0E1A; border: none; font-weight: 700;
+    box-shadow: 0 2px 12px rgba(232,185,74,0.25);
+  }
+  .plan-cta-gold:hover { background: #f0c44e; box-shadow: 0 3px 18px rgba(232,185,74,0.38); }
+
+  /* ── Compare table ── */
+  .compare-wrap { padding: 40px 0 0; }
+  .compare-table { width: 100%; }
+
+  .compare-head {
+    display: grid; grid-template-columns: 1fr 140px 140px 140px;
+    position: sticky; top: 56px; z-index: 30;
+    background: rgba(10,14,26,0.96); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border2);
+    padding: 0;
+  }
+  .compare-head-label {
+    font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--muted); padding: 18px 0 18px 4px; align-self: center;
+  }
+  .compare-head-col {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 14px 0; gap: 3px; border-left: 1px solid var(--border);
+  }
+  .compare-head-col.col-hl { background: rgba(232,185,74,0.04); border-color: rgba(232,185,74,0.18); }
+  .col-tier { font-size: 13px; font-weight: 700; color: var(--ivory); }
+  .col-sub  { font-size: 11px; color: var(--muted); }
+
+  .compare-section { margin-bottom: 0; }
+  .compare-section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--gold); padding: 28px 0 10px 4px;
+    border-bottom: 1px solid rgba(232,185,74,0.14);
+    grid-column: 1 / -1;
+    display: block;
+  }
+
+  .compare-row {
+    display: grid; grid-template-columns: 1fr 140px 140px 140px;
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+  }
+  .compare-row:hover { background: rgba(255,255,255,0.025); }
+
+  .compare-feat {
+    font-size: 13px; color: var(--muted); padding: 13px 16px 13px 4px;
+    align-self: center; line-height: 1.45;
+  }
+  .compare-cell {
+    display: flex; align-items: center; justify-content: center;
+    border-left: 1px solid var(--border); padding: 12px 0;
+  }
+  .compare-cell.cell-hl {
+    background: rgba(232,185,74,0.03);
+    border-left-color: rgba(232,185,74,0.14);
+  }
+
+  .icon-yes { color: var(--teal); }
+  .icon-no  { color: rgba(224,82,82,0.55); }
+
+  /* Bottom CTA row */
+  .compare-cta-row {
+    display: grid; grid-template-columns: 1fr 140px 140px 140px;
+    padding: 20px 0; border-top: 1px solid var(--border2); margin-top: 4px;
+  }
+  .cta-sm {
+    font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: 7px;
+    display: inline-block; transition: background .15s, box-shadow .15s;
+  }
+  .cta-sm-ghost { border: 1px solid var(--border2); color: var(--ivory); }
+  .cta-sm-ghost:hover { background: rgba(255,255,255,0.05); }
+  .cta-sm-gold {
+    background: var(--gold); color: #0A0E1A;
+    box-shadow: 0 1px 8px rgba(232,185,74,0.22);
+  }
+  .cta-sm-gold:hover { background: #f0c44e; }
+
+  /* ── FAQ ── */
+  .faq-wrap { padding: 72px 0; border-top: 1px solid var(--border); }
+  .faq-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 32px 40px; }
+  .faq-item h3 {
+    font-size: 14px; font-weight: 600; color: var(--ivory);
+    margin-bottom: 8px; line-height: 1.4;
+  }
+  .faq-item p { font-size: 13px; color: var(--muted); line-height: 1.65; }
+
+  /* ── Final CTA (shared) ── */
+  .final { text-align: center; padding: 88px 0; border-top: 1px solid var(--border); }
+  .final h2 { font-size: clamp(26px,4vw,44px); font-weight: 800; letter-spacing: -0.025em; color: #fff; margin-bottom: 14px; }
+  .final p { font-size: 16px; color: var(--muted); max-width: 420px; margin: 0 auto 34px; }
+  .final-ctas { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+
+  /* ── Responsive ── */
+  @media (max-width: 860px) {
+    .plan-cards { grid-template-columns: 1fr; background: none; gap: 10px; }
+    .plan-card { border-radius: 12px; border: 1px solid var(--border); }
+    .compare-head { grid-template-columns: 1fr 90px 90px 90px; top: 56px; }
+    .compare-row  { grid-template-columns: 1fr 90px 90px 90px; }
+    .compare-head-col, .compare-cell { padding: 10px 0; }
+    .col-sub { display: none; }
+    .compare-cta-row { grid-template-columns: 1fr 90px 90px 90px; }
+    .cta-sm { font-size: 11px; padding: 6px 8px; }
+  }
+  @media (max-width: 640px) {
+    .faq-grid { grid-template-columns: 1fr; gap: 24px; }
+    .compare-head { grid-template-columns: 1fr 72px 72px 72px; }
+    .compare-row  { grid-template-columns: 1fr 72px 72px 72px; }
+    .compare-cta-row { grid-template-columns: 1fr 72px 72px 72px; }
+    .compare-feat { font-size: 12px; padding-right: 8px; }
+    .col-tier { font-size: 11px; }
+    :global(.nav-link) { display: none; }
+  }
+</style>
+
+<script>
+(function () {
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || !('IntersectionObserver' in window)) return;
+
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      e.target.classList.add('in');
+      io.unobserve(e.target);
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+
+  function mark(el) { el.classList.add('reveal'); io.observe(el); }
+
+  document.querySelectorAll('.plan-card, .faq-item').forEach(function (el, i) {
+    el.style.transitionDelay = (i % 3 * 80) + 'ms';
+    mark(el);
+  });
+})();
+</script>

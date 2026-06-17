@@ -1,0 +1,635 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout
+  title="Horus Platform: Full feature reference"
+  description="Everything Horus does: continuous defense, adversarial AI, phishing simulation, threat intelligence, governance and compliance."
+>
+  <Nav activePage="platform" />
+
+  <!-- Page hero -->
+  <div class="page-hero">
+    <div class="container">
+      <div class="page-hero-eyebrow">Platform overview</div>
+      <h1>Everything Horus does.<br>In one place.</h1>
+      <p>Four capability areas. Twenty-plus modules. All of them run automatically, on a schedule you configure once.</p>
+    </div>
+  </div>
+
+  <!-- Anchor nav -->
+  <div class="anchor-nav">
+    <div class="container anchor-nav-inner">
+      <a href="#defense" class="anchor-link active">Continuous Defense</a>
+      <a href="#adversarial" class="anchor-link">Adversarial AI</a>
+      <a href="#intelligence" class="anchor-link">Threat Intelligence</a>
+      <a href="#governance" class="anchor-link">Governance</a>
+    </div>
+  </div>
+
+  <!-- ── CONTINUOUS DEFENSE ── -->
+  <div id="defense">
+    <div class="container">
+      <div class="cat-header">
+        <div class="cat-eyebrow ey-gold"><span class="dot"></span>Continuous Defense</div>
+        <h2>Discover, scan, prioritize.<br>Every night, without you.</h2>
+        <p>The defensive pipeline runs on schedule. Assets get discovered automatically, vulnerabilities get correlated against live threat data, and only the findings that actually matter reach your inbox.</p>
+      </div>
+
+      <div class="feat-grid">
+        <div class="feat-card hl-gold">
+          <div class="feat-card-icon" style="background:var(--gold-dim);border:1px solid rgba(232,185,74,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <div class="tag tag-gold">Auto-discovery</div>
+          <h3>Asset Discovery</h3>
+          <p>Certificate Transparency log sweep + nmap CIDR ping sweep. Configure a domain or IP range once. Horus maps everything reachable from it, including subdomains you forgot existed.</p>
+          <ul>
+            <li class="y">CT logs via crt.sh + certspotter fallback</li>
+            <li class="y">Internal CIDR sweep with nmap -sn</li>
+            <li class="y">Auto-deduplication of repeated hosts</li>
+            <li class="y">Optional auto-create: discovered → scan target</li>
+            <li class="y">Configurable schedule: daily / weekly / manual</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(44,107,237,0.12);border:1px solid rgba(44,107,237,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B9FEF" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <div class="tag tag-lapis">Inventory</div>
+          <h3>Asset Management</h3>
+          <p>CRUD for domains, IPs, APIs, services. Tag assets as production / internal / third-party. Track last-detected technologies per host. Full scan history per asset.</p>
+          <ul>
+            <li class="y">Domain, IP, API, service types</li>
+            <li class="y">Internal vs external classification</li>
+            <li class="y">Technology inventory per asset</li>
+            <li class="y">Scan history + posture trend</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(39,194,182,0.10);border:1px solid rgba(39,194,182,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="tag tag-teal">Scanner</div>
+          <h3>Vulnerability Scanning</h3>
+          <p>nmap port + service enumeration, nuclei template execution, header/SSL/TLS analysis. Multi-agent pipeline persists an executive summary per scan.</p>
+          <ul>
+            <li class="y">Port + service detection (nmap)</li>
+            <li class="y">Vulnerability templates (nuclei)</li>
+            <li class="y">Header, SSL, TLS config analysis</li>
+            <li class="y">Deduplication by signature</li>
+            <li class="y">Executive summary per scan</li>
+          </ul>
+        </div>
+
+        <div class="feat-card wide hl-gold">
+          <div class="feat-card-icon" style="background:var(--gold-dim);border:1px solid rgba(232,185,74,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          </div>
+          <div class="tag tag-gold">Deterministic · 0 LLM tokens</div>
+          <h3>SSVC Prioritization</h3>
+          <p>The Risk Manager agent runs a deterministic SSVC Deployer decision tree. No LLMs, no hallucinations, no per-query cost. Inputs: Exploitation state (KEV-active → active, EPSS &gt; 0.9 → likely), Exposure (public vs internal), Technical Impact (CVSS), Automatable heuristic. Output: <strong>Act / Attend / Track* / Track</strong>.</p>
+          <p style="margin-top:10px;">A CVSS 9.8 on an internal host with no public exploit → TRACK. An actively exploited 7.5 on a public API → ACT. SSVC reflects real risk, not inflated scores.</p>
+          <ul style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:0;">
+            <li class="y">KEV-active → Exploitation: active</li>
+            <li class="y">EPSS &gt; 0.9 → Exploitation: likely</li>
+            <li class="y">Internal host → Exposure: internal</li>
+            <li class="y">Public API → Exposure: public</li>
+            <li class="y">CVSS → Technical Impact mapping</li>
+            <li class="y">Automatable heuristic (conservative)</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(39,194,182,0.10);border:1px solid rgba(39,194,182,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <div class="tag tag-teal">Continuous monitoring</div>
+          <h3>Watchtower</h3>
+          <p>Daily sync of CISA KEV + FIRST EPSS. Re-correlates your persisted software inventory against new entries without re-scanning. Detects EPSS spikes (0.2+ overnight) before KEV publication. Extends to dark web IOC feeds.</p>
+          <ul>
+            <li class="y">CISA KEV daily sync</li>
+            <li class="y">FIRST EPSS 338k scores</li>
+            <li class="y">Zero re-scan overhead</li>
+            <li class="y">EPSS spike detection</li>
+            <li class="y">ThreatFox + URLhaus IOC feeds</li>
+            <li class="y">Ransomware victim tracking</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.62 12 19.79 19.79 0 0 1 1.56 3.44 2 2 0 0 1 3.53 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.86a16 16 0 0 0 6.29 6.29l.86-.87a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </div>
+          <div class="tag" style="background:rgba(245,158,11,0.10);color:#F59E0B;border:1px solid rgba(245,158,11,0.2);">Case management</div>
+          <h3>Incidents</h3>
+          <p>Group related findings into tracked cases. Assign owners, set SLA, add timeline notes. Auto-created from SSVC:Act findings. Bidirectional links to findings.</p>
+          <ul>
+            <li class="y">States: open → in_progress → resolved</li>
+            <li class="y">SLA countdown (red if overdue)</li>
+            <li class="y">Timeline notes per case</li>
+            <li class="y">Auto-created from SSVC:Act</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(44,107,237,0.10);border:1px solid rgba(44,107,237,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B9FEF" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div class="tag tag-lapis">Risk tracking</div>
+          <h3>Posture Timeline</h3>
+          <p>Deterministic risk score per org, snapshotted daily. Stacked area chart by severity. Annotated events (remediations, incidents). Trend line: improving / degrading / stable.</p>
+          <ul>
+            <li class="y">Daily snapshots + events</li>
+            <li class="y">% criticals closed in 7d</li>
+            <li class="y">Open findings per asset</li>
+            <li class="y">Trend direction indicator</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(122,132,153,0.10);border:1px solid rgba(122,132,153,0.15);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A8499" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="tag" style="background:rgba(122,132,153,0.10);color:var(--muted);border:1px solid rgba(122,132,153,0.18);">Automation</div>
+          <h3>Schedules + Jobs</h3>
+          <p>Cron jobs for recurring scans, discovery, CVE intel sync, Watchtower, posture snapshots. Full job execution history. Auto-retry on failure.</p>
+          <ul>
+            <li class="y">Cron expressions per pipeline type</li>
+            <li class="y">Auto-retry on scan failure</li>
+            <li class="y">Append-only job history with errors</li>
+            <li class="y">Next-run prediction in UI</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── ADVERSARIAL AI ── -->
+  <div id="adversarial">
+    <div class="container">
+      <div class="cat-header">
+        <div class="cat-eyebrow ey-red"><span class="dot"></span>Adversarial AI</div>
+        <h2>Attack. Defend. Learn.<br>Before the real thing.</h2>
+        <p>Horus doesn't just find vulnerabilities. It argues about them. Red and Blue team AI agents debate each other, simulate attacks, run phishing campaigns and test credential hygiene automatically.</p>
+      </div>
+
+      <div class="feat-grid">
+        <div class="feat-card wide hl-red">
+          <div class="feat-card-icon" style="background:var(--red-dim);border:1px solid rgba(224,82,82,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <div class="tag tag-red">AI debate · per finding</div>
+          <h3>Red / Blue Adversarial Validation</h3>
+          <p>For ambiguous findings (confidence 0.2–0.9, no known exploit): Red Team agent argues why it's a real risk. Blue Team argues why it's a false positive. A Judge LLM weighs both sides, calibrates a confidence score, and delivers a verdict. KEV-active findings skip the debate. They're auto-confirmed. Verdicts are stored: future scans of the same finding inherit the decision without re-debating.</p>
+          <ul style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:0;">
+            <li class="y">Context-aware attack narrative (Red)</li>
+            <li class="y">Compensating control analysis (Blue)</li>
+            <li class="y">Calibrated confidence 0.0–1.0</li>
+            <li class="y">Verdict memory across scans</li>
+            <li class="y">Cap: 15 debates per scan (configurable)</li>
+            <li class="y">KEV always bypasses → auto-confirmed</li>
+          </ul>
+        </div>
+
+        <div class="feat-card hl-red">
+          <div class="feat-card-icon" style="background:var(--red-dim);border:1px solid rgba(224,82,82,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="tag tag-red">Attack simulation</div>
+          <h3>Red Team Simulation Cycles</h3>
+          <p>Full adversarial cycles against your live infrastructure. Red Team generates attack findings across multiple categories. Blue Team generates defensive responses. Results feed into the main findings pipeline with SSVC prioritization.</p>
+          <ul>
+            <li class="y">DNS spoofing attempts</li>
+            <li class="y">Certificate / SSL attacks</li>
+            <li class="y">Exposed path traversal</li>
+            <li class="y">Subdomain takeover checks</li>
+            <li class="y">Known breach correlation</li>
+            <li class="y">Live streaming progress (SSE)</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(39,194,182,0.10);border:1px solid rgba(39,194,182,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="tag tag-teal">Federated learning</div>
+          <h3>Community Verdict Memory</h3>
+          <p>Anonymous aggregation of verdicts across all Horus orgs. k-anonymity guarantee: only published if ≥3 distinct orgs with ≥60% majority. New customers benefit from industry-learned FP suppression from day one.</p>
+          <ul>
+            <li class="y">k-anonymity (no org_id stored)</li>
+            <li class="y">Priority chain: KEV &gt; human &gt; community</li>
+            <li class="y">Nightly community refresh job</li>
+            <li class="y">Zero cross-org data exposure</li>
+          </ul>
+        </div>
+
+        <div class="feat-card hl-gold">
+          <div class="feat-card-icon" style="background:var(--gold-dim);border:1px solid rgba(232,185,74,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <div class="tag tag-gold">Social engineering</div>
+          <h3>Phishing Campaigns</h3>
+          <p>4-step wizard: configure campaign → select assets for context → add targets → review. PhishingAgent uses your actual asset inventory to craft credible lures. Click tracking via public token URLs.</p>
+          <ul>
+            <li class="y">Asset-aware lure generation</li>
+            <li class="y">Reusable or custom templates</li>
+            <li class="y">Objective: click / credential / report drill</li>
+            <li class="y">Per-target tracking: click / credential / report</li>
+            <li class="y">Awareness landing page on click</li>
+            <li class="y">Department and repeat-offender stats</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:var(--gold-dim);border:1px solid rgba(232,185,74,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div class="tag tag-gold">Auth simulation</div>
+          <h3>Auth Phishing Simulation</h3>
+          <p>Simulates credential and MFA/OTP phishing flows. Captures who entered real credentials into a fake login prompt, who completed the fake MFA step. Produces per-employee awareness reports.</p>
+          <ul>
+            <li class="y">Fake login + MFA/OTP prompt</li>
+            <li class="y">Credential entry tracking</li>
+            <li class="y">Per-employee awareness report</li>
+            <li class="y">Integrated with phishing campaigns</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(139,92,246,0.10);border:1px solid rgba(139,92,246,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <div class="tag tag-purple">HIBP integration</div>
+          <h3>Credential Exposure</h3>
+          <p>Have I Been Pwned domain search for your organization's employees. Breach lookup with karma score (times appeared in public breaches). Sensitive badge for breaches containing passwords or tokens.</p>
+          <ul>
+            <li class="y">HIBP Domain Search integration</li>
+            <li class="y">Per-employee karma score</li>
+            <li class="y">Sensitive breach detection (passwords/tokens)</li>
+            <li class="y">Access correlation with assets</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── THREAT INTELLIGENCE ── -->
+  <div id="intelligence">
+    <div class="container">
+      <div class="cat-header">
+        <div class="cat-eyebrow ey-teal"><span class="dot"></span>Threat Intelligence</div>
+        <h2>338,000+ CVEs. Live threat feeds.<br>No hallucinations.</h2>
+        <p>The intelligence layer is entirely deterministic. No LLM involved. CVE correlation, SSVC inputs, and Watchtower alerts are all computed from structured data sources, not generated.</p>
+      </div>
+
+      <div class="feat-grid">
+        <div class="feat-card hl-teal">
+          <div class="feat-card-icon" style="background:var(--teal-dim);border:1px solid rgba(39,194,182,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="tag tag-teal">NVD + CPE</div>
+          <h3>CVE Correlation Engine</h3>
+          <p>338,000+ CVEs from NVD API 2.0. ~25 CPE product alias mappings (Apache → httpd, OpenSSH → openbsd/openssh…). Version normalization: "2.4.41" and "2.4.41-1ubuntu1" treated as equal. No false CVEs. Deterministic only.</p>
+          <ul>
+            <li class="y">NVD API 2.0 (CVSS v3.1/v3/v2)</li>
+            <li class="y">~25 CPE alias mappings</li>
+            <li class="y">Version normalization</li>
+            <li class="y">Service-name fallback if nmap lacks product</li>
+            <li class="y">Daily sync job</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:var(--gold-dim);border:1px solid rgba(232,185,74,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="tag tag-gold">CISA</div>
+          <h3>Known Exploited Vulnerabilities</h3>
+          <p>CISA KEV catalog synced daily. KEV match = Exploitation:active in SSVC → Act priority guaranteed. KEV findings bypass the Red/Blue debate. They're auto-confirmed.</p>
+          <ul>
+            <li class="y">Daily KEV catalog sync</li>
+            <li class="y">KEV match → SSVC Exploitation:active</li>
+            <li class="y">KEV badge on all affected findings</li>
+            <li class="y">Watchtower: KEV match alerts same day</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <div class="tag" style="background:rgba(245,158,11,0.10);color:#F59E0B;border:1px solid rgba(245,158,11,0.2);">FIRST</div>
+          <h3>EPSS Scores</h3>
+          <p>Exploit Prediction Scoring System from FIRST.org. EPSS &gt; 0.9 → Exploitation:likely in SSVC. Daily score updates. Watchtower detects spikes (0.2+ overnight) before the CVE reaches KEV.</p>
+          <ul>
+            <li class="y">338k EPSS scores updated daily</li>
+            <li class="y">EPSS &gt; 0.9 → SSVC: likely</li>
+            <li class="y">Spike detection: 0.2+ day-over-day</li>
+            <li class="y">Score shown per finding in UI</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(139,92,246,0.10);border:1px solid rgba(139,92,246,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+          </div>
+          <div class="tag tag-purple">IOC feeds</div>
+          <h3>Dark Web + IOC Intelligence</h3>
+          <p>ThreatFox malware IOC feed + URLhaus malicious URL feed, checked against your domains and IPs daily. Ransomware victim list cross-referenced against your industry. Domain/email dark web search.</p>
+          <ul>
+            <li class="y">ThreatFox IOC feed</li>
+            <li class="y">URLhaus malicious URL feed</li>
+            <li class="y">Ransomware victim tracking</li>
+            <li class="y">Domain / email dark web search</li>
+          </ul>
+        </div>
+
+        <div class="feat-card wide">
+          <div class="feat-card-icon" style="background:rgba(44,107,237,0.10);border:1px solid rgba(44,107,237,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B9FEF" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          </div>
+          <div class="tag tag-lapis">Privacy</div>
+          <h3>Data Sovereignty: 4 Modes</h3>
+          <p>The deterministic core (CVE correlation, SSVC, Watchtower, posture) never calls an LLM. When LLM agents run, you choose the data flow: <strong>No-cloud</strong> (LLM disabled, 100% local/deterministic) · <strong>Local model</strong> (Ollama/vLLM in your VPC) · <strong>Cloud + redacted</strong> (hosts/IPs/emails pseudonymized before any prompt, de-pseudonymized in response) · <strong>Cloud</strong> (no redaction). GDPR and HIPAA ready.</p>
+          <ul style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:0;">
+            <li class="y">Bidirectional redaction map (stable)</li>
+            <li class="y">Allowlist for reference domains (nvd.nist.gov…)</li>
+            <li class="y">Zero leaks verified in test suite</li>
+            <li class="y">Badge in UI: "No data leaves" / "Data leaves (protected)"</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── GOVERNANCE ── -->
+  <div id="governance">
+    <div class="container">
+      <div class="cat-header">
+        <div class="cat-eyebrow ey-purple"><span class="dot"></span>Governance</div>
+        <h2>Control what AI does.<br>Prove what happened.</h2>
+        <p>Granular permission policies define exactly what agents can automate. Every action (human or AI) is logged in an append-only audit trail. Compliance-ready out of the box.</p>
+      </div>
+
+      <div class="feat-grid">
+        <div class="feat-card hl-purple">
+          <div class="feat-card-icon" style="background:var(--purple-dim);border:1px solid rgba(139,92,246,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div class="tag tag-purple">AI control</div>
+          <h3>Permission Policies</h3>
+          <p>Define what agents can do automatically. Conditions: asset_tags, is_internal_only, severity_max. Modes: suggest_only / approval_required / auto. Actions: update_library, apply_firewall_rule, restart_service, rotate_credentials, and more.</p>
+          <ul>
+            <li class="y">Condition-based scoping</li>
+            <li class="y">Suggest / approval-gate / auto modes</li>
+            <li class="y">Per-action granularity</li>
+            <li class="y">Admin-only configuration</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(122,132,153,0.10);border:1px solid rgba(122,132,153,0.15);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A8499" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div class="tag" style="background:rgba(122,132,153,0.10);color:var(--muted);border:1px solid rgba(122,132,153,0.18);">Compliance</div>
+          <h3>Audit Log</h3>
+          <p>Append-only, org-scoped log of every action: user actions, agent decisions, system events. Actor types: user / agent / system. Filter by action, actor, entity. Exportable for regulators.</p>
+          <ul>
+            <li class="y">Append-only (no deletion)</li>
+            <li class="y">Actor: user / agent / system</li>
+            <li class="y">Covers team, scans, findings, policies</li>
+            <li class="y">Timeline UI with color-coded tones</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(44,107,237,0.10);border:1px solid rgba(44,107,237,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B9FEF" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="tag tag-lapis">RBAC</div>
+          <h3>Team + Roles</h3>
+          <p>Invite by email, assign Admin / Analyst / Viewer roles. Admins control everything. Analysts create assets, trigger scans, approve AI suggestions, view findings. Viewers are read-only.</p>
+          <ul>
+            <li class="y">Email invite + expiring tokens</li>
+            <li class="y">Admin / Analyst / Viewer RBAC</li>
+            <li class="y">Dynamic role changes</li>
+            <li class="y">Pending invite management</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+          </div>
+          <div class="tag" style="background:rgba(245,158,11,0.10);color:#F59E0B;border:1px solid rgba(245,158,11,0.2);">Alerting</div>
+          <h3>Integrations</h3>
+          <p>Push findings to where your team already works. Severity-filtered: only send what you configured. KEV-active always notifies regardless of filter. False positives never notify.</p>
+          <ul>
+            <li class="y">Slack (severity-filtered summaries)</li>
+            <li class="y">Email (HTML/text reports)</li>
+            <li class="y">PagerDuty P1 for SSVC:Act</li>
+            <li class="y">OpsGenie critical for SSVC:Act</li>
+            <li class="y">Jira remediation tickets (roadmap)</li>
+            <li class="y">Generic webhook (custom POST)</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(39,194,182,0.10);border:1px solid rgba(39,194,182,0.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <div class="tag tag-teal">KPIs</div>
+          <h3>Executive Dashboard</h3>
+          <p>Act Now counter (SSVC:Act, pulsing if &gt;0), KEV Exposure, Asset Coverage %, MTTR Critical. 11 toggleable widgets. Posture timeline, top risky assets, recent scans. Personalizes per user via localStorage.</p>
+          <ul>
+            <li class="y">SSVC priority grid (2×2)</li>
+            <li class="y">Findings trend vs prior week</li>
+            <li class="y">Asset coverage % (green ≥80%)</li>
+            <li class="y">MTTR for critical findings</li>
+          </ul>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-card-icon" style="background:rgba(122,132,153,0.10);border:1px solid rgba(122,132,153,0.15);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A8499" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          </div>
+          <div class="tag" style="background:rgba(122,132,153,0.10);color:var(--muted);border:1px solid rgba(122,132,153,0.18);">API access</div>
+          <h3>API Keys</h3>
+          <p>Programmatic access with scoped API keys. Create keys for CI/CD pipelines, automation scripts, or third-party integrations. Revoke without restart. Scoped to the issuing user's role.</p>
+          <ul>
+            <li class="y">Role-scoped keys</li>
+            <li class="y">Revoke without restart</li>
+            <li class="y">Listed in Settings → API Keys</li>
+            <li class="y">Full audit log coverage</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom CTA -->
+  <hr class="divider" />
+  <div class="bottom-cta">
+    <div class="container">
+      <h2>Ready to configure it once?</h2>
+      <p>The live demo has 30 days of history, real CVE findings, Red/Blue debate transcripts and phishing campaign results.</p>
+      <div class="cta-row">
+        <a href="https://app.horus.security/login?demo=1" class="btn-gold">
+          Open live demo
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <a href="https://github.com/horusec/horus" class="btn-ghost">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          Self-host free
+        </a>
+        <a href="/contact" class="btn-ghost">Talk to us →</a>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>
+
+<style>
+  /* ── Page hero ── */
+  .page-hero { padding: 72px 0 56px; border-bottom: 1px solid var(--border); position: relative; overflow: hidden; isolation: isolate; }
+  .page-hero > .container { position: relative; z-index: 1; }
+  .page-hero::before {
+    content: ''; position: absolute; inset: -40% -12% auto -12%; height: 200%; z-index: -2;
+    background:
+      radial-gradient(560px 320px at 6% 0%, rgba(232,185,74,0.09), transparent 60%),
+      radial-gradient(620px 360px at 94% 10%, rgba(44,107,237,0.12), transparent 55%);
+    animation: heroDrift 24s ease-in-out infinite alternate;
+  }
+  .page-hero::after {
+    content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+    background-size: 58px 58px;
+    -webkit-mask-image: radial-gradient(680px 360px at 30% 30%, #000 0%, transparent 80%);
+            mask-image: radial-gradient(680px 360px at 30% 30%, #000 0%, transparent 80%);
+  }
+  @keyframes heroDrift {
+    0%   { transform: translate3d(0,0,0) scale(1); }
+    100% { transform: translate3d(-3%, 2%, 0) scale(1.08); }
+  }
+  .page-hero-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin-bottom: 16px; }
+  .page-hero h1 { font-size: clamp(32px, 4.5vw, 54px); font-weight: 800; letter-spacing: -0.028em; color: #fff; line-height: 1.1; margin-bottom: 16px; }
+  .page-hero p { font-size: 17px; color: var(--muted); max-width: 560px; line-height: 1.65; }
+
+  /* ── Anchor nav ── */
+  .anchor-nav { border-bottom: 1px solid var(--border); position: sticky; top: 56px; z-index: 40; background: rgba(10,14,26,0.92); backdrop-filter: blur(12px); }
+  .anchor-nav-inner { display: flex; gap: 0; overflow-x: auto; }
+  .anchor-link { font-size: 13px; font-weight: 500; color: var(--muted); padding: 14px 18px; white-space: nowrap; border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; }
+  .anchor-link:hover { color: var(--ivory); }
+  .anchor-link.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  /* ── Category headers ── */
+  .cat-header { padding: 64px 0 0; }
+  .cat-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px; margin-bottom: 16px; }
+  .cat-eyebrow .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .cat-header h2 { font-size: clamp(22px, 3vw, 34px); font-weight: 800; letter-spacing: -0.025em; color: #fff; margin-bottom: 10px; }
+  .cat-header p { font-size: 15px; color: var(--muted); max-width: 560px; line-height: 1.65; margin-bottom: 40px; }
+
+  /* ── Feature grid ── */
+  .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 64px; }
+  .feat-card { background: var(--surface); padding: 26px 24px; transition: background .25s ease, box-shadow .25s ease; }
+  .feat-card:hover { background: var(--surface2); box-shadow: inset 0 0 0 1px var(--border2); }
+  .feat-card.wide { grid-column: span 2; }
+  .feat-card.full { grid-column: span 3; }
+  .feat-card-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+  .feat-card h3 { font-size: 14px; font-weight: 600; color: var(--ivory); margin-bottom: 8px; }
+  .feat-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .feat-card ul { list-style: none; margin-top: 10px; }
+  .feat-card ul li { font-size: 12px; color: var(--muted); padding: 3px 0; display: flex; align-items: flex-start; gap: 7px; }
+  .feat-card ul li::before { content: '—'; color: rgba(255,255,255,0.12); flex-shrink: 0; }
+  .feat-card ul li.y::before { content: '✓'; color: var(--teal); font-size: 11px; }
+
+  /* Highlight cards */
+  .feat-card.hl-gold { background: rgba(232,185,74,0.04); border-left: 2px solid rgba(232,185,74,0.3); }
+  .feat-card.hl-red  { background: rgba(224,82,82,0.03); border-left: 2px solid rgba(224,82,82,0.25); }
+  .feat-card.hl-teal { background: rgba(39,194,182,0.03); border-left: 2px solid rgba(39,194,182,0.25); }
+  .feat-card.hl-purple{ background: rgba(139,92,246,0.03); border-left: 2px solid rgba(139,92,246,0.25); }
+  .feat-card.hl-gold:hover   { background: rgba(232,185,74,0.07); }
+  .feat-card.hl-red:hover    { background: rgba(224,82,82,0.06); }
+  .feat-card.hl-teal:hover   { background: rgba(39,194,182,0.06); }
+  .feat-card.hl-purple:hover { background: rgba(139,92,246,0.06); }
+
+  /* ── Tag badges ── */
+  .tag { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: .03em; padding: 2px 7px; border-radius: 4px; margin-bottom: 10px; }
+  .tag-gold   { background: var(--gold-dim); color: var(--gold); border: 1px solid rgba(232,185,74,0.2); }
+  .tag-red    { background: var(--red-dim); color: var(--red); border: 1px solid rgba(224,82,82,0.2); }
+  .tag-teal   { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(39,194,182,0.2); }
+  .tag-purple { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(139,92,246,0.2); }
+  .tag-lapis  { background: rgba(44,107,237,0.10); color: #6B9FEF; border: 1px solid rgba(44,107,237,0.2); }
+
+  /* ── Bottom CTA ── */
+  .bottom-cta { text-align: center; padding: 80px 0; }
+  .bottom-cta h2 { font-size: clamp(24px, 3.5vw, 40px); font-weight: 800; letter-spacing: -0.025em; color: #fff; margin-bottom: 14px; }
+  .bottom-cta p { font-size: 15px; color: var(--muted); max-width: 400px; margin: 0 auto 32px; }
+  .cta-row { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+
+  /* ── Responsive ── */
+  @media (max-width: 780px) {
+    .feat-grid { grid-template-columns: 1fr; }
+    .feat-card.wide, .feat-card.full { grid-column: span 1; }
+    .anchor-link { padding: 12px 12px; font-size: 12px; }
+  }
+  @media (max-width: 780px) {
+    :global(.nav-link) { display: none; }
+  }
+</style>
+
+<script>
+  const sections = ['defense','adversarial','intelligence','governance'];
+  const links = document.querySelectorAll('.anchor-link');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`.anchor-link[href="#${e.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.2 });
+  sections.forEach(id => { const el = document.getElementById(id); if (el) observer.observe(el); });
+</script>
+
+<script>
+(function () {
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || !('IntersectionObserver' in window)) return;
+
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -6% 0px' });
+
+  function mark(el) { el.classList.add('reveal'); io.observe(el); }
+
+  document.querySelectorAll('.feat-grid').forEach(mark);
+
+  function staggerKids(c, step) {
+    Array.prototype.forEach.call(c.children, function (ch, i) {
+      ch.style.transitionDelay = (i * (step || 90)) + 'ms';
+      mark(ch);
+    });
+  }
+  document.querySelectorAll('.page-hero > .container, .cat-header, .bottom-cta > .container').forEach(function (c) {
+    staggerKids(c);
+  });
+})();
+</script>
