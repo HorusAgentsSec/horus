@@ -23,6 +23,7 @@ class SettingsUpdate(BaseModel):
     shodan_api_key: str | None = None
     breach_directory_api_key: str | None = None
     intelx_api_key: str | None = None
+    iris_triage_interval_minutes: int | None = None
 
 
 def _row(db: Client, org_id: str) -> dict:
@@ -37,6 +38,7 @@ async def get_settings(user=Depends(require_role("admin")), db: Client = Depends
         "shodan_api_key_set": bool(row.get("shodan_api_key")),
         "breach_directory_api_key_set": bool(row.get("breach_directory_api_key")),
         "intelx_api_key_set": bool(row.get("intelx_api_key")),
+        "iris_triage_interval_minutes": row.get("iris_triage_interval_minutes") or 60,
     }
 
 
@@ -60,6 +62,10 @@ async def update_settings(
     if body.intelx_api_key is not None and body.intelx_api_key != MASK:
         updates["intelx_api_key"] = body.intelx_api_key.strip() or None
 
+    if body.iris_triage_interval_minutes is not None:
+        val = max(5, min(1440, body.iris_triage_interval_minutes))
+        updates["iris_triage_interval_minutes"] = val
+
     if updates:
         db.table("org_settings").upsert(
             {"org_id": org_id, **updates}, on_conflict="org_id"
@@ -75,4 +81,5 @@ async def update_settings(
         "shodan_api_key_set": bool(row.get("shodan_api_key")),
         "breach_directory_api_key_set": bool(row.get("breach_directory_api_key")),
         "intelx_api_key_set": bool(row.get("intelx_api_key")),
+        "iris_triage_interval_minutes": row.get("iris_triage_interval_minutes") or 60,
     }

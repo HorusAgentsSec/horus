@@ -472,11 +472,36 @@ def load_phishing_schedules():
         schedule_phishing_job(s)
 
 
+def _run_iris_triage():
+    from backend.core.iris_triage import run_iris_triage_all_orgs
+    try:
+        with jobs.job_run("iris_triage") as d:
+            d.update(run_iris_triage_all_orgs(settings.iris_triage_check_minutes) or {})
+    except Exception as e:
+        logger.error(f"Iris triage failed: {e}")
+
+
+def _register_iris_triage():
+    if not settings.iris_triage_enabled:
+        return
+    try:
+        scheduler.add_job(
+            _run_iris_triage,
+            "interval",
+            minutes=settings.iris_triage_check_minutes,
+            id="iris_triage",
+            replace_existing=True,
+        )
+    except Exception as e:
+        logger.warning(f"Could not register Iris triage job: {e}")
+
+
 def start():
     load_schedules()
     load_discovery_sources()
     load_adversarial_schedules()
     load_phishing_schedules()
+    _register_iris_triage()
     _register_cve_sync()
     _register_watchtower()
     _register_ransomware_check()

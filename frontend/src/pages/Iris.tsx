@@ -165,12 +165,23 @@ function CopyButton({ text, className }: { text: string; className?: string }) {
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 
+const TRIAGE_INTERVALS = [
+  { label: '5 min', value: 5 },
+  { label: '15 min', value: 15 },
+  { label: '30 min', value: 30 },
+  { label: '1 hour', value: 60 },
+  { label: '4 hours', value: 240 },
+  { label: '24 hours', value: 1440 },
+]
+
 export default function Iris() {
   const [agents, setAgents] = useState<IrisAgent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showRegister, setShowRegister] = useState(false)
   const [eventsAgent, setEventsAgent] = useState<IrisAgent | null>(null)
+  const [triageInterval, setTriageInterval] = useState<number>(60)
+  const [savingInterval, setSavingInterval] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -183,6 +194,24 @@ export default function Iris() {
       setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    api.get<{ iris_triage_interval_minutes: number }>('/settings', 0)
+      .then(s => setTriageInterval(s.iris_triage_interval_minutes ?? 60))
+      .catch(() => {})
+  }, [])
+
+  const saveTriageInterval = async (minutes: number) => {
+    setSavingInterval(true)
+    try {
+      await api.put('/settings', { iris_triage_interval_minutes: minutes })
+      setTriageInterval(minutes)
+    } catch (e) {
+      alert(friendlyErrorMessage(e, 'Failed to save interval'))
+    } finally {
+      setSavingInterval(false)
+    }
+  }
 
   useEffect(() => {
     load()
@@ -237,6 +266,35 @@ export default function Iris() {
         >
           <Plus className="w-4 h-4" /> Register Agent
         </button>
+      </div>
+
+      {/* AI Triage config */}
+      <div className="glass rounded-lg border border-white/10 px-4 py-3 flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2 text-sm text-horus-ivory">
+          <Zap className="w-4 h-4 text-horus-gold" />
+          <span className="font-medium">AI Triage</span>
+          <span className="text-muted text-xs">— analyzes events every</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {TRIAGE_INTERVALS.map(opt => (
+            <button
+              key={opt.value}
+              disabled={savingInterval}
+              onClick={() => saveTriageInterval(opt.value)}
+              className={cn(
+                'text-xs px-2.5 py-1 rounded border transition-colors',
+                triageInterval === opt.value
+                  ? 'border-horus-gold/60 bg-horus-gold/10 text-horus-gold'
+                  : 'border-white/10 text-white/50 hover:text-white hover:border-white/30',
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-muted ml-auto">
+          Token-economic grouping — no raw payloads sent to AI
+        </span>
       </div>
 
       {error && (

@@ -193,6 +193,13 @@ class Settings(BaseSettings):
     # LLM model for the PhishingAgent (falls back to llm_default_model)
     llm_phishing_model: Optional[str] = None
 
+    # ── Iris AI Triage ───────────────────────────────────────────────────────
+    # Periodic AI analysis of host agent events. Runs every iris_triage_check_minutes
+    # globally; per-org interval is configurable from the Settings page.
+    iris_triage_enabled: bool = True
+    iris_triage_check_minutes: int = 15   # how often the scheduler polls (global)
+    iris_triage_model: Optional[str] = None  # defaults to llm_default_model
+
     # ── Ransomware.live deep web intelligence ────────────────────────────────
     # Check assets against ransomware.live victim database (free API, no auth).
     ransomware_check_enabled: bool = True
