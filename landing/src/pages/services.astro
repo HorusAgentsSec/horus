@@ -12,9 +12,10 @@ import Footer from '../components/Footer.astro';
 
   <!-- Page hero -->
   <div class="page-hero">
+    <div class="hero-scan" aria-hidden="true"></div>
     <div class="container">
       <div class="page-hero-eyebrow">Platform overview</div>
-      <h1>Everything Horus does.<br>In one place.</h1>
+      <h1><span class="hw hw1">Everything</span> <span class="hw hw2">Horus</span> <span class="hw hw3">does.</span><br><span class="hw hw4">In</span> <span class="hw hw5">one</span> <span class="hw hw6">place.</span></h1>
       <p>Four capability areas. Twenty-plus modules. All of them run automatically, on a schedule you configure once.</p>
     </div>
   </div>
@@ -590,6 +591,24 @@ import Footer from '../components/Footer.astro';
   @media (max-width: 780px) {
     :global(.nav-link) { display: none; }
   }
+
+  /* ── Hero scan line ── */
+  .hero-scan {
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(232,185,74,0.45), transparent);
+    animation: scanDown 5s ease-out infinite;
+    pointer-events: none;
+  }
+
+  /* ── Hero word reveal ── */
+  html.js .page-hero h1 .hw { opacity: 0; display: inline-block; }
+  html.js .page-hero.hero-boot h1 .hw { animation: hwIn .7s var(--ease-expo) both; }
+  html.js .page-hero.hero-boot h1 .hw1 { animation-delay: .05s; }
+  html.js .page-hero.hero-boot h1 .hw2 { animation-delay: .13s; }
+  html.js .page-hero.hero-boot h1 .hw3 { animation-delay: .21s; }
+  html.js .page-hero.hero-boot h1 .hw4 { animation-delay: .29s; }
+  html.js .page-hero.hero-boot h1 .hw5 { animation-delay: .37s; }
+  html.js .page-hero.hero-boot h1 .hw6 { animation-delay: .45s; }
 </style>
 
 <script>
@@ -620,15 +639,25 @@ import Footer from '../components/Footer.astro';
 
   function mark(el) { el.classList.add('reveal'); io.observe(el); }
 
+  // Hero word reveal
+  var ph = document.querySelector('.page-hero');
+  if (ph) requestAnimationFrame(function () { ph.classList.add('hero-boot'); });
+
   document.querySelectorAll('.feat-grid').forEach(mark);
 
-  function staggerKids(c, step) {
+  function staggerKids(c, step, skipH1) {
     Array.prototype.forEach.call(c.children, function (ch, i) {
+      if (skipH1 && ch.tagName === 'H1') return;
       ch.style.transitionDelay = (i * (step || 90)) + 'ms';
       mark(ch);
     });
   }
-  document.querySelectorAll('.page-hero > .container, .cat-header, .bottom-cta > .container').forEach(function (c) {
+
+  // Hero: skip h1 (handled by hw spans)
+  var heroC = document.querySelector('.page-hero > .container');
+  if (heroC) staggerKids(heroC, 90, true);
+
+  document.querySelectorAll('.cat-header, .bottom-cta > .container').forEach(function (c) {
     staggerKids(c);
   });
 })();

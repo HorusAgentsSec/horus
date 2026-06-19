@@ -58,9 +58,10 @@ const sections = [
 
   <!-- Hero -->
   <div class="pricing-hero">
+    <div class="hero-scan" aria-hidden="true"></div>
     <div class="container">
       <div class="eyebrow ey-gold"><span class="dot"></span>Pricing</div>
-      <h1>Same pipeline.<br>You choose where<br>your data lives.</h1>
+      <h1><span class="hw hw1">Same</span> <span class="hw hw2">pipeline.</span><br><span class="hw hw3">You</span> <span class="hw hw4">choose</span> <span class="hw hw5">where</span><br><span class="hw hw6">your</span> <span class="hw hw7">data</span> <span class="hw hw8">lives.</span></h1>
       <p class="hero-sub">Every tier runs the full 8-agent pipeline. No feature gating on the security capabilities that matter. The difference is where the stack runs and who keeps it updated.</p>
     </div>
   </div>
@@ -416,6 +417,26 @@ const sections = [
     .col-tier { font-size: 11px; }
     :global(.nav-link) { display: none; }
   }
+
+  /* ── Hero scan line ── */
+  .hero-scan {
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(232,185,74,0.45), transparent);
+    animation: scanDown 5s ease-out infinite;
+    pointer-events: none;
+  }
+
+  /* ── Hero word reveal ── */
+  html.js .pricing-hero h1 .hw { opacity: 0; display: inline-block; }
+  html.js .pricing-hero.hero-boot h1 .hw { animation: hwIn .7s var(--ease-expo) both; }
+  html.js .pricing-hero.hero-boot h1 .hw1 { animation-delay: .05s; }
+  html.js .pricing-hero.hero-boot h1 .hw2 { animation-delay: .13s; }
+  html.js .pricing-hero.hero-boot h1 .hw3 { animation-delay: .21s; }
+  html.js .pricing-hero.hero-boot h1 .hw4 { animation-delay: .29s; }
+  html.js .pricing-hero.hero-boot h1 .hw5 { animation-delay: .37s; }
+  html.js .pricing-hero.hero-boot h1 .hw6 { animation-delay: .45s; }
+  html.js .pricing-hero.hero-boot h1 .hw7 { animation-delay: .53s; }
+  html.js .pricing-hero.hero-boot h1 .hw8 { animation-delay: .61s; }
 </style>
 
 <script>
@@ -433,9 +454,39 @@ const sections = [
 
   function mark(el) { el.classList.add('reveal'); io.observe(el); }
 
+  // Hero word reveal
+  var ph = document.querySelector('.pricing-hero');
+  if (ph) requestAnimationFrame(function () { ph.classList.add('hero-boot'); });
+
+  // Stagger hero children (h1 handled by hw spans)
+  var phc = document.querySelector('.pricing-hero .container');
+  if (phc) {
+    Array.prototype.forEach.call(phc.children, function (ch, i) {
+      if (ch.tagName === 'H1') return;
+      ch.style.transitionDelay = (i * 90) + 'ms';
+      mark(ch);
+    });
+  }
+
+  // Plan cards and FAQ
   document.querySelectorAll('.plan-card, .faq-item').forEach(function (el, i) {
     el.style.transitionDelay = (i % 3 * 80) + 'ms';
     mark(el);
   });
+
+  // Compare sections
+  document.querySelectorAll('.compare-section').forEach(function (el, i) {
+    el.style.transitionDelay = (i * 60) + 'ms';
+    mark(el);
+  });
+
+  // Final CTA
+  var finalEl = document.querySelector('.final .container');
+  if (finalEl) {
+    Array.prototype.forEach.call(finalEl.children, function (ch, i) {
+      ch.style.transitionDelay = (i * 90) + 'ms';
+      mark(ch);
+    });
+  }
 })();
 </script>
