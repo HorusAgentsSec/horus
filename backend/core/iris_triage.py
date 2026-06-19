@@ -19,6 +19,7 @@ from openai import OpenAI
 
 from backend.core.config import settings
 from backend.core.supabase_client import supabase
+from backend.core import verdict_memory
 
 logger = logging.getLogger(__name__)
 
@@ -81,13 +82,34 @@ def run_iris_triage_for_org(org_id: str, interval_minutes: int = 60) -> dict:
         groups[key].append(e["title"])
         agents_by_group[key].add(e["agent_id"])
 
-    # 3. Build compact summary (≤100 groups, 2 title examples each)
+    # 3. Filter groups already known as false positives (org-level + community)
+    #    Signature matches the finding title we'd create → same key on record & recall.
+    sig_for = {
+        (etype, sev): verdict_memory.finding_signature(
+            title=f"[Iris AI] Suspicious activity: {etype}/{sev}"
+        )
+        for etype, sev in groups
+    }
+    known = verdict_memory.recall(org_id, set(sig_for.values()))
+    known.update(verdict_memory.recall_community(set(sig_for.values())))
+
+    skipped_fp = 0
     lines = []
     for (etype, sev), titles in sorted(groups.items(), key=lambda x: -len(x[1])):
+        if known.get(sig_for[(etype, sev)]) == "false_positive":
+            skipped_fp += 1
+            continue
         sample = " | ".join(titles[:2])
         lines.append(f"{len(titles)}x [{sev.upper()}] {etype}: {sample}")
         if len(lines) >= 100:
             break
+
+    if skipped_fp:
+        logger.info("iris_triage: org=%s skipped %d known-false-positive groups", org_id, skipped_fp)
+
+    if not lines:
+        _last_run[org_id] = now
+        return {"skipped": True, "reason": "all groups are known false positives"}
 
     summary = "\n".join(lines)
     prompt = (
