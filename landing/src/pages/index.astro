@@ -111,6 +111,101 @@ import Footer from '../components/Footer.astro';
     </div>
   </div>
 
+  <!-- ── Agent network animation ── -->
+  <div class="ag-section">
+    <div class="container ag-hd">
+      <div class="eyebrow ey-lapis reveal"><span class="dot"></span>How it works</div>
+      <h2 class="sh2 reveal">Eight agents.<br>One coordinated run.</h2>
+      <p class="ssub reveal">A scan triggers a cascade of handoffs. Agents discover, enrich, debate, and converge on a single prioritized report — every night, automatically.</p>
+    </div>
+
+    <div class="ag-canvas-wrap">
+      <div class="ag-ticker" aria-live="polite">
+        <span class="ag-ticker-dot"></span>
+        <code class="ag-ticker-msg">Waiting for pipeline trigger…</code>
+      </div>
+
+      <div class="ag-canvas">
+        <svg class="ag-svg" viewBox="0 0 100 44" preserveAspectRatio="none" aria-hidden="true">
+          <path class="ag-e" id="e1"  d="M 11.2,22 H 18.3"/>
+          <path class="ag-e" id="e2"  d="M 25.7,22 H 33.2"/>
+          <path class="ag-e" id="e3"  d="M 40,19.8 C 45,15 47,13 49,11.5"/>
+          <path class="ag-e" id="e4"  d="M 40,24.2 C 45,29 47,31 49,32.5"/>
+          <path class="ag-e" id="e5"  d="M 49,13.2 C 45.5,22 45.5,22 49,30.8"/>
+          <path class="ag-e" id="e6"  d="M 55,30.8 C 58.5,22 58.5,22 55,13.2"/>
+          <path class="ag-e" id="e7"  d="M 55.2,12 C 60,14 62,18.5 63.5,20.2"/>
+          <path class="ag-e" id="e8"  d="M 55.2,32 C 60,30 62,25.5 63.5,23.8"/>
+          <path class="ag-e" id="e9"  d="M 70.5,22 H 77.3"/>
+          <path class="ag-e" id="e10" d="M 84.7,22 H 89.5"/>
+        </svg>
+
+        <div class="ag-node" id="n-recon"   style="left:7.5%;top:50%">
+          <div class="ag-icon" style="--c:rgba(44,107,237,0.12);--b:rgba(44,107,237,0.28);--g:rgba(44,107,237,0.55);--gw:rgba(44,107,237,0.14);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6B9FEF" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <div class="ag-name">Recon</div>
+          <div class="ag-sub">nmap · nuclei</div>
+        </div>
+
+        <div class="ag-node" id="n-analyst" style="left:22%;top:50%">
+          <div class="ag-icon" style="--c:rgba(39,194,182,0.10);--b:rgba(39,194,182,0.28);--g:rgba(39,194,182,0.55);--gw:rgba(39,194,182,0.12);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="ag-name">Analyst</div>
+          <div class="ag-sub">enrich context</div>
+        </div>
+
+        <div class="ag-node" id="n-threat"  style="left:37%;top:50%">
+          <div class="ag-icon" style="--c:rgba(232,185,74,0.10);--b:rgba(232,185,74,0.28);--g:rgba(232,185,74,0.6);--gw:rgba(232,185,74,0.12);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="ag-name">Threat Intel</div>
+          <div class="ag-sub">CVE · KEV · EPSS</div>
+        </div>
+
+        <div class="ag-node" id="n-red"     style="left:52%;top:22%">
+          <div class="ag-icon" style="--c:rgba(224,82,82,0.10);--b:rgba(224,82,82,0.28);--g:rgba(224,82,82,0.55);--gw:rgba(224,82,82,0.12);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <div class="ag-name">Red Team</div>
+          <div class="ag-sub">attack sim</div>
+        </div>
+
+        <div class="ag-node" id="n-blue"    style="left:52%;top:78%">
+          <div class="ag-icon" style="--c:rgba(107,159,239,0.10);--b:rgba(107,159,239,0.28);--g:rgba(107,159,239,0.55);--gw:rgba(107,159,239,0.12);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6B9FEF" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="ag-name">Blue Team</div>
+          <div class="ag-sub">defense</div>
+        </div>
+
+        <div class="ag-node" id="n-valid"   style="left:67%;top:50%">
+          <div class="ag-icon" style="--c:rgba(39,194,182,0.10);--b:rgba(39,194,182,0.28);--g:rgba(39,194,182,0.55);--gw:rgba(39,194,182,0.12);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="ag-name">Validation</div>
+          <div class="ag-sub">judge verdict</div>
+        </div>
+
+        <div class="ag-node" id="n-risk"    style="left:81%;top:50%">
+          <div class="ag-icon" style="--c:rgba(245,158,11,0.10);--b:rgba(245,158,11,0.28);--g:rgba(245,158,11,0.55);--gw:rgba(245,158,11,0.12);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          </div>
+          <div class="ag-name">Risk Mgr</div>
+          <div class="ag-sub">SSVC priority</div>
+        </div>
+
+        <div class="ag-node" id="n-report"  style="left:93%;top:50%">
+          <div class="ag-icon" style="--c:rgba(122,132,153,0.10);--b:rgba(122,132,153,0.20);--g:rgba(232,185,74,0.55);--gw:rgba(232,185,74,0.12);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7A8499" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="ag-name">Reporter</div>
+          <div class="ag-sub">exec summary</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Threat stat + Product mock -->
   <div style="padding:0 0 0;">
     <div class="container">
@@ -921,6 +1016,80 @@ import Footer from '../components/Footer.astro';
   @media (max-width: 780px) {
     :global(.nav-link) { display: none; }
   }
+
+  /* ── Agent network ── */
+  .ag-section { padding: 72px 0 0; border-top: 1px solid var(--border); }
+  .ag-hd { text-align: center; margin-bottom: 40px; }
+  .ag-hd .eyebrow { display: inline-flex; }
+
+  .ag-canvas-wrap { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 24px 0 32px; background: rgba(255,255,255,0.01); }
+
+  .ag-ticker {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 40px; margin-bottom: 20px; height: 20px;
+  }
+  .ag-ticker-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    background: var(--teal); transition: background .4s;
+    animation: tickerPulse 2s ease-in-out infinite;
+  }
+  .ag-ticker-msg {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--muted); transition: opacity .3s;
+  }
+  @keyframes tickerPulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+
+  .ag-canvas {
+    position: relative;
+    width: 100%; padding-bottom: 38%;
+    min-height: 200px; max-height: 400px;
+    height: 0;
+  }
+  @media (max-width: 640px) {
+    .ag-canvas { padding-bottom: 70%; }
+  }
+
+  .ag-svg {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%; overflow: visible;
+  }
+  .ag-e {
+    fill: none; stroke: rgba(255,255,255,0.07);
+    stroke-width: 0.6; stroke-linecap: round;
+    transition: stroke .25s;
+  }
+  .ag-e.ag-lit { stroke: rgba(232,185,74,0.55); }
+  .ag-e.ag-lit-r { stroke: rgba(224,82,82,0.6); }
+  .ag-e.ag-lit-b { stroke: rgba(107,159,239,0.6); }
+
+  .ag-node {
+    position: absolute; transform: translate(-50%,-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    width: 80px;
+  }
+  .ag-icon {
+    width: 48px; height: 48px; border-radius: 13px;
+    background: var(--c); border: 1px solid var(--b);
+    display: flex; align-items: center; justify-content: center;
+    transition: box-shadow .45s var(--ease-expo), border-color .45s, transform .45s var(--ease-expo), background .35s;
+    position: relative;
+  }
+  .ag-node.ag-active .ag-icon {
+    box-shadow: 0 0 0 1.5px var(--g), 0 0 24px var(--gw), 0 8px 28px rgba(0,0,0,0.35);
+    border-color: var(--g);
+    transform: scale(1.1) translateY(-2px);
+  }
+  .ag-name { font-size: 11px; font-weight: 600; color: var(--ivory); white-space: nowrap; letter-spacing: .01em; }
+  .ag-sub  { font-size: 9.5px; color: var(--muted); white-space: nowrap; }
+
+  @media (max-width: 640px) {
+    .ag-icon { width: 36px; height: 36px; border-radius: 10px; }
+    .ag-icon svg { width: 13px; height: 13px; }
+    .ag-node { width: 58px; }
+    .ag-name { font-size: 9px; }
+    .ag-sub { display: none; }
+    .ag-ticker { padding: 0 16px; }
+  }
 </style>
 
 <script>
@@ -1012,5 +1181,103 @@ import Footer from '../components/Footer.astro';
       ln.style.animationDelay = (i * 130) + 'ms';
     });
   }
+})();
+
+/* ── Agent network animation ── */
+(function () {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var svg = document.querySelector('.ag-svg');
+  var tickerMsg = document.querySelector('.ag-ticker-msg');
+  var tickerDot = document.querySelector('.ag-ticker-dot');
+  if (!svg) return;
+
+  var STEPS = [
+    { nodes: ['n-recon'],              edges: [],              color: '#6B9FEF', msg: '→ Recon: scanning 147 assets (nmap + nuclei)…', dur: 950 },
+    { nodes: ['n-analyst'],            edges: ['e1'],          color: '#27C2B6', msg: '→ Analyst: enriching 23 findings, scoring relevance…', dur: 800 },
+    { nodes: ['n-threat'],             edges: ['e2'],          color: '#E8B94A', msg: '→ Threat Intel: 4 CVE matched · 1 KEV-active · EPSS 0.91', dur: 900 },
+    { nodes: ['n-red', 'n-blue'],      edges: ['e3', 'e4'],   color: '#E05252', msg: '⚔ Red/Blue debate: 4 findings in scope', dur: 700 },
+    { nodes: [],                        edges: ['e5', 'e6'],   color: null,       msg: '⚔ Debate round 2: Red escalates CVE-2024-3400…', dur: 750 },
+    { nodes: [],                        edges: ['e6', 'e5'],   color: null,       msg: '⚔ Blue counters: compensating control in WAF…', dur: 700 },
+    { nodes: ['n-valid'],              edges: ['e7', 'e8'],    color: '#27C2B6', msg: '✓ Validation: 3 confirmed · 1 FP suppressed', dur: 850 },
+    { nodes: ['n-risk'],               edges: ['e9'],          color: '#F59E0B', msg: '⚠ Risk Mgr: 1 ACT · 2 ATTEND · 0 TRACK (SSVC)', dur: 800 },
+    { nodes: ['n-report'],             edges: ['e10'],         color: '#E8B94A', msg: '✓ Report ready · 3 critical findings · 5.8s elapsed', dur: 2800 },
+  ];
+
+  function setTicker(msg, color) {
+    if (tickerMsg) tickerMsg.textContent = msg;
+    if (tickerDot && color) tickerDot.style.background = color;
+  }
+
+  function firePacket(edgeId, color) {
+    var path = document.getElementById(edgeId);
+    if (!path) return;
+    var litClass = color === '#E05252' ? 'ag-lit-r' : color === '#6B9FEF' ? 'ag-lit-b' : 'ag-lit';
+    path.classList.add(litClass);
+
+    var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('r', '1.5');
+    c.setAttribute('fill', color || '#E8B94A');
+    c.style.filter = 'drop-shadow(0 0 2px ' + (color || '#E8B94A') + ')';
+
+    var mo = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
+    mo.setAttribute('dur', '0.55s');
+    mo.setAttribute('fill', 'remove');
+    var mp = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
+    mp.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#' + edgeId);
+    mo.appendChild(mp);
+    c.appendChild(mo);
+    svg.appendChild(c);
+
+    setTimeout(function () {
+      path.classList.remove('ag-lit', 'ag-lit-r', 'ag-lit-b');
+      if (svg.contains(c)) svg.removeChild(c);
+    }, 700);
+  }
+
+  function activateNode(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.add('ag-active');
+  }
+
+  function resetAll() {
+    document.querySelectorAll('.ag-node').forEach(function (n) { n.classList.remove('ag-active'); });
+    svg.querySelectorAll('circle').forEach(function (c) { svg.removeChild(c); });
+  }
+
+  var timer;
+  function runStep(i) {
+    var step = STEPS[i];
+    if (!step) {
+      setTicker('✓ Pipeline complete · next run in 24h', '#27C2B6');
+      timer = setTimeout(function () {
+        resetAll();
+        setTicker('Waiting for pipeline trigger…', 'var(--teal)');
+        timer = setTimeout(function () { runStep(0); }, 1000);
+      }, 2500);
+      return;
+    }
+
+    var col = step.color || (i % 2 === 0 ? '#E05252' : '#6B9FEF');
+    setTicker(step.msg, col);
+
+    step.edges.forEach(function (eid) { firePacket(eid, step.color); });
+
+    if (step.nodes.length) {
+      setTimeout(function () { step.nodes.forEach(activateNode); }, step.edges.length ? 560 : 0);
+    }
+
+    timer = setTimeout(function () { runStep(i + 1); }, step.dur);
+  }
+
+  var started = false;
+  var sio = new IntersectionObserver(function (entries) {
+    if (entries[0].isIntersecting && !started) {
+      started = true;
+      sio.disconnect();
+      setTimeout(function () { runStep(0); }, 500);
+    }
+  }, { threshold: 0.25 });
+  var section = document.querySelector('.ag-section');
+  if (section) sio.observe(section); else runStep(0);
 })();
 </script>
