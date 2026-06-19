@@ -79,8 +79,10 @@ interval_seconds: 30
 watch_paths:
   - /etc
   - /bin
+  - /sbin
   - /usr/bin
-  - /home
+  - /usr/sbin
+  - /root
 
 ignore_patterns:
   - "*.log"

@@ -22,7 +22,7 @@ _DEFAULT_SEARCH_PATHS = [
     Path.home() / ".horus" / "iris.yaml",
 ]
 
-_DEFAULT_WATCH_PATHS = ["/etc", "/bin", "/usr/bin", "/home"]
+_DEFAULT_WATCH_PATHS = ["/etc", "/bin", "/usr/bin", "/sbin", "/usr/sbin", "/root"]
 _DEFAULT_IGNORE_PATTERNS = ["*.log", "*.tmp", ".git/*"]
 
 

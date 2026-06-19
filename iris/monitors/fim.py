@@ -117,8 +117,17 @@ class FIMMonitor:
                 logger.warning("FIM: watch path does not exist, skipping: %s", watch_path)
                 continue
             try:
-                self._observer.schedule(handler, str(p), recursive=True)
-                logger.info("FIM: watching %s", watch_path)
+                # ponytail: count subdirs — watchdog holds every subdir in RAM
+                dir_count = sum(1 for _ in p.rglob("*") if _.is_dir()) if p.is_dir() else 0
+                recursive = dir_count <= 5_000
+                if not recursive:
+                    logger.warning(
+                        "FIM: %s has %d subdirs — forcing non-recursive to avoid OOM "
+                        "(add specific subdirs to watch_paths instead)",
+                        watch_path, dir_count,
+                    )
+                self._observer.schedule(handler, str(p), recursive=recursive)
+                logger.info("FIM: watching %s (recursive=%s, dirs=%d)", watch_path, recursive, dir_count)
             except PermissionError:
                 logger.warning("FIM: no permission to watch %s, skipping", watch_path)
 
