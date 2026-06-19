@@ -461,33 +461,8 @@ async def receive_events(
         except Exception as exc:
             logger.error("iris: failed to insert event batch for agent %s: %s", agent["id"], exc)
 
-    # Count total pending events for this agent
-    pending_count_result = (
-        _admin_supabase.table("iris_events")
-        .select("id")
-        .eq("agent_id", agent["id"])
-        .eq("processed", False)
-        .execute()
-    )
-    pending_count = len(pending_count_result.data or [])
-
-    auto_processed = None
-    if pending_count > 20:
-        try:
-            auto_processed = _do_process_agent(agent["id"], org_id, _admin_supabase)
-        except Exception as exc:
-            logger.warning(
-                "iris: auto-process for agent %s failed: %s", agent["id"], exc
-            )
-
-    response: dict = {
-        "received": len(body.events),
-        "pending_after": pending_count,
-    }
-    if auto_processed:
-        response["auto_processed"] = auto_processed
-
-    return response
+    # ponytail: no auto-pipeline here — iris_triage decides when risk is real
+    return {"received": len(body.events)}
 
 
 # ── Agent ping (key validation, no JWT) ─────────────────────────────────────

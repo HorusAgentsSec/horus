@@ -73,13 +73,13 @@ def run_iris_triage_for_org(org_id: str, interval_minutes: int = 60) -> dict:
         _last_run[org_id] = now
         return {"skipped": True, "reason": "no pending events"}
 
-    # 2. Group: {(event_type, severity): [titles...]}
+    # 2. Group: {(event_type, severity): [titles...]} + track agents per group
     groups: dict[tuple, list[str]] = defaultdict(list)
-    event_ids_by_group: dict[tuple, list[str]] = defaultdict(list)
+    agents_by_group: dict[tuple, set[str]] = defaultdict(set)
     for e in rows:
         key = (e["event_type"], e["severity"])
         groups[key].append(e["title"])
-        event_ids_by_group[key].append(e["id"])
+        agents_by_group[key].add(e["agent_id"])
 
     # 3. Build compact summary (≤100 groups, 2 title examples each)
     lines = []
@@ -127,9 +127,13 @@ def run_iris_triage_for_org(org_id: str, interval_minutes: int = 60) -> dict:
         logger.warning("iris_triage: could not parse LLM response for org %s: %s", org_id, raw[:200])
         findings_data = []
 
-    # 6. Create findings for flagged groups
+    # 6. For each HIGH/CRITICAL group: create triage finding + trigger full pipeline
+    from backend.api.iris import _do_process_agent
+
     created = 0
+    pipelines_triggered: set[str] = set()
     today = now.date().isoformat()
+
     for item in findings_data:
         risk = str(item.get("risk", "")).upper()
         if risk not in _VALID_RISKS:
@@ -137,10 +141,10 @@ def run_iris_triage_for_org(org_id: str, interval_minutes: int = 60) -> dict:
 
         group_key = str(item.get("group", ""))
         reason = str(item.get("reason", ""))[:500]
+        group_tuple = tuple(group_key.split("/", 1))
 
-        # Stable fingerprint per org+group+day — one finding per risk per day max
+        # Triage alert finding (lightweight, fast)
         fp = hashlib.sha256(f"iris_ai:{org_id}:{group_key}:{today}".encode()).hexdigest()
-
         try:
             supabase.table("findings").insert({
                 "org_id": org_id,
@@ -154,26 +158,37 @@ def run_iris_triage_for_org(org_id: str, interval_minutes: int = 60) -> dict:
                     "tool": "iris_ai",
                     "template_id": f"iris_ai:{group_key}",
                     "group": group_key,
-                    "event_count": len(groups.get(tuple(group_key.split("/", 1)), [])),
+                    "event_count": len(groups.get(group_tuple, [])),
                     "model": model,
                 },
                 "last_seen_at": now.isoformat(),
             }).execute()
             created += 1
         except Exception as exc:
-            # Unique constraint on fingerprint = finding already exists today
             logger.debug("iris_triage: finding already exists for %s: %s", group_key, exc)
+
+        # Trigger full pipeline for affected agents (deduplicated)
+        for agent_id in agents_by_group.get(group_tuple, set()):
+            if agent_id in pipelines_triggered:
+                continue
+            try:
+                _do_process_agent(agent_id, org_id, supabase)
+                pipelines_triggered.add(agent_id)
+                logger.info("iris_triage: triggered full pipeline for agent %s (risk=%s)", agent_id, risk)
+            except Exception as exc:
+                logger.warning("iris_triage: pipeline trigger failed for agent %s: %s", agent_id, exc)
 
     _last_run[org_id] = now
     logger.info(
-        "iris_triage: org=%s events=%d groups=%d flagged=%d created=%d",
-        org_id, len(rows), len(groups), len(findings_data), created,
+        "iris_triage: org=%s events=%d groups=%d flagged=%d findings=%d pipelines=%d",
+        org_id, len(rows), len(groups), len(findings_data), created, len(pipelines_triggered),
     )
     return {
         "events_analyzed": len(rows),
         "groups": len(groups),
         "flagged": len(findings_data),
         "findings_created": created,
+        "pipelines_triggered": len(pipelines_triggered),
         "model": model,
     }
 
