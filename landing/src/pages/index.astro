@@ -81,12 +81,13 @@ import Footer from '../components/Footer.astro';
   <!-- ── Agent network animation ── -->
   <div class="ag-section">
     <div class="container ag-hd">
-      <div class="eyebrow ey-lapis reveal"><span class="dot"></span>How it works</div>
-      <h2 class="sh2 reveal">Your security team,<br>scaled by AI.</h2>
-      <p class="ssub reveal">Eight specialized agents run every night — scanning your infrastructure, correlating intelligence, simulating attacks, debating every finding, and handing you a prioritized report. For less than you spend on one analyst.</p>
+      <div class="eyebrow ey-lapis"><span class="dot"></span>How it works</div>
+      <h2 class="sh2">Your security team, scaled by AI.</h2>
+      <p class="ssub">Eight specialized agents run every night — scanning, correlating, debating, and handing you a prioritized report. For less than one analyst.</p>
     </div>
 
     <div class="ag-canvas-wrap">
+      <div class="container">
       <div class="ag-ticker" aria-live="polite">
         <span class="ag-ticker-dot"></span>
         <code class="ag-ticker-msg">Waiting for pipeline trigger…</code>
@@ -170,8 +171,9 @@ import Footer from '../components/Footer.astro';
           <div class="ag-sub">exec summary</div>
         </div>
       </div>
-    </div>
-  </div>
+      </div><!-- /container -->
+    </div><!-- /ag-canvas-wrap -->
+  </div><!-- /ag-section -->
 
   <!-- Threat stat + Product mock -->
   <div style="padding:0 0 0;">
@@ -984,12 +986,11 @@ import Footer from '../components/Footer.astro';
 
   .ag-canvas {
     position: relative;
-    width: 100%; padding-bottom: 38%;
-    min-height: 200px; max-height: 400px;
+    width: 100%; padding-bottom: 32%;
     height: 0;
   }
   @media (max-width: 640px) {
-    .ag-canvas { padding-bottom: 70%; }
+    .ag-canvas { padding-bottom: 65%; }
   }
 
   .ag-svg {
