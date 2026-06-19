@@ -1,0 +1,29 @@
+[Unit]
+Description=Horus Iris Security Agent
+Documentation=https://docs.horus.security/iris
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -m iris
+WorkingDirectory=/opt/horus
+Restart=always
+RestartSec=10
+User=root
+
+# Load optional env overrides (e.g. HORUS_IRIS_CONFIG=/custom/path.yaml)
+EnvironmentFile=-/etc/horus/iris.env
+
+# Capture stdout/stderr to the journal
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=horus-iris
+
+# Basic hardening — iris needs root to read /var/log/auth.log and watch system dirs
+NoNewPrivileges=yes
+ProtectSystem=no
+PrivateTmp=no
+
+[Install]
+WantedBy=multi-user.target

@@ -29,6 +29,7 @@ import Adversarial from './pages/Adversarial'
 import AdversarialDetail from './pages/AdversarialDetail'
 import AuthPhishing from './pages/AuthPhishing'
 import CredentialExposure from './pages/CredentialExposure'
+import Iris from './pages/Iris'
 import NotFound from './pages/NotFound'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -113,6 +114,7 @@ export default function App() {
           <Route path="adversarial/:id" element={<AdversarialDetail />} />
           <Route path="auth-phishing" element={<AuthPhishing />} />
           <Route path="credential-exposure" element={<CredentialExposure />} />
+          <Route path="iris" element={<Iris />} />
           {/* Legacy paths (old bookmarks / muscle memory) — redirect, don't 404. */}
           <Route path="red-blue" element={<Navigate to="/adversarial" replace />} />
           <Route path="red-blue/:id" element={<Navigate to="/adversarial" replace />} />
