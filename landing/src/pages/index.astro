@@ -106,15 +106,8 @@ import Footer from '../components/Footer.astro';
   <!-- Trust / standards band -->
   <div class="trust">
     <div class="trust-label-row">Built on the frameworks security teams already trust</div>
-    <div class="trust-marquee" role="presentation">
-      <div class="trust-track">
-        <div class="trust-row">
-          <span>MITRE ATT&amp;CK</span><span>CISA KEV</span><span>FIRST EPSS</span><span>SSVC</span><span>OWASP</span><span>NVD</span><span>Nuclei</span><span>CVSS</span>
-        </div>
-        <div class="trust-row" aria-hidden="true">
-          <span>MITRE ATT&amp;CK</span><span>CISA KEV</span><span>FIRST EPSS</span><span>SSVC</span><span>OWASP</span><span>NVD</span><span>Nuclei</span><span>CVSS</span>
-        </div>
-      </div>
+    <div class="trust-row">
+      <span>MITRE ATT&amp;CK</span><span>CISA KEV</span><span>FIRST EPSS</span><span>SSVC</span><span>OWASP</span><span>NVD</span><span>Nuclei</span><span>CVSS</span>
     </div>
   </div>
 
@@ -845,9 +838,21 @@ import Footer from '../components/Footer.astro';
     font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
     color: rgba(122,132,153,0.7); text-align: center; margin-bottom: 14px; padding: 0 24px;
   }
-  .trust-row { display: flex; align-items: center; gap: 32px; padding: 0 16px; }
-  .trust-row span { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .02em; color: var(--muted); opacity: .6; white-space: nowrap; flex-shrink: 0; transition: opacity .2s ease; }
-  .trust-row span:hover { opacity: 1; }
+  .trust-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 28px 36px; padding: 0 16px; }
+  .trust-row span { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .02em; color: var(--muted); white-space: nowrap; transition: opacity .2s ease, color .2s ease; animation: trustIn .55s var(--ease-expo) both; }
+  .trust-row span:hover { opacity: 1; color: var(--ivory); }
+  .trust-row span:nth-child(1) { animation-delay: .04s; }
+  .trust-row span:nth-child(2) { animation-delay: .10s; }
+  .trust-row span:nth-child(3) { animation-delay: .16s; }
+  .trust-row span:nth-child(4) { animation-delay: .22s; }
+  .trust-row span:nth-child(5) { animation-delay: .28s; }
+  .trust-row span:nth-child(6) { animation-delay: .34s; }
+  .trust-row span:nth-child(7) { animation-delay: .40s; }
+  .trust-row span:nth-child(8) { animation-delay: .46s; }
+  @keyframes trustIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: .6; transform: none; }
+  }
 
   /* ── Threat stat ── */
   .threat-stat {
