@@ -18,10 +18,8 @@ from types import FrameType
 
 from iris.config import Config
 from iris.reporter import IrisReporter
-from iris.monitors.fim import FIMMonitor
-from iris.monitors.process import ProcessMonitor
-from iris.monitors.network import NetworkMonitor
-from iris.monitors.auth_log import AuthLogMonitor
+from iris.monitors.journald import JournaldMonitor
+from iris.monitors.auditd import AuditdMonitor
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +31,8 @@ class IrisDaemon:
         self._running = False
 
         self._monitors = [
-            FIMMonitor(config, self._event_queue),
-            ProcessMonitor(config, self._event_queue),
-            NetworkMonitor(config, self._event_queue),
-            AuthLogMonitor(config, self._event_queue),
+            JournaldMonitor(config, self._event_queue),
+            AuditdMonitor(config, self._event_queue),
         ]
 
     def start(self) -> None:

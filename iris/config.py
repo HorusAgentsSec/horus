@@ -10,7 +10,7 @@ Search order:
 
 import os
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
@@ -22,18 +22,12 @@ _DEFAULT_SEARCH_PATHS = [
     Path.home() / ".horus" / "iris.yaml",
 ]
 
-_DEFAULT_WATCH_PATHS = ["/etc", "/bin", "/usr/bin", "/sbin", "/usr/sbin", "/root"]
-_DEFAULT_IGNORE_PATTERNS = ["*.log", "*.tmp", ".git/*"]
-
-
 @dataclass
 class Config:
     server_url: str = ""
     api_key: str = ""
     agent_id: str = ""
     interval_seconds: int = 30
-    watch_paths: list[str] = field(default_factory=lambda: list(_DEFAULT_WATCH_PATHS))
-    ignore_patterns: list[str] = field(default_factory=lambda: list(_DEFAULT_IGNORE_PATTERNS))
     log_level: str = "INFO"
 
     def validate(self) -> None:
@@ -81,7 +75,5 @@ def load_config(explicit_path: str | None = None) -> Config:
         api_key=raw.get("api_key", ""),
         agent_id=raw.get("agent_id", ""),
         interval_seconds=int(raw.get("interval_seconds", 30)),
-        watch_paths=list(raw.get("watch_paths", _DEFAULT_WATCH_PATHS)),
-        ignore_patterns=list(raw.get("ignore_patterns", _DEFAULT_IGNORE_PATTERNS)),
         log_level=str(raw.get("log_level", "INFO")).upper(),
     )

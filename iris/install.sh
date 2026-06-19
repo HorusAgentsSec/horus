@@ -52,7 +52,7 @@ chmod -R 750 "${INSTALL_DIR}"
 info "Creating Python virtual environment…"
 python3 -m venv "${VENV}" || die "Failed to create virtualenv. Try: apt install python3-venv"
 info "Installing Python dependencies…"
-"${VENV}/bin/pip" install --quiet --upgrade pip psutil watchdog pyyaml requests \
+"${VENV}/bin/pip" install --quiet --upgrade pip pyyaml requests \
     || die "pip install failed. Check your network connection."
 
 # ── Queue directory ───────────────────────────────────────────────────────────
@@ -75,23 +75,40 @@ api_key: "${HORUS_API_KEY:-irs_REPLACE_WITH_YOUR_API_KEY}"
 agent_id: "${HORUS_AGENT_ID:-REPLACE_WITH_AGENT_UUID}"
 
 interval_seconds: 30
-
-watch_paths:
-  - /etc
-  - /bin
-  - /sbin
-  - /usr/bin
-  - /usr/sbin
-  - /root
-
-ignore_patterns:
-  - "*.log"
-  - "*.tmp"
-  - ".git/*"
-
 log_level: INFO
 YAML
     chmod 600 "${CONFIG_FILE}"
+fi
+
+# ── auditd setup ──────────────────────────────────────────────────────────────
+AUDIT_RULES_FILE="/etc/audit/rules.d/horus.rules"
+if command -v auditctl &>/dev/null || apt-get install -y -qq auditd 2>/dev/null; then
+    info "Configuring auditd rules at ${AUDIT_RULES_FILE}…"
+    mkdir -p "$(dirname "${AUDIT_RULES_FILE}")"
+    cat > "${AUDIT_RULES_FILE}" <<'RULES'
+# Horus Iris audit rules — managed by installer, do not edit manually
+# File Integrity Monitoring
+-w /etc -p wa -k horus_fim
+-w /root -p wa -k horus_fim
+# Exec monitoring (suspicious paths only via key; full exec via execve syscall)
+-w /bin -p x -k horus_exec
+-w /sbin -p x -k horus_exec
+-w /usr/bin -p x -k horus_exec
+-w /usr/sbin -p x -k horus_exec
+-a always,exit -F arch=b64 -S execve -F dir=/tmp -k horus_exec
+-a always,exit -F arch=b64 -S execve -F dir=/dev/shm -k horus_exec
+-a always,exit -F arch=b64 -S execve -F dir=/var/tmp -k horus_exec
+# Network: outbound connect syscall
+-a always,exit -F arch=b64 -S connect -k horus_net
+RULES
+    if command -v augenrules &>/dev/null; then
+        augenrules --load 2>/dev/null && info "Audit rules loaded via augenrules."
+    else
+        auditctl -R "${AUDIT_RULES_FILE}" 2>/dev/null && info "Audit rules loaded via auditctl."
+    fi
+    systemctl enable --now auditd 2>/dev/null || true
+else
+    warn "auditd not available — file/process/network monitoring will be limited to journald."
 fi
 
 # ── systemd service ───────────────────────────────────────────────────────────
