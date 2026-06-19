@@ -35,69 +35,36 @@ import Footer from '../components/Footer.astro';
         </a>
       </div>
 
-      <!-- 8-agent pipeline -->
-      <div class="pipeline-strip">
-        <div class="pipeline-label">The 8-agent pipeline · runs on your schedule, every night</div>
-        <div class="pipeline-agents" id="pipeline-agents">
-          <div class="p-agent">
-            <div class="p-icon" style="background:rgba(44,107,237,0.12);border:1px solid rgba(44,107,237,0.2);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B9FEF" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </div>
-            <div class="p-name">Recon</div>
-            <div class="p-role">nmap nuclei</div>
+      <!-- Value props -->
+      <div class="hero-props">
+        <div class="hp-item">
+          <div class="hp-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           </div>
-          <div class="p-agent">
-            <div class="p-icon" style="background:rgba(39,194,182,0.10);border:1px solid rgba(39,194,182,0.2);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            </div>
-            <div class="p-name">Analyst</div>
-            <div class="p-role">enrich context</div>
-          </div>
-          <div class="p-agent">
-            <div class="p-icon" style="background:rgba(232,185,74,0.10);border:1px solid rgba(232,185,74,0.2);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            </div>
-            <div class="p-name">Threat Intel</div>
-            <div class="p-role">CVE KEV EPSS</div>
-          </div>
-          <div class="p-agent">
-            <div class="p-icon" style="background:rgba(224,82,82,0.10);border:1px solid rgba(224,82,82,0.2);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            </div>
-            <div class="p-name">Red Team</div>
-            <div class="p-role">attack sim</div>
-          </div>
-          <div class="p-agent">
-            <div class="p-icon" style="background:rgba(107,159,239,0.10);border:1px solid rgba(107,159,239,0.2);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B9FEF" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </div>
-            <div class="p-name">Blue Team</div>
-            <div class="p-role">defense</div>
-          </div>
-          <div class="p-agent">
-            <div class="p-icon" style="background:rgba(39,194,182,0.10);border:1px solid rgba(39,194,182,0.2);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <div class="p-name">Validation</div>
-            <div class="p-role">judge verdict</div>
-          </div>
-          <div class="p-agent">
-            <div class="p-icon" style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.2);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
-            </div>
-            <div class="p-name">Risk Mgr</div>
-            <div class="p-role">SSVC priority</div>
-          </div>
-          <div class="p-agent">
-            <div class="p-icon" style="background:rgba(122,132,153,0.10);border:1px solid rgba(122,132,153,0.15);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A8499" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            </div>
-            <div class="p-name">Reporter</div>
-            <div class="p-role">exec summary</div>
+          <div>
+            <div class="hp-head">24 / 7 — no ops required</div>
+            <div class="hp-body">Runs every night on your schedule. No tickets, no standups, no babysitting.</div>
           </div>
         </div>
-        <div class="pipeline-flow-bar" aria-hidden="true">
-          <div class="pipeline-flow-pulse"></div>
+        <div class="hp-divider"></div>
+        <div class="hp-item">
+          <div class="hp-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div>
+            <div class="hp-head">A fraction of the cost</div>
+            <div class="hp-body">Eight AI analysts for less than a single junior security hire. Scale to any infrastructure.</div>
+          </div>
+        </div>
+        <div class="hp-divider"></div>
+        <div class="hp-item">
+          <div class="hp-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B9FEF" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div>
+            <div class="hp-head">Zero alert fatigue</div>
+            <div class="hp-body">Red vs. Blue debate eliminates false positives before you ever see them.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -115,8 +82,8 @@ import Footer from '../components/Footer.astro';
   <div class="ag-section">
     <div class="container ag-hd">
       <div class="eyebrow ey-lapis reveal"><span class="dot"></span>How it works</div>
-      <h2 class="sh2 reveal">Eight agents.<br>One coordinated run.</h2>
-      <p class="ssub reveal">A scan triggers a cascade of handoffs. Agents discover, enrich, debate, and converge on a single prioritized report — every night, automatically.</p>
+      <h2 class="sh2 reveal">Your security team,<br>scaled by AI.</h2>
+      <p class="ssub reveal">Eight specialized agents run every night — scanning your infrastructure, correlating intelligence, simulating attacks, debating every finding, and handing you a prioritized report. For less than you spend on one analyst.</p>
     </div>
 
     <div class="ag-canvas-wrap">
@@ -731,51 +698,27 @@ import Footer from '../components/Footer.astro';
   .hero-sub strong { color: var(--ivory); font-weight: 500; }
   .hero-ctas { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 64px; }
 
-  /* ── Pipeline strip ── */
-  .pipeline-strip {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px;
+  /* ── Hero value props ── */
+  .hero-props {
+    display: flex; align-items: flex-start; gap: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden; margin-top: 36px;
   }
-  .pipeline-label { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
-  .pipeline-agents { display: flex; align-items: flex-start; overflow-x: auto; padding-bottom: 2px; }
-  .p-agent { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; min-width: 78px; position: relative; }
-  .p-agent::after { content: '→'; position: absolute; right: -8px; top: 13px; font-size: 11px; color: rgba(255,255,255,0.15); }
-  .p-agent:last-child::after { display: none; }
-  .p-icon { width: 38px; height: 38px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .p-name { font-size: 11px; font-weight: 600; color: var(--ivory); text-align: center; }
-  .p-role { font-size: 10px; color: var(--muted); text-align: center; line-height: 1.25; }
-
-  :global(html.js) .pipeline-agents.in .p-icon { animation: iconPop .55s cubic-bezier(.22,1,.36,1) backwards; }
-  :global(html.js) .pipeline-agents.in .p-agent::after { animation: arrowFlow 2.8s ease-in-out infinite; }
-  @keyframes iconPop { from { opacity: 0; transform: translateY(10px) scale(.75); filter: blur(2px); } to { opacity: 1; transform: none; filter: blur(0); } }
-  @keyframes arrowFlow { 0%,100% { color: rgba(255,255,255,0.12); } 50% { color: rgba(232,185,74,0.6); } }
-
-  /* Agent sequential ping — simulates pipeline execution */
-  .p-agent:nth-child(1) .p-icon { animation: agentPing 8s 0.0s ease-in-out infinite; }
-  .p-agent:nth-child(2) .p-icon { animation: agentPing 8s 1.0s ease-in-out infinite; }
-  .p-agent:nth-child(3) .p-icon { animation: agentPing 8s 2.0s ease-in-out infinite; }
-  .p-agent:nth-child(4) .p-icon { animation: agentPing 8s 3.0s ease-in-out infinite; }
-  .p-agent:nth-child(5) .p-icon { animation: agentPing 8s 4.0s ease-in-out infinite; }
-  .p-agent:nth-child(6) .p-icon { animation: agentPing 8s 5.0s ease-in-out infinite; }
-  .p-agent:nth-child(7) .p-icon { animation: agentPing 8s 6.0s ease-in-out infinite; }
-  .p-agent:nth-child(8) .p-icon { animation: agentPing 8s 7.0s ease-in-out infinite; }
-  :global(html.js) .pipeline-agents.in .p-agent:nth-child(1) .p-icon { animation: agentPing 8s 0.0s ease-in-out infinite, iconPop .55s cubic-bezier(.22,1,.36,1) 0ms backwards; }
-  :global(html.js) .pipeline-agents.in .p-agent:nth-child(2) .p-icon { animation: agentPing 8s 1.0s ease-in-out infinite, iconPop .55s cubic-bezier(.22,1,.36,1) 80ms backwards; }
-  :global(html.js) .pipeline-agents.in .p-agent:nth-child(3) .p-icon { animation: agentPing 8s 2.0s ease-in-out infinite, iconPop .55s cubic-bezier(.22,1,.36,1) 160ms backwards; }
-  :global(html.js) .pipeline-agents.in .p-agent:nth-child(4) .p-icon { animation: agentPing 8s 3.0s ease-in-out infinite, iconPop .55s cubic-bezier(.22,1,.36,1) 240ms backwards; }
-  :global(html.js) .pipeline-agents.in .p-agent:nth-child(5) .p-icon { animation: agentPing 8s 4.0s ease-in-out infinite, iconPop .55s cubic-bezier(.22,1,.36,1) 320ms backwards; }
-  :global(html.js) .pipeline-agents.in .p-agent:nth-child(6) .p-icon { animation: agentPing 8s 5.0s ease-in-out infinite, iconPop .55s cubic-bezier(.22,1,.36,1) 400ms backwards; }
-  :global(html.js) .pipeline-agents.in .p-agent:nth-child(7) .p-icon { animation: agentPing 8s 6.0s ease-in-out infinite, iconPop .55s cubic-bezier(.22,1,.36,1) 480ms backwards; }
-  :global(html.js) .pipeline-agents.in .p-agent:nth-child(8) .p-icon { animation: agentPing 8s 7.0s ease-in-out infinite, iconPop .55s cubic-bezier(.22,1,.36,1) 560ms backwards; }
-
-  /* Pipeline flow bar */
-  .pipeline-flow-bar {
-    height: 1px; background: rgba(255,255,255,0.05); border-radius: 1px;
-    margin-top: 14px; position: relative; overflow: hidden;
+  .hp-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 20px 24px; flex: 1;
   }
-  .pipeline-flow-pulse {
-    position: absolute; top: 0; left: -35%; width: 35%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(232,185,74,0.7), rgba(232,185,74,0.3), transparent);
-    animation: pipelineFlow 2.4s ease-in-out infinite;
+  .hp-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .hp-head { font-size: 12px; font-weight: 700; color: var(--ivory); margin-bottom: 4px; letter-spacing: -.01em; }
+  .hp-body { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+  .hp-divider { width: 1px; background: var(--border); align-self: stretch; flex-shrink: 0; }
+  @media (max-width: 680px) {
+    .hero-props { flex-direction: column; }
+    .hp-divider { width: auto; height: 1px; }
   }
 
   /* ── Product mock ── */
