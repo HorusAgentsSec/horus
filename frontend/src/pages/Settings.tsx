@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { ShieldCheck, ShieldAlert } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ShieldCheck, ShieldAlert, TriangleAlert } from 'lucide-react'
 import { api, friendlyErrorMessage } from '../lib/api'
 import { cn } from '../lib/utils'
 import { ApiKeysSection } from '../components/ApiKeysSection'
@@ -79,6 +79,153 @@ function Stat({ label, value, mono }: { label: string; value: string; mono?: boo
       <p className="text-muted uppercase text-[10px] tracking-wide mb-1">{label}</p>
       <p className={cn('text-white truncate', mono && 'font-mono')}>{value}</p>
     </div>
+  )
+}
+
+function TokenLimitsSection() {
+  const [limits, setLimits] = useState({ daily: '', weekly: '', monthly: '' })
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    api.get<any>('/settings').then(s => setLimits({
+      daily:   s.token_limit_daily   ? String(s.token_limit_daily)   : '',
+      weekly:  s.token_limit_weekly  ? String(s.token_limit_weekly)  : '',
+      monthly: s.token_limit_monthly ? String(s.token_limit_monthly) : '',
+    })).catch(() => {})
+  }, [])
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      await api.put('/settings', {
+        token_limit_daily:   limits.daily   ? parseInt(limits.daily)   : 0,
+        token_limit_weekly:  limits.weekly  ? parseInt(limits.weekly)  : 0,
+        token_limit_monthly: limits.monthly ? parseInt(limits.monthly) : 0,
+      })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch { /* ignore */ } finally { setSaving(false) }
+  }
+
+  const field = 'bg-bg border border-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-accent w-full font-mono'
+
+  return (
+    <section className="bg-surface border border-border rounded-lg p-6 space-y-4">
+      <div>
+        <h2 className="text-sm font-medium text-white">Token limits</h2>
+        <p className="text-xs text-muted mt-1">
+          AI agents are paused and you receive an alert when limits are reached. 80% threshold sends an advance warning. Leave blank for no limit.
+        </p>
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        {(['daily', 'weekly', 'monthly'] as const).map(period => (
+          <div key={period}>
+            <label className="text-xs text-muted mb-1 block capitalize">{period}</label>
+            <input
+              className={field}
+              type="number"
+              min="1"
+              placeholder="No limit"
+              value={limits[period]}
+              onChange={e => setLimits(l => ({ ...l, [period]: e.target.value }))}
+            />
+          </div>
+        ))}
+      </div>
+      <button
+        onClick={save}
+        disabled={saving}
+        className="text-sm bg-accent text-bg px-4 py-1.5 rounded hover:bg-accent/90 transition-colors disabled:opacity-50"
+      >
+        {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save Limits'}
+      </button>
+    </section>
+  )
+}
+
+function DangerZone() {
+  const [open, setOpen] = useState(false)
+  const [confirm, setConfirm] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const CONFIRM_WORD = 'DELETE'
+
+  const handleDelete = async () => {
+    if (confirm !== CONFIRM_WORD) return
+    setDeleting(true)
+    setError(null)
+    try {
+      await api.delete('/settings/organization')
+      // Force full logout — org no longer exists
+      window.location.href = '/login'
+    } catch (e) {
+      setError(friendlyErrorMessage(e, 'Failed to delete organization'))
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <section className="bg-surface border border-severity-critical/30 rounded-lg p-6 space-y-4">
+      <div className="flex items-center gap-2">
+        <TriangleAlert className="w-4 h-4 text-severity-critical" />
+        <h2 className="text-sm font-medium text-severity-critical">Danger zone</h2>
+      </div>
+
+      {!open ? (
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-white">Delete organization</p>
+            <p className="text-xs text-muted mt-0.5">
+              Permanently delete this organization and all its data. Cannot be undone.
+            </p>
+          </div>
+          <button
+            onClick={() => { setOpen(true); setTimeout(() => inputRef.current?.focus(), 50) }}
+            className="text-sm border border-severity-critical/50 text-severity-critical px-3 py-1.5 rounded hover:bg-severity-critical/10 transition-colors shrink-0 ml-4"
+          >
+            Delete organization
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm text-white">
+            This will permanently delete all data including assets, findings, scans, agents, and users.
+            <strong className="text-severity-critical"> This cannot be undone.</strong>
+          </p>
+          <div>
+            <label className="text-xs text-muted mb-1 block">
+              Type <span className="font-mono text-white">{CONFIRM_WORD}</span> to confirm
+            </label>
+            <input
+              ref={inputRef}
+              className="bg-bg border border-severity-critical/40 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-severity-critical w-full font-mono"
+              value={confirm}
+              onChange={e => setConfirm(e.target.value.toUpperCase())}
+              placeholder={CONFIRM_WORD}
+            />
+          </div>
+          {error && <p className="text-xs text-severity-critical">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={handleDelete}
+              disabled={confirm !== CONFIRM_WORD || deleting}
+              className="text-sm bg-severity-critical text-white px-4 py-1.5 rounded hover:bg-severity-critical/80 transition-colors disabled:opacity-40"
+            >
+              {deleting ? 'Deleting…' : 'Delete permanently'}
+            </button>
+            <button
+              onClick={() => { setOpen(false); setConfirm(''); setError(null) }}
+              className="text-sm border border-border text-muted px-4 py-1.5 rounded hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -163,6 +310,10 @@ export default function Settings() {
       </section>
 
       <ApiKeysSection />
+
+      <TokenLimitsSection />
+
+      <DangerZone />
     </div>
   )
 }

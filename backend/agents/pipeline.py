@@ -14,6 +14,7 @@ from backend.agents.risk_manager_agent import run_risk_manager
 from backend.agents.reporter_agent import ReporterAgent
 from backend.core.executor import submit_scan
 from backend.core.supabase_client import supabase
+from backend.core.token_budget import check_budget
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +103,15 @@ def run_pipeline(state: ScanState) -> ScanState:
 
 def run_pipeline_for_scan(scan_id: str, org_id: str) -> ScanState:
     """Entry point called from the API trigger endpoint."""
+    budget = check_budget(org_id)
+    if not budget["ok"]:
+        supabase.table("scans").update({
+            "status": "failed",
+            "error": f"Token budget exceeded ({budget['period']}): {budget['used']:,}/{budget['limit']:,} tokens used.",
+        }).eq("id", scan_id).execute()
+        logger.warning("pipeline: scan %s blocked — token budget exceeded (org %s)", scan_id, org_id)
+        return None
+
     scan = supabase.table("scans").select("*, assets(*)").eq("id", scan_id).single().execute()
     if _scan_row_is_canceled(scan.data):
         logger.info("Scan %s was canceled before the worker started", scan_id)

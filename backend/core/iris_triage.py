@@ -20,6 +20,7 @@ from openai import OpenAI
 from backend.core.config import settings
 from backend.core.supabase_client import supabase
 from backend.core import verdict_memory
+from backend.core.token_budget import check_budget
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +121,13 @@ def run_iris_triage_for_org(org_id: str, interval_minutes: int = 60) -> dict:
         "Include only groups with CRITICAL or HIGH risk. Empty array if nothing is concerning."
     )
 
-    # 4. Call LLM
+    # 4. Check token budget before calling LLM
+    budget = check_budget(org_id)
+    if not budget["ok"]:
+        logger.warning("iris_triage: org=%s skipped — token budget exceeded (%s)", org_id, budget["period"])
+        return {"skipped": True, "reason": f"token budget exceeded ({budget['period']})"}
+
+    # 5. Call LLM
     model = settings.iris_triage_model or settings.llm_default_model
     try:
         client = _llm_client()
