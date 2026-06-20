@@ -12,7 +12,7 @@ import hashlib
 import json
 import logging
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from openai import OpenAI
@@ -49,6 +49,67 @@ def _llm_client() -> OpenAI:
 
 def _severity_from_risk(risk: str) -> str:
     return {"CRITICAL": "critical", "HIGH": "high"}.get(risk, "medium")
+
+
+def _build_prompt(rows: list[dict]) -> tuple[dict, str]:
+    """Group events the same way the triage does and build the LLM prompt."""
+    groups: dict[tuple, list[str]] = defaultdict(list)
+    for e in rows:
+        groups[(e["event_type"], e["severity"])].append(e["title"])
+
+    lines = []
+    for (etype, sev), titles in sorted(groups.items(), key=lambda x: -len(x[1])):
+        sample = " | ".join(titles[:2])
+        lines.append(f"{len(titles)}x [{sev.upper()}] {etype}: {sample}")
+        if len(lines) >= 100:
+            break
+
+    summary = "\n".join(lines)
+    prompt = (
+        f"Host agent events summary ({len(rows)} total events, {len(groups)} groups):\n\n"
+        f"{summary}\n\n"
+        "Reply ONLY with a JSON array. Each element: "
+        '{"group": "<event_type>/<severity>", "risk": "CRITICAL|HIGH", "reason": "<one sentence>"}. '
+        "Include only groups with CRITICAL or HIGH risk. Empty array if nothing is concerning."
+    )
+    return groups, prompt
+
+
+def analyze_events_readonly(rows: list[dict]) -> dict:
+    """
+    Read-only preview of what the AI triage analyst sees and answers, for these events.
+    Builds the same summary/prompt as run_iris_triage_for_org, calls the LLM, and returns
+    the prompt + raw response. Writes NOTHING: no findings, no processed flags.
+    Used by the live UI modal. (Skips the false-positive filtering so the view is faithful
+    to the raw event picture.)
+    """
+    if not rows:
+        return {"analyzed": 0, "groups": 0, "prompt": None, "response": None, "model": None}
+
+    groups, prompt = _build_prompt(rows)
+    model = settings.iris_triage_model or settings.llm_default_model
+    client = _llm_client()
+    resp = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": _SYSTEM},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0,
+        max_tokens=600,
+    )
+    raw = resp.choices[0].message.content or "[]"
+    usage = resp.usage
+    return {
+        "analyzed": len(rows),
+        "groups": len(groups),
+        "system": _SYSTEM,
+        "prompt": prompt,
+        "response": raw,
+        "model": model,
+        "tokens_in": usage.prompt_tokens if usage else None,
+        "tokens_out": usage.completion_tokens if usage else None,
+    }
 
 
 def run_iris_triage_for_org(org_id: str, interval_minutes: int = 60) -> dict:
@@ -207,6 +268,15 @@ def run_iris_triage_for_org(org_id: str, interval_minutes: int = 60) -> dict:
             except Exception as exc:
                 logger.warning("iris_triage: pipeline trigger failed for agent %s: %s", agent_id, exc)
 
+    # Mark every analyzed event processed, flagged or benign; triage has ruled on it.
+    # Flagged agents' events were already marked by _do_process_agent; this clears the rest
+    # so benign noise doesn't accumulate and get re-analyzed forever.
+    # Batch the ids: an in_(...) of 1000 UUIDs overflows the request URL length limit.
+    analyzed_ids = [e["id"] for e in rows]
+    for i in range(0, len(analyzed_ids), 200):
+        chunk = analyzed_ids[i:i + 200]
+        supabase.table("iris_events").update({"processed": True}).in_("id", chunk).execute()
+
     _last_run[org_id] = now
     logger.info(
         "iris_triage: org=%s events=%d groups=%d flagged=%d findings=%d pipelines=%d",
@@ -220,6 +290,74 @@ def run_iris_triage_for_org(org_id: str, interval_minutes: int = 60) -> dict:
         "pipelines_triggered": len(pipelines_triggered),
         "model": model,
     }
+
+
+def detect_offline_agents(offline_after_minutes: Optional[int] = None) -> dict:
+    """Flag agents that were online but stopped reporting, once per transition.
+
+    Catches the silent-death case (kill -9, host shutdown, network cut) that the
+    sudo-based agent_tamper detection can't see. Flips status online→offline and
+    raises a finding + in-app alert exactly once (status acts as the latch).
+    """
+    if offline_after_minutes is None:
+        offline_after_minutes = settings.iris_offline_after_minutes
+    now = datetime.now(timezone.utc)
+    cutoff = (now - timedelta(minutes=offline_after_minutes)).isoformat()
+
+    stale = (
+        supabase.table("iris_agents")
+        .select("id, org_id, name, hostname, asset_id, last_seen_at")
+        .eq("status", "online")
+        .lt("last_seen_at", cutoff)
+        .execute()
+        .data or []
+    )
+    flagged = 0
+    for a in stale:
+        # Latch: flip to offline first so a slow finding insert can't double-alert.
+        supabase.table("iris_agents").update({"status": "offline"}).eq("id", a["id"]).execute()
+        host = a.get("hostname") or a.get("name") or a["id"]
+        fp = hashlib.sha256(f"iris_offline:{a['org_id']}:{a['id']}:{a.get('last_seen_at')}".encode()).hexdigest()
+        try:
+            supabase.table("findings").insert({
+                "org_id": a["org_id"],
+                "asset_id": a.get("asset_id"),
+                "title": f"[Iris] Agent went offline: {a.get('name') or host}",
+                "description": (
+                    f"Host {host} stopped reporting after being online "
+                    f"(last seen {a.get('last_seen_at')}). Could be a reboot, a network "
+                    "outage, or an attacker disabling monitoring."
+                ),
+                "severity": "medium",
+                "status": "open",
+                "source": "iris",
+                "fingerprint": fp,
+                "raw_data": {"tool": "iris", "template_id": "iris:agent_offline",
+                             "host": host, "agent_id": a["id"]},
+                "last_seen_at": now.isoformat(),
+            }).execute()
+        except Exception as exc:
+            logger.debug("iris: offline finding upsert skipped for %s: %s", a["id"], exc)
+        try:
+            recipients = (
+                supabase.table("profiles").select("id")
+                .eq("org_id", a["org_id"]).in_("role", ["admin", "analyst"]).execute().data or []
+            )
+            if recipients:
+                supabase.table("notifications").insert([
+                    {"org_id": a["org_id"], "user_id": r["id"], "type": "iris_alert",
+                     "title": f"Iris agent offline: {a.get('name') or host}",
+                     "body": f"{host} stopped reporting.",
+                     "metadata": {"agent_id": a["id"], "severity": "medium"}}
+                    for r in recipients
+                ]).execute()
+        except Exception:
+            logger.exception("iris: offline alert notification failed for agent %s", a["id"])
+        flagged += 1
+
+    if flagged:
+        logger.info("iris: flagged %d agent(s) offline", flagged)
+    return {"offline_flagged": flagged}
 
 
 def run_iris_triage_all_orgs(global_interval_minutes: int = 60) -> dict:

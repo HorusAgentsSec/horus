@@ -473,9 +473,12 @@ def load_phishing_schedules():
 
 
 def _run_iris_triage():
-    from backend.core.iris_triage import run_iris_triage_all_orgs
+    from backend.core.iris_triage import run_iris_triage_all_orgs, detect_offline_agents
     try:
         with jobs.job_run("iris_triage") as d:
+            # Offline detection runs every poll regardless of per-org triage intervals,
+            # so a dark host is flagged within one check window, not one triage window.
+            d.update(detect_offline_agents() or {})
             d.update(run_iris_triage_all_orgs(settings.iris_triage_check_minutes) or {})
     except Exception as e:
         logger.error(f"Iris triage failed: {e}")

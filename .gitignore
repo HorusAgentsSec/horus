@@ -39,3 +39,6 @@ logs/
 
 # Supabase CLI local state
 supabase/.temp/
+
+# Local design-skill artifacts
+.impeccable/

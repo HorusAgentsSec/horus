@@ -544,6 +544,95 @@ import Footer from '../components/Footer.astro';
 
   <hr class="divider" />
 
+  <!-- ── Iris host agent ── -->
+  <div class="ag-section iris-section">
+    <div class="container ag-hd">
+      <div class="eyebrow ey-gold"><span class="dot"></span>Iris · Host Agent</div>
+      <h2 class="sh2">Your servers, watched from the inside.</h2>
+      <p class="ssub ag-ssub">Iris is a tiny Rust daemon on every host. It taps the systemd journal and the kernel's audit subsystem — logins, privilege use, file tampering, suspicious exec and outbound connections — then streams events to Horus, where AI triage decides what is routine and what becomes an incident.</p>
+    </div>
+
+    <div class="ag-canvas-wrap" id="iris-net">
+      <div class="container">
+      <div class="ag-ticker" aria-live="polite">
+        <span class="ag-ticker-dot"></span>
+        <code class="ag-ticker-msg">Iris idle · monitors armed…</code>
+      </div>
+
+      <div class="ag-canvas iris-canvas">
+        <svg class="ag-svg" viewBox="0 0 100 44" preserveAspectRatio="none" aria-hidden="true">
+          <path class="ag-e" id="e-im1" d="M 12,14.5 C 22,16 26,20 30,21.4"/>
+          <path class="ag-e" id="e-im2" d="M 12,29.5 C 22,28 26,24 30,22.6"/>
+          <path class="ag-e" id="e-im3" d="M 38,22 H 56"/>
+          <path class="ag-e" id="e-im4" d="M 64,22 H 82"/>
+        </svg>
+
+        <div class="ag-node" id="ir-journald" style="left:8%;top:33%">
+          <div class="ag-icon" style="--c:rgba(107,159,239,0.10);--b:rgba(107,159,239,0.28);--g:rgba(107,159,239,0.55);--gw:rgba(107,159,239,0.12);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6B9FEF" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </div>
+          <div class="ag-name">Journald</div>
+          <div class="ag-sub">ssh · sudo · su</div>
+        </div>
+
+        <div class="ag-node" id="ir-auditd" style="left:8%;top:67%">
+          <div class="ag-icon" style="--c:rgba(39,194,182,0.10);--b:rgba(39,194,182,0.28);--g:rgba(39,194,182,0.55);--gw:rgba(39,194,182,0.12);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div class="ag-name">Auditd</div>
+          <div class="ag-sub">exec · FIM · net</div>
+        </div>
+
+        <div class="ag-node" id="ir-iris" style="left:34%;top:50%">
+          <div class="ag-icon" style="--c:rgba(232,185,74,0.14);--b:rgba(232,185,74,0.34);--g:rgba(232,185,74,0.7);--gw:rgba(232,185,74,0.18);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="ag-name">Iris daemon</div>
+          <div class="ag-sub">Rust · systemd</div>
+        </div>
+
+        <div class="ag-node" id="ir-triage" style="left:60%;top:50%">
+          <div class="ag-icon" style="--c:rgba(39,194,182,0.10);--b:rgba(39,194,182,0.28);--g:rgba(39,194,182,0.55);--gw:rgba(39,194,182,0.12);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          </div>
+          <div class="ag-name">AI Triage</div>
+          <div class="ag-sub">token-economic</div>
+        </div>
+
+        <div class="ag-node" id="ir-pipe" style="left:86%;top:50%">
+          <div class="ag-icon" style="--c:rgba(245,158,11,0.10);--b:rgba(245,158,11,0.28);--g:rgba(245,158,11,0.55);--gw:rgba(245,158,11,0.12);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="ag-name">Horus pipeline</div>
+          <div class="ag-sub">on real risk</div>
+        </div>
+      </div>
+      </div><!-- /container -->
+    </div><!-- /ag-canvas-wrap -->
+
+    <div class="container">
+      <div class="steps iris-steps">
+        <div class="step">
+          <div class="step-n">TWO MONITORS</div>
+          <h3>Journald + the kernel audit log</h3>
+          <p>A single ~5 MB Rust daemon reads <span class="mono">journalctl -f -o json</span>, filtering security units (sshd, sudo, su, useradd) at priority ≤ 3, and tails <span class="mono">/var/log/audit/audit.log</span>, grouping records by serial until EOE. The installer drops minimal <span class="mono">horus.rules</span>: exec in <span class="mono">/tmp</span>, FIM on <span class="mono">/etc</span> &amp; <span class="mono">/root</span>, outbound connect.</p>
+        </div>
+        <div class="step">
+          <div class="step-n">TOKEN-ECONOMIC</div>
+          <h3>AI triage, not a token firehose</h3>
+          <p>Iris batches events and ships them on an interval. A cheap periodic triage pass classifies the noise and only spins up the full eight-agent pipeline when it correlates something into real risk. Routine events never cost a full run.</p>
+        </div>
+        <div class="step">
+          <div class="step-n">RESILIENT</div>
+          <h3>Never loses an event</h3>
+          <p>If the server is unreachable, events queue to local disk and retry with backoff. On reconnect Iris flushes the backlog first. Host telemetry survives outages, restarts and network blips, end to end.</p>
+        </div>
+      </div>
+    </div>
+  </div><!-- /iris-section -->
+
+  <hr class="divider" />
+
   <!-- Pricing -->
   <section>
     <div class="container">
@@ -1035,6 +1124,14 @@ import Footer from '../components/Footer.astro';
     .ag-sub { display: none; }
     .ag-ticker { padding: 0 16px; }
   }
+
+  /* ── Iris ── */
+  .iris-section { padding: 18px 0 72px; }
+  .iris-canvas { padding-bottom: 38%; }
+  .iris-steps { margin-top: 32px; }
+  @media (max-width: 640px) {
+    .iris-canvas { padding-bottom: 70%; }
+  }
 </style>
 
 <script>
@@ -1223,6 +1320,102 @@ import Footer from '../components/Footer.astro';
     }
   }, { threshold: 0.5, rootMargin: '0px 0px -80px 0px' });
   var canvas = document.querySelector('.ag-canvas');
+  if (canvas) sio.observe(canvas); else runStep(0);
+})();
+
+/* ── Iris host-agent animation ── */
+(function () {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var root = document.getElementById('iris-net');
+  if (!root) return;
+  var svg = root.querySelector('.ag-svg');
+  var tickerMsg = root.querySelector('.ag-ticker-msg');
+  var tickerDot = root.querySelector('.ag-ticker-dot');
+  if (!svg) return;
+
+  var STEPS = [
+    { nodes: ['ir-journald', 'ir-auditd'], edges: [],            color: '#6B9FEF', msg: '→ Iris: 2 monitors live · systemd journal + kernel auditd', dur: 1100 },
+    { nodes: ['ir-iris'],   edges: ['e-im1'],                     color: '#E05252', msg: '⚡ journald sshd: 5 failed logins/60s from 203.0.113.4', dur: 950 },
+    { nodes: ['ir-iris'],   edges: ['e-im2'],                     color: '#E05252', msg: '⚡ auditd horus_exec: /tmp/.x executed · EOE serial 2291', dur: 950 },
+    { nodes: ['ir-triage'], edges: ['e-im3'],                     color: '#27C2B6', msg: '→ AI triage: 14 events batched · token-economic pass', dur: 1000 },
+    { nodes: [],            edges: [],                            color: '#27C2B6', msg: '✓ triage: 12 routine suppressed · 2 correlated → real risk', dur: 950 },
+    { nodes: ['ir-pipe'],   edges: ['e-im4'],                     color: '#E8B94A', msg: '⚠ risk confirmed → full Horus pipeline engaged', dur: 1050 },
+    { nodes: [],            edges: [],                            color: '#F59E0B', msg: '✓ incident #47 opened · PagerDuty P1 · host flagged', dur: 2600 },
+  ];
+
+  function setTicker(msg, color) {
+    if (tickerMsg) tickerMsg.textContent = msg;
+    if (tickerDot && color) tickerDot.style.background = color;
+  }
+
+  function firePacket(edgeId, color) {
+    var path = document.getElementById(edgeId);
+    if (!path) return;
+    var litClass = color === '#E05252' ? 'ag-lit-r' : color === '#6B9FEF' ? 'ag-lit-b' : 'ag-lit';
+    path.classList.add(litClass);
+
+    var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('r', '1.5');
+    c.setAttribute('fill', color || '#E8B94A');
+    c.style.filter = 'drop-shadow(0 0 2px ' + (color || '#E8B94A') + ')';
+
+    var mo = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
+    mo.setAttribute('dur', '0.55s');
+    mo.setAttribute('fill', 'remove');
+    var mp = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
+    mp.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#' + edgeId);
+    mo.appendChild(mp);
+    c.appendChild(mo);
+    svg.appendChild(c);
+
+    setTimeout(function () {
+      path.classList.remove('ag-lit', 'ag-lit-r', 'ag-lit-b');
+      if (svg.contains(c)) svg.removeChild(c);
+    }, 700);
+  }
+
+  function activateNode(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.add('ag-active');
+  }
+
+  function resetAll() {
+    root.querySelectorAll('.ag-node').forEach(function (n) { n.classList.remove('ag-active'); });
+    svg.querySelectorAll('circle').forEach(function (c) { svg.removeChild(c); });
+  }
+
+  var timer;
+  function runStep(i) {
+    var step = STEPS[i];
+    if (!step) {
+      setTicker('✓ Host clear · Iris watching · next triage in 30s', '#27C2B6');
+      timer = setTimeout(function () {
+        resetAll();
+        setTicker('Iris idle · monitors armed…', 'var(--teal)');
+        timer = setTimeout(function () { runStep(0); }, 1000);
+      }, 2500);
+      return;
+    }
+
+    setTicker(step.msg, step.color);
+    step.edges.forEach(function (eid) { firePacket(eid, step.color); });
+
+    if (step.nodes.length) {
+      setTimeout(function () { step.nodes.forEach(activateNode); }, step.edges.length ? 560 : 0);
+    }
+
+    timer = setTimeout(function () { runStep(i + 1); }, step.dur);
+  }
+
+  var started = false;
+  var sio = new IntersectionObserver(function (entries) {
+    if (entries[0].isIntersecting && !started) {
+      started = true;
+      sio.disconnect();
+      setTimeout(function () { runStep(0); }, 200);
+    }
+  }, { threshold: 0.5, rootMargin: '0px 0px -80px 0px' });
+  var canvas = root.querySelector('.ag-canvas');
   if (canvas) sio.observe(canvas); else runStep(0);
 })();
 </script>

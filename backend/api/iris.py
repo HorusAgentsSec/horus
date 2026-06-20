@@ -31,11 +31,19 @@ from backend.api.auth import get_current_user, get_db
 from backend.core.executor import submit_scan
 from backend.core.supabase_client import supabase as _admin_supabase
 
-_IRIS_DIR = Path(__file__).parent.parent.parent / "iris"
+# The Rust agent (iris-rs) is the single supported implementation. The legacy Python
+# daemon under iris/ is retired; everything the installer needs lives here.
+_IRIS_DIR = Path(__file__).parent.parent.parent / "iris-rs"
+_IRIS_BINARY = _IRIS_DIR / "target" / "release" / "horus-iris"
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/iris", tags=["iris"])
+
+# The live-triage modal polls every ~12s; each call hits the LLM. Cache per agent so
+# many pollers (or one left open) can't burn tokens. {agent_id: (epoch_s, result)}
+_AI_ANALYSIS_TTL_S = 30.0
+_ai_analysis_cache: dict[str, tuple[float, dict]] = {}
 
 # ── Pydantic models ─────────────────────────────────────────────────────────
 
@@ -64,6 +72,7 @@ class AgentListItem(BaseModel):
     config: dict
     created_at: str
     pending_events: int
+    total_events: int
 
 
 class IrisEventIn(BaseModel):
@@ -107,6 +116,78 @@ def _resolve_iris_key(x_iris_key: str) -> dict:
 
 
 # ── Internal helpers ─────────────────────────────────────────────────────────
+
+
+# High-confidence deterministic threats: act immediately, don't wait for the LLM triage
+# interval. Maps an incoming event to (severity, reason) when it's unambiguous.
+def _deterministic_threat(ev: "IrisEventIn") -> Optional[tuple[str, str]]:
+    subtype = str((ev.payload or {}).get("subtype", ""))
+    if subtype == "agent_tamper":
+        return ("critical", "Iris monitoring agent was stopped/disabled — possible defense evasion (MITRE T1562.001)")
+    if subtype == "brute_force":
+        return ("high", "Brute-force authentication attempt detected")
+    if ev.event_type == "new_connection" and ev.severity in ("high", "critical"):
+        return ("high", "Outbound connection to a known C2/backdoor port")
+    return None
+
+
+def _alert_deterministic_threats(agent: dict, org_id: str, events: list["IrisEventIn"]) -> None:
+    """Create findings + an in-app alert for high-confidence threats, immediately and
+    independent of the AI triage interval. Best-effort: never breaks event ingestion."""
+    host = agent.get("hostname") or agent.get("name") or agent["id"]
+    now = datetime.now(timezone.utc).isoformat()
+    created: list[str] = []
+    worst = "high"
+    for ev in events:
+        verdict = _deterministic_threat(ev)
+        if not verdict:
+            continue
+        severity, reason = verdict
+        if severity == "critical":
+            worst = "critical"
+        fp = hashlib.sha256(
+            f"iris_rt:{org_id}:{agent['id']}:{ev.event_type}:{ev.title}".encode()
+        ).hexdigest()
+        try:
+            _admin_supabase.table("findings").insert({
+                "org_id": org_id,
+                "asset_id": agent.get("asset_id"),
+                "title": f"[Iris] {ev.title}",
+                "description": reason,
+                "severity": severity,
+                "status": "open",
+                "source": "iris",
+                "fingerprint": fp,
+                "raw_data": {
+                    "tool": "iris", "template_id": f"iris_rt:{ev.event_type}",
+                    "host": host, "event_type": ev.event_type, "payload": ev.payload,
+                },
+                "last_seen_at": now,
+            }).execute()
+            created.append(ev.title)
+        except Exception as exc:
+            logger.debug("iris: deterministic finding upsert skipped for %s: %s", ev.title, exc)
+
+    if not created:
+        return
+    try:
+        recipients = (
+            _admin_supabase.table("profiles").select("id")
+            .eq("org_id", org_id).in_("role", ["admin", "analyst"]).execute().data or []
+        )
+        if recipients:
+            title = f"Iris alert on {host}"
+            body = created[0] if len(created) == 1 else f"{len(created)} high-risk events on {host}"
+            _admin_supabase.table("notifications").insert([
+                {
+                    "org_id": org_id, "user_id": r["id"], "type": "iris_alert",
+                    "title": title, "body": body,
+                    "metadata": {"agent_id": agent["id"], "severity": worst},
+                }
+                for r in recipients
+            ]).execute()
+    except Exception:
+        logger.exception("iris: in-app alert failed for agent %s", agent["id"])
 
 
 def _do_process_agent(agent_id: str, org_id: str, db: Client) -> dict:
@@ -207,8 +288,10 @@ def _do_process_agent(agent_id: str, org_id: str, db: Client) -> dict:
                     "severity": event["severity"],
                     "status": "open",
                     "source": "iris",
+                    # No received_at: identical recurring events (e.g. a noisy SQLite WAL
+                    # rewriting the same path) collapse to one finding instead of stacking.
                     "fingerprint": hashlib.sha256(
-                        f"{org_id}:{agent_id}:{event['event_type']}:{event['title']}:{event['received_at']}".encode()
+                        f"{org_id}:{agent_id}:{event['event_type']}:{event['title']}".encode()
                     ).hexdigest(),
                     "raw_data": {
                         "tool": "iris",
@@ -319,6 +402,19 @@ async def list_agents(
     )
     pending_by_agent = Counter(e["agent_id"] for e in events_rows)
 
+    # Total events per agent — what the UI shows so a healthy (fully-triaged) agent doesn't
+    # read "0". head=True returns just the count, no rows.
+    # ponytail: N+1 over agents, but the agent list is small (tens, not thousands).
+    total_by_agent: dict[str, int] = {}
+    for aid in agent_ids:
+        try:
+            total_by_agent[aid] = (
+                db.table("iris_events").select("id", count="exact", head=True)
+                .eq("agent_id", aid).execute().count or 0
+            )
+        except Exception:
+            total_by_agent[aid] = 0
+
     return [
         AgentListItem(
             id=a["id"],
@@ -333,6 +429,7 @@ async def list_agents(
             config=a.get("config") or {},
             created_at=a["created_at"],
             pending_events=pending_by_agent.get(a["id"], 0),
+            total_events=total_by_agent.get(a["id"], 0),
         )
         for a in agents
     ]
@@ -403,6 +500,70 @@ async def process_agent_events(
     return _do_process_agent(agent_id, user["org_id"], db)
 
 
+@router.get("/agents/{agent_id}/ai-analysis")
+async def agent_ai_analysis(
+    agent_id: str,
+    user: dict = Depends(get_current_user),
+    db: Client = Depends(get_db),
+):
+    """
+    Live, read-only preview of the Iris AI triage analyst for one agent.
+
+    Gathers the agent's pending events, builds the same summary the scheduled triage
+    sends to the LLM, calls the model, and returns the prompt + raw AI response.
+    Writes nothing; purely for the UI's live-view modal.
+    """
+    import time
+    from backend.core.iris_triage import analyze_events_readonly
+    from backend.core.token_budget import check_budget
+
+    # Verify the agent belongs to the org
+    agent = (
+        db.table("iris_agents")
+        .select("id")
+        .eq("id", agent_id)
+        .eq("org_id", user["org_id"])
+        .execute()
+        .data
+    )
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    # Serve a recent cached analysis if fresh — caps LLM calls under rapid polling.
+    cached = _ai_analysis_cache.get(agent_id)
+    if cached and (time.monotonic() - cached[0]) < _AI_ANALYSIS_TTL_S:
+        return cached[1]
+
+    # Don't spend tokens on a read-only preview once the org is over budget.
+    budget = check_budget(user["org_id"])
+    if not budget["ok"]:
+        return {"analyzed": 0, "groups": 0, "prompt": None, "response": None,
+                "model": None, "message": f"AI triage paused — token budget exceeded ({budget['period']})."}
+
+    # Recent events regardless of the processed flag: this is a live view of what the
+    # agent is seeing. Filtering on processed=False would show nothing once the scheduled
+    # triage has cleared the backlog, which is the normal state for a healthy agent.
+    rows = (
+        db.table("iris_events")
+        .select("id, event_type, severity, title, agent_id")
+        .eq("agent_id", agent_id)
+        .eq("org_id", user["org_id"])
+        .order("received_at", desc=True)
+        .limit(2000)
+        .execute()
+        .data
+        or []
+    )
+
+    try:
+        result = analyze_events_readonly(rows)
+        _ai_analysis_cache[agent_id] = (time.monotonic(), result)
+        return result
+    except Exception as exc:
+        logger.error("iris ai-analysis failed for agent %s: %s", agent_id, exc)
+        raise HTTPException(status_code=502, detail="AI analysis failed")
+
+
 # ── Agent-authenticated endpoint ─────────────────────────────────────────────
 
 
@@ -461,7 +622,14 @@ async def receive_events(
         except Exception as exc:
             logger.error("iris: failed to insert event batch for agent %s: %s", agent["id"], exc)
 
-    # ponytail: no auto-pipeline here — iris_triage decides when risk is real
+    # Routine noise waits for the scheduled LLM triage. But high-confidence deterministic
+    # threats (agent tamper, brute-force, C2 ports) alert immediately — waiting up to an hour
+    # to flag that the agent itself was just disabled defeats the point of monitoring.
+    try:
+        _alert_deterministic_threats(agent, org_id, body.events)
+    except Exception:
+        logger.exception("iris: deterministic threat alerting failed for agent %s", agent["id"])
+
     return {"received": len(body.events)}
 
 
@@ -484,31 +652,50 @@ async def get_uninstall_script():
 
 
 @router.get("/install.sh", response_class=PlainTextResponse, include_in_schema=False)
-async def get_install_script(
-    request: Request,
-    api_key: Optional[str] = None,
-    agent_id: Optional[str] = None,
-):
-    """Serve iris/install.sh with server URL and optionally key/agent baked in."""
+async def get_install_script(request: Request):
+    """Serve the Rust agent installer with the server URL baked in.
+
+    The API key is NOT accepted as a query param (it would land in server access logs).
+    The dashboard passes it on the client command line via env (HORUS_API_KEY), the same
+    pattern agent installers like Datadog use.
+    """
     script = (_IRIS_DIR / "install.sh").read_text()
     server_url = str(request.base_url).rstrip("/")
-    header = f'HORUS_URL="{server_url}"\n'
-    if api_key:
-        header += f'HORUS_API_KEY="{api_key}"\n'
-    if agent_id:
-        header += f'HORUS_AGENT_ID="{agent_id}"\n'
+    header = f'HORUS_URL="${{HORUS_URL:-{server_url}}}"\n'
     return PlainTextResponse(header + script, media_type="text/x-sh")
+
+
+@router.get("/binary", include_in_schema=False)
+async def get_iris_binary():
+    """Serve the compiled Rust agent binary the installer downloads.
+
+    Built at deploy time (`cd iris-rs && cargo build --release`). If it isn't there yet,
+    return 503 with the build step rather than a confusing download error — the installer
+    can also build from source via the /package fallback.
+    """
+    if not _IRIS_BINARY.exists():
+        raise HTTPException(
+            status_code=503,
+            detail="Agent binary not built. On the server run: cd iris-rs && cargo build --release",
+        )
+    return Response(
+        _IRIS_BINARY.read_bytes(),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": "attachment; filename=horus-iris"},
+    )
 
 
 @router.get("/package", include_in_schema=False)
 async def get_iris_package():
-    """Serve the iris/ package as a .tar.gz for the install script to download."""
+    """Serve the iris-rs source as a .tar.gz (build-from-source fallback). Excludes build
+    artifacts and VCS noise so the download stays small."""
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tar:
         for path in sorted(_IRIS_DIR.rglob("*")):
-            if path.suffix == ".pyc" or "__pycache__" in path.parts:
+            parts = path.parts
+            if "target" in parts or ".git" in parts or path.suffix == ".pyc":
                 continue
-            tar.add(path, arcname=f"iris/{path.relative_to(_IRIS_DIR)}")
+            tar.add(path, arcname=f"iris-rs/{path.relative_to(_IRIS_DIR)}")
     buf.seek(0)
     return Response(buf.read(), media_type="application/gzip",
-                    headers={"Content-Disposition": "attachment; filename=iris.tar.gz"})
+                    headers={"Content-Disposition": "attachment; filename=iris-rs.tar.gz"})

@@ -11,9 +11,11 @@ import {
   ChevronDown,
   ChevronRight,
   Terminal,
+  Sparkles,
 } from 'lucide-react'
 import { api, friendlyErrorMessage } from '../lib/api'
 import { SeverityBadge } from '../components/findings/SeverityBadge'
+import { IrisAiModal } from '../components/agents/IrisAiModal'
 import { cn } from '../lib/utils'
 
 // Backend API base — in dev the backend is on :8000, in prod same origin
@@ -36,6 +38,7 @@ interface IrisAgent {
   key_prefix: string
   config: { watch_paths?: string[]; interval_seconds?: number }
   pending_events?: number
+  total_events?: number
   asset_id: string | null
 }
 
@@ -180,6 +183,7 @@ export default function Iris() {
   const [error, setError] = useState<string | null>(null)
   const [showRegister, setShowRegister] = useState(false)
   const [eventsAgent, setEventsAgent] = useState<IrisAgent | null>(null)
+  const [aiAgent, setAiAgent] = useState<IrisAgent | null>(null)
   const [triageInterval, setTriageInterval] = useState<number>(60)
   const [savingInterval, setSavingInterval] = useState(false)
 
@@ -292,9 +296,6 @@ export default function Iris() {
             </button>
           ))}
         </div>
-        <span className="text-xs text-muted ml-auto">
-          Token-economic grouping — no raw payloads sent to AI
-        </span>
       </div>
 
       {error && (
@@ -348,7 +349,12 @@ export default function Iris() {
                     {relativeTime(agent.last_seen_at)}
                   </td>
                   <td className="py-3 px-4 text-xs text-muted">
-                    {agent.pending_events ?? 0}
+                    {agent.total_events ?? 0}
+                    {(agent.pending_events ?? 0) > 0 && (
+                      <span className="ml-1.5 text-horus-gold" title="Pending AI triage">
+                        · {agent.pending_events} pending
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center justify-end gap-1">
@@ -359,6 +365,14 @@ export default function Iris() {
                       >
                         <List className="w-3.5 h-3.5" />
                         Events
+                      </button>
+                      <button
+                        onClick={() => setAiAgent(agent)}
+                        className="flex items-center gap-1 text-xs text-accent hover:text-accent border border-accent/40 bg-accent/10 hover:bg-accent/20 px-2 py-1 rounded transition-colors"
+                        title="Iris AI live triage — see what the agent thinks"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        AI triage
                       </button>
                       <button
                         onClick={() => analyzeAgent(agent)}
@@ -398,6 +412,14 @@ export default function Iris() {
         <AgentEventsPanel
           agent={eventsAgent}
           onClose={() => setEventsAgent(null)}
+        />
+      )}
+
+      {aiAgent && (
+        <IrisAiModal
+          agentId={aiAgent.id}
+          agentName={aiAgent.name}
+          onClose={() => setAiAgent(null)}
         />
       )}
     </div>
@@ -549,7 +571,8 @@ function InstallInstructions({
   serverUrl: string
   onClose: () => void
 }) {
-  const installCmd = `curl -sSL "${serverUrl}/api/iris/install.sh?api_key=${result.api_key}&agent_id=${result.agent_id}" | sudo bash`
+  // Key passed via client-side env (not the URL) so it never lands in server access logs.
+  const installCmd = `curl -sSL "${serverUrl}/api/iris/install.sh" | sudo env HORUS_API_KEY=${result.api_key} HORUS_AGENT_ID=${result.agent_id} bash`
 
   return (
     <div className="space-y-4">
@@ -629,15 +652,18 @@ function AgentEventsPanel({
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   useEffect(() => {
+    let alive = true
     setLoading(true)
     api
       .get<IrisEvent[]>(`/iris/agents/${agent.id}/events?limit=50`, 0)
       .then((data) => {
+        if (!alive) return
         setEvents(data)
         setError(null)
       })
-      .catch((e) => setError(friendlyErrorMessage(e, 'Failed to load events')))
-      .finally(() => setLoading(false))
+      .catch((e) => { if (alive) setError(friendlyErrorMessage(e, 'Failed to load events')) })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
   }, [agent.id])
 
   const toggleExpand = (id: string) => {

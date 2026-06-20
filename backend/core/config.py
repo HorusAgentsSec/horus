@@ -199,6 +199,9 @@ class Settings(BaseSettings):
     iris_triage_enabled: bool = True
     iris_triage_check_minutes: int = 15   # how often the scheduler polls (global)
     iris_triage_model: Optional[str] = None  # defaults to llm_default_model
+    # An online agent that stops reporting for this long is flagged offline + alerted once
+    # (a monitored host going dark is a blind spot — could be a reboot or a killed agent).
+    iris_offline_after_minutes: int = 10
 
     # ── Ransomware.live deep web intelligence ────────────────────────────────
     # Check assets against ransomware.live victim database (free API, no auth).
