@@ -42,3 +42,6 @@ supabase/.temp/
 
 # Local design-skill artifacts
 .impeccable/
+
+# Claude Code session worktrees (ephemeral)
+.claude/worktrees/
