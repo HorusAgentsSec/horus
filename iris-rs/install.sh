@@ -76,20 +76,31 @@ if command -v auditctl &>/dev/null || apt-get install -y -qq auditd 2>/dev/null;
     info "Configuring auditd rules at ${AUDIT_RULES_FILE} …"
     mkdir -p "$(dirname "${AUDIT_RULES_FILE}")"
     cat > "${AUDIT_RULES_FILE}" <<'RULES'
-# Horus Iris audit rules — managed by installer, do not edit manually
-# File Integrity Monitoring
+# Horus Iris audit rules; managed by installer, do not edit manually.
+# Design rule: monitoring must NEVER lag the host. We keep only low-volume,
+# high-signal rules and tell the kernel to drop events rather than block syscalls.
+
+# Reset, then a large backlog with NO wait. backlog_wait_time 0 is critical: if the
+# backlog fills the kernel drops audit events instead of stalling every syscall.
+-D
+-b 16384
+--backlog_wait_time 0
+-f 1
+
+# File Integrity Monitoring; config and root home only (low volume, high value).
 -w /etc -p wa -k horus_fim
 -w /root -p wa -k horus_fim
-# Exec monitoring
--w /bin -p x -k horus_exec
--w /sbin -p x -k horus_exec
--w /usr/bin -p x -k horus_exec
--w /usr/sbin -p x -k horus_exec
+
+# Exec from world-writable/suspicious paths only (low volume, high signal).
+# We deliberately do NOT audit every execve or watch /usr/bin etc.: on a busy host
+# that is thousands of events/sec and the source of system-wide lag.
 -a always,exit -F arch=b64 -S execve -F dir=/tmp -k horus_exec
 -a always,exit -F arch=b64 -S execve -F dir=/dev/shm -k horus_exec
 -a always,exit -F arch=b64 -S execve -F dir=/var/tmp -k horus_exec
-# Network: outbound connect syscall
--a always,exit -F arch=b64 -S connect -k horus_net
+
+# NB: system-wide -S connect auditing is intentionally omitted. Auditing every
+# outbound connection floods the host (browsers, scanners) and belongs at the
+# network layer, not a host agent.
 RULES
     if command -v augenrules &>/dev/null; then
         augenrules --load 2>/dev/null && info "Audit rules loaded via augenrules."
