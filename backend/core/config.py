@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     # the obvious findings for free; only ambiguous ones reach the LLM, capped per scan to bound cost.
     validation_enabled: bool = True
     validation_max_debates: int = 15
+    # Active validation: confirm a version-only finding against the live service (one cheap,
+    # non-destructive connection) before debating it. Off by default — it touches the network.
+    active_validation_enabled: bool = False
+    active_validation_timeout: float = 3.0
 
     # App
     environment: str = "development"

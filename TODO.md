@@ -146,8 +146,18 @@
       `http-xssed`, `http-unsafe-output-escaping`). Los findings de estos scripts se incluyen pero con
       `confidence=0.4` y `needs_verification=True` en `raw_data`, lo que activa el path de debate del
       `ValidationAgent` en lugar de auto-confirmarlos.
-- [ ] `🔴 Difícil` **Validación activa opcional** — confirmar un finding correlado por versión con una prueba
-      ligera, para subir la confianza de 0.7 a "confirmado".
+- [x] **Validación activa opcional** — HECHO (2026-06-21): `core/active_probe.py` confirma un finding
+      correlado solo por versión contra el servicio vivo antes de gastar un debate. Hace UNA conexión
+      barata y no destructiva (GET HTTP(S) en puertos web, lectura pasiva de banner TCP en el resto;
+      nunca un payload de exploit) y pregunta: ¿sigue esa versión expuesta ahora? Lógica pura
+      (`assess_probe`/`probe_to_verdict`): versión aún en el banner → `confirmed`; servicio inalcanzable
+      → `false_positive` (inventario rancio / parcheado); alcanzable sin versión → inconcluso, cae al
+      debate. Integrado en `ValidationAgent` en el punto ambiguo (tras auto_verdict, antes del cap/debate),
+      mapeando `source_service` → puerto vía `detected_services`; ahorra tokens cuando resuelve. Opt-in
+      (`active_validation_enabled` default **False**, toca la red) + `active_validation_timeout`.
+      Best-effort: cualquier error de red defiere al debate, nunca hunde el pipeline. Transporte
+      inyectable → tests sin sockets reales: `test_active_probe.py` (9). Suite 282 passed (3 fallos
+      preexistentes de token_tracking, no relacionados).
 - [ ] `🟢 Muy sencilla` Revisar periódicamente la lista `INFORMATIONAL_SCRIPTS` según aparezca ruido nuevo.
 - [x] **Deduplicación de findings repetidos** — HECHO (2026-06-09): `pipeline._persist_results` mantiene
       un `seen_sigs: set[tuple]` por scan. Firma: `(scan_id, asset_id, title, port)`. Duplicados exactos

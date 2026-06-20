@@ -19,7 +19,7 @@ import logging
 
 from backend.agents.base import BaseAgent
 from backend.agents.state import ScanState
-from backend.core import validation, verdict_memory
+from backend.core import active_probe, validation, verdict_memory
 from backend.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -54,9 +54,18 @@ class ValidationAgent(BaseAgent):
 
         debated = 0
         auto = 0
+        probed = 0
         recalled_hits = 0
         cap = settings.validation_max_debates
         enrichment = {e.finding_id: e for e in state.enriched_findings}
+
+        # Index detected services by their "<product> <version>" label (== a finding's
+        # source_service) so active validation can find the host:port to probe.
+        svc_index = {
+            f"{s['product']} {s['version']}": s
+            for s in state.detected_services
+            if s.get("product") and s.get("version") and s.get("port")
+        }
 
         # Recall how humans judged findings like these — first this org's own feedback (the
         # reflection loop), then the anonymized cross-org community aggregate (the flywheel: a new
@@ -111,6 +120,17 @@ class ValidationAgent(BaseAgent):
                 auto += 1
                 continue
 
+            # Optional active validation: for a version-only correlation, probe the live service
+            # before spending a debate. Confirms (version still exposed) or refutes (service gone)
+            # deterministically; inconclusive falls through to the debate. Opt-in (touches network).
+            if settings.active_validation_enabled and f.source_service in svc_index:
+                probed_verdict = self._active_probe(svc_index[f.source_service], state)
+                if probed_verdict is not None:
+                    label, why = probed_verdict
+                    self._set_verdict(f, label, None, rationale=why, debate=None)
+                    probed += 1
+                    continue
+
             # Ambiguous → debate, until the per-scan cap. Past the cap (or in no-cloud mode, where
             # the debate is off), flag for verification deterministically rather than call the LLM.
             if not settings.llm_enabled or debated >= cap:
@@ -136,10 +156,28 @@ class ValidationAgent(BaseAgent):
 
         fp = sum(1 for f in state.analyzed_findings if f.verdict == "false_positive")
         logger.info(
-            "ValidationAgent: %d debated, %d auto-resolved, %d from memory, %d flagged false-positive",
-            debated, auto, recalled_hits, fp,
+            "ValidationAgent: %d debated, %d auto-resolved, %d actively probed, %d from memory, "
+            "%d flagged false-positive",
+            debated, auto, probed, recalled_hits, fp,
         )
         return state
+
+    def _active_probe(self, svc: dict, state: ScanState) -> tuple[str, str] | None:
+        """Probe the live service behind a version-only finding. Best-effort: a failed connection
+        is itself a signal (false_positive), and any unexpected error defers to the debate."""
+        try:
+            port = int(svc["port"])
+        except (KeyError, ValueError, TypeError):
+            return None
+        try:
+            return active_probe.probe_service(
+                state.asset.host, port, svc["product"], svc["version"],
+                timeout=settings.active_validation_timeout,
+            )
+        except Exception as exc:  # never let a probe sink the pipeline
+            logger.warning("ValidationAgent: active probe failed for %s:%s: %s",
+                           state.asset.host, port, exc)
+            return None
 
     @staticmethod
     def _signature(finding) -> str:
