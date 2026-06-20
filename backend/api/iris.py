@@ -118,12 +118,38 @@ def _resolve_iris_key(x_iris_key: str) -> dict:
 # ── Internal helpers ─────────────────────────────────────────────────────────
 
 
+def _resolve_or_create_asset(agent: dict, org_id: str) -> str:
+    """Return an asset_id for this agent, creating a host asset if it has none.
+    findings.asset_id is NOT NULL, so every Iris finding needs a real asset to attach to.
+    Uses the service-role client so it works from agent-auth paths and the scheduler."""
+    asset_id = agent.get("asset_id")
+    if asset_id:
+        return asset_id
+    hostname = agent.get("hostname") or agent.get("name") or agent["id"]
+    existing = (
+        _admin_supabase.table("assets")
+        .select("id").eq("org_id", org_id).eq("host", hostname).limit(1).execute().data
+    )
+    if existing:
+        asset_id = existing[0]["id"]
+    else:
+        asset_id = (
+            _admin_supabase.table("assets").insert({
+                "org_id": org_id, "name": agent.get("name") or hostname, "host": hostname,
+                "type": "server", "is_internal": True, "is_active": True, "tags": ["iris"],
+            }).execute().data[0]["id"]
+        )
+    # Link it back so future events/findings reuse it.
+    _admin_supabase.table("iris_agents").update({"asset_id": asset_id}).eq("id", agent["id"]).execute()
+    return asset_id
+
+
 # High-confidence deterministic threats: act immediately, don't wait for the LLM triage
 # interval. Maps an incoming event to (severity, reason) when it's unambiguous.
 def _deterministic_threat(ev: "IrisEventIn") -> Optional[tuple[str, str]]:
     subtype = str((ev.payload or {}).get("subtype", ""))
     if subtype == "agent_tamper":
-        return ("critical", "Iris monitoring agent was stopped/disabled — possible defense evasion (MITRE T1562.001)")
+        return ("critical", "Iris monitoring agent was stopped/disabled; possible defense evasion (MITRE T1562.001)")
     if subtype == "brute_force":
         return ("high", "Brute-force authentication attempt detected")
     if ev.event_type == "new_connection" and ev.severity in ("high", "critical"):
@@ -138,6 +164,7 @@ def _alert_deterministic_threats(agent: dict, org_id: str, events: list["IrisEve
     now = datetime.now(timezone.utc).isoformat()
     created: list[str] = []
     worst = "high"
+    asset_id = None  # resolved lazily on the first real threat (avoids creating assets for noise)
     for ev in events:
         verdict = _deterministic_threat(ev)
         if not verdict:
@@ -145,13 +172,15 @@ def _alert_deterministic_threats(agent: dict, org_id: str, events: list["IrisEve
         severity, reason = verdict
         if severity == "critical":
             worst = "critical"
+        if asset_id is None:
+            asset_id = _resolve_or_create_asset(agent, org_id)
         fp = hashlib.sha256(
             f"iris_rt:{org_id}:{agent['id']}:{ev.event_type}:{ev.title}".encode()
         ).hexdigest()
         try:
             _admin_supabase.table("findings").insert({
                 "org_id": org_id,
-                "asset_id": agent.get("asset_id"),
+                "asset_id": asset_id,
                 "title": f"[Iris] {ev.title}",
                 "description": reason,
                 "severity": severity,
@@ -219,42 +248,7 @@ def _do_process_agent(agent_id: str, org_id: str, db: Client) -> dict:
         return {"scan_id": None, "events_processed": 0, "message": "No pending events"}
 
     # 3. Resolve or create an asset for the scan
-    asset_id = agent.get("asset_id")
-    if not asset_id:
-        # Create a transient asset for this agent's hostname so the scan has somewhere to attach
-        hostname = agent.get("hostname") or agent.get("name") or agent_id
-        # Try to find an existing asset with this host
-        existing_asset = (
-            db.table("assets")
-            .select("id")
-            .eq("org_id", org_id)
-            .eq("host", hostname)
-            .limit(1)
-            .execute()
-        )
-        if existing_asset.data:
-            asset_id = existing_asset.data[0]["id"]
-        else:
-            new_asset = (
-                _admin_supabase.table("assets")
-                .insert(
-                    {
-                        "org_id": org_id,
-                        "name": agent.get("name") or hostname,
-                        "host": hostname,
-                        "type": "server",
-                        "is_internal": True,
-                        "is_active": True,
-                        "tags": ["iris"],
-                    }
-                )
-                .execute()
-            )
-            asset_id = new_asset.data[0]["id"]
-            # Link the agent to this new asset for future scans
-            _admin_supabase.table("iris_agents").update(
-                {"asset_id": asset_id}
-            ).eq("id", agent_id).execute()
+    asset_id = _resolve_or_create_asset(agent, org_id)
 
     # 4. Create a scan row
     now = datetime.now(timezone.utc).isoformat()
@@ -405,12 +399,14 @@ async def list_agents(
     # Total events per agent — what the UI shows so a healthy (fully-triaged) agent doesn't
     # read "0". head=True returns just the count, no rows.
     # ponytail: N+1 over agents, but the agent list is small (tens, not thousands).
+    # NB: head=True returns count=0 with this supabase-py version, so use a limit(1) probe —
+    # it fetches one throwaway row but reports the accurate exact count.
     total_by_agent: dict[str, int] = {}
     for aid in agent_ids:
         try:
             total_by_agent[aid] = (
-                db.table("iris_events").select("id", count="exact", head=True)
-                .eq("agent_id", aid).execute().count or 0
+                db.table("iris_events").select("id", count="exact")
+                .eq("agent_id", aid).limit(1).execute().count or 0
             )
         except Exception:
             total_by_agent[aid] = 0
@@ -538,7 +534,7 @@ async def agent_ai_analysis(
     budget = check_budget(user["org_id"])
     if not budget["ok"]:
         return {"analyzed": 0, "groups": 0, "prompt": None, "response": None,
-                "model": None, "message": f"AI triage paused — token budget exceeded ({budget['period']})."}
+                "model": None, "message": f"AI triage paused: token budget exceeded ({budget['period']})."}
 
     # Recent events regardless of the processed flag: this is a live view of what the
     # agent is seeing. Filtering on processed=False would show nothing once the scheduled

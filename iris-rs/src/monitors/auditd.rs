@@ -1,4 +1,4 @@
-//! Auditd monitor — tails /var/log/audit/audit.log, groups records by serial number, and
+//! Auditd monitor; tails /var/log/audit/audit.log, groups records by serial number, and
 //! emits events for exec / file-change / network audit keys written by the installer.
 //!
 //! Replaces the old inotify FIM, procfs process poller, and TCP poller. Zero inotify watches
@@ -24,7 +24,7 @@ const SUSPICIOUS_PATHS: &[&str] = &["/tmp/", "/dev/shm/", "/var/tmp/"];
 pub fn spawn(_config: Config, tx: mpsc::Sender<Value>) -> JoinHandle<()> {
     tokio::spawn(async move {
         if !std::path::Path::new(AUDIT_LOG).exists() {
-            tracing::warn!("auditd log {} not found — auditd monitor disabled (install auditd)", AUDIT_LOG);
+            tracing::warn!("auditd log {} not found; auditd monitor disabled (install auditd)", AUDIT_LOG);
             return;
         }
 
@@ -107,7 +107,7 @@ impl Parser {
 
         groups.entry(serial).or_default().insert(rtype, fields);
 
-        // ponytail: bound memory — audit records without a clean EOE would leak otherwise.
+        // ponytail: bound memory; audit records without a clean EOE would leak otherwise.
         if groups.len() > MAX_OPEN_GROUPS {
             let mut keys: Vec<String> = groups.keys().cloned().collect();
             keys.sort();
@@ -145,7 +145,7 @@ fn process(group: &HashMap<String, HashMap<String, String>>) -> Option<Value> {
             } else if SUSPICIOUS_PATHS.iter().any(|p| exe.starts_with(p)) {
                 "medium"
             } else {
-                return None; // routine exec — ignore
+                return None; // routine exec; ignore
             };
             let argc: usize = get(group, "EXECVE", "argc").parse().unwrap_or(0);
             let args: Vec<String> = (0..argc.min(8))

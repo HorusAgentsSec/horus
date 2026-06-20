@@ -1,4 +1,4 @@
-//! Journald monitor — streams `journalctl -f -o json` and emits security events.
+//! Journald monitor; streams `journalctl -f -o json` and emits security events.
 //!
 //! Replaces the old auth_log poller. Zero polling, zero RAM growth: the kernel streams
 //! events as they happen. Covers SSH, sudo, su, user/group changes, and any high-priority
@@ -39,7 +39,7 @@ pub fn spawn(_config: Config, tx: mpsc::Sender<Value>) -> JoinHandle<()> {
         {
             Ok(c) => c,
             Err(_) => {
-                tracing::warn!("journalctl not found — journald monitor disabled");
+                tracing::warn!("journalctl not found; journald monitor disabled");
                 return;
             }
         };
@@ -161,7 +161,7 @@ fn auth(subtype: &str, severity: &str, title: String, mut payload: Value) -> Val
     json!({"event_type": "auth_event", "severity": severity, "title": title, "payload": payload})
 }
 
-/// True if a sudo command stops, disables, masks or removes the Iris agent — a classic
+/// True if a sudo command stops, disables, masks or removes the Iris agent; a classic
 /// attempt to blind monitoring before doing something worse.
 fn is_agent_tamper(command: &str) -> bool {
     let c = command.to_lowercase();

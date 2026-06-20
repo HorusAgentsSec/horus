@@ -10,7 +10,7 @@ services:
     env_file: .env
     volumes:
       - ./backend:/app/backend
-      - ./iris:/app/iris
+      - ./iris-rs:/app/iris-rs
     working_dir: /app
     command: uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 

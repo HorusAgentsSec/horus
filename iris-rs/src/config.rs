@@ -4,7 +4,7 @@ use std::env;
 use std::path::PathBuf;
 
 // File/exec/network monitoring is done by the kernel audit subsystem (see auditd monitor),
-// configured via /etc/audit/rules.d/horus.rules — not by app-level watch paths. There are
+// configured via /etc/audit/rules.d/horus.rules, not by app-level watch paths. There are
 // no watch_paths/ignore_patterns here by design: recursive inotify over /home was the OOM
 // cause this architecture removes.
 

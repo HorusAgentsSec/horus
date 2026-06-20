@@ -218,7 +218,7 @@ def run_iris_triage_for_org(org_id: str, interval_minutes: int = 60) -> dict:
         findings_data = []
 
     # 6. For each HIGH/CRITICAL group: create triage finding + trigger full pipeline
-    from backend.api.iris import _do_process_agent
+    from backend.api.iris import _do_process_agent, _resolve_or_create_asset
 
     created = 0
     pipelines_triggered: set[str] = set()
@@ -233,11 +233,25 @@ def run_iris_triage_for_org(org_id: str, interval_minutes: int = 60) -> dict:
         reason = str(item.get("reason", ""))[:500]
         group_tuple = tuple(group_key.split("/", 1))
 
+        # findings.asset_id is NOT NULL — attach the summary finding to an agent in the group.
+        group_agents = agents_by_group.get(group_tuple, set())
+        asset_id = None
+        if group_agents:
+            aid = next(iter(group_agents))
+            arow = supabase.table("iris_agents").select(
+                "id, name, hostname, asset_id").eq("id", aid).single().execute().data
+            if arow:
+                asset_id = _resolve_or_create_asset(arow, org_id)
+        if not asset_id:
+            logger.warning("iris_triage: no asset for group %s, skipping summary finding", group_key)
+            continue
+
         # Triage alert finding (lightweight, fast)
         fp = hashlib.sha256(f"iris_ai:{org_id}:{group_key}:{today}".encode()).hexdigest()
         try:
             supabase.table("findings").insert({
                 "org_id": org_id,
+                "asset_id": asset_id,
                 "title": f"[Iris AI] Suspicious activity: {group_key}",
                 "description": reason,
                 "severity": _severity_from_risk(risk),
@@ -312,16 +326,19 @@ def detect_offline_agents(offline_after_minutes: Optional[int] = None) -> dict:
         .execute()
         .data or []
     )
+    from backend.api.iris import _resolve_or_create_asset
+
     flagged = 0
     for a in stale:
         # Latch: flip to offline first so a slow finding insert can't double-alert.
         supabase.table("iris_agents").update({"status": "offline"}).eq("id", a["id"]).execute()
         host = a.get("hostname") or a.get("name") or a["id"]
+        asset_id = _resolve_or_create_asset(a, a["org_id"])  # findings.asset_id is NOT NULL
         fp = hashlib.sha256(f"iris_offline:{a['org_id']}:{a['id']}:{a.get('last_seen_at')}".encode()).hexdigest()
         try:
             supabase.table("findings").insert({
                 "org_id": a["org_id"],
-                "asset_id": a.get("asset_id"),
+                "asset_id": asset_id,
                 "title": f"[Iris] Agent went offline: {a.get('name') or host}",
                 "description": (
                     f"Host {host} stopped reporting after being online "
