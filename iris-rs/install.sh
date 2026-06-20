@@ -59,35 +59,44 @@ agent_id: "${HORUS_AGENT_ID:-REPLACE_WITH_AGENT_UUID}"
 
 interval_seconds: 30
 
-# System-integrity paths only. Do NOT add /home recursively: it exhausts inotify
-# watches (OOM) and floods with noise. Add specific files instead, e.g.
-# /home/youruser/.ssh/authorized_keys
-watch_paths:
-  - /etc
-  - /bin
-  - /sbin
-  - /usr/bin
-  - /usr/sbin
-  - /boot
-
-ignore_patterns:
-  - "*.log"
-  - "*.tmp"
-  - "*.swp"
-  - "*.swx"
-  - "*~"
-  - "*.db-wal"
-  - "*.db-shm"
-  - "*.db-journal"
-  - "*-journal"
-  - "*.pyc"
-  - ".git/*"
-  - "__pycache__/*"
-  - "*.cache"
+# File/exec/network monitoring is handled by the kernel audit subsystem (auditd rules
+# below), not app-level watch paths — that's what removes the inotify OOM.
 
 log_level: INFO
 YAML
     chmod 600 "${CONFIG_FILE}"
+fi
+
+# ── auditd setup ────────────────────────────────────────────────────────────────
+# Kernel-level FIM + exec + network monitoring. Replaces inotify/procfs polling.
+AUDIT_RULES_FILE="/etc/audit/rules.d/horus.rules"
+if command -v auditctl &>/dev/null || apt-get install -y -qq auditd 2>/dev/null; then
+    info "Configuring auditd rules at ${AUDIT_RULES_FILE} …"
+    mkdir -p "$(dirname "${AUDIT_RULES_FILE}")"
+    cat > "${AUDIT_RULES_FILE}" <<'RULES'
+# Horus Iris audit rules — managed by installer, do not edit manually
+# File Integrity Monitoring
+-w /etc -p wa -k horus_fim
+-w /root -p wa -k horus_fim
+# Exec monitoring
+-w /bin -p x -k horus_exec
+-w /sbin -p x -k horus_exec
+-w /usr/bin -p x -k horus_exec
+-w /usr/sbin -p x -k horus_exec
+-a always,exit -F arch=b64 -S execve -F dir=/tmp -k horus_exec
+-a always,exit -F arch=b64 -S execve -F dir=/dev/shm -k horus_exec
+-a always,exit -F arch=b64 -S execve -F dir=/var/tmp -k horus_exec
+# Network: outbound connect syscall
+-a always,exit -F arch=b64 -S connect -k horus_net
+RULES
+    if command -v augenrules &>/dev/null; then
+        augenrules --load 2>/dev/null && info "Audit rules loaded via augenrules."
+    else
+        auditctl -R "${AUDIT_RULES_FILE}" 2>/dev/null && info "Audit rules loaded via auditctl."
+    fi
+    systemctl enable --now auditd 2>/dev/null || true
+else
+    warn "auditd not available — file/exec/network monitoring disabled (journald still active)."
 fi
 
 # ── systemd service ───────────────────────────────────────────────────────────

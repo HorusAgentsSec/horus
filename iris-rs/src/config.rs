@@ -3,16 +3,10 @@ use serde::Deserialize;
 use std::env;
 use std::path::PathBuf;
 
-// ponytail: watch system-integrity paths only. /home recursive is unviable —
-// it generates 195K inotify watches (OOM) and ~98% pure noise (SQLite WAL/SHM,
-// browser caches). To monitor a specific user file (e.g. ~/.ssh/authorized_keys),
-// add it explicitly to watch_paths in iris.yaml.
-const DEFAULT_WATCH_PATHS: &[&str] = &["/etc", "/bin", "/sbin", "/usr/bin", "/usr/sbin", "/boot"];
-const DEFAULT_IGNORE_PATTERNS: &[&str] = &[
-    "*.log", "*.tmp", "*.swp", "*.swx", "*~",
-    "*.db-wal", "*.db-shm", "*.db-journal", "*-journal", "*.pyc",
-    ".git/*", "__pycache__/*", "*.cache",
-];
+// File/exec/network monitoring is done by the kernel audit subsystem (see auditd monitor),
+// configured via /etc/audit/rules.d/horus.rules — not by app-level watch paths. There are
+// no watch_paths/ignore_patterns here by design: recursive inotify over /home was the OOM
+// cause this architecture removes.
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
@@ -21,8 +15,6 @@ pub struct Config {
     pub api_key: String,
     pub agent_id: String,
     pub interval_seconds: u64,
-    pub watch_paths: Vec<String>,
-    pub ignore_patterns: Vec<String>,
     pub log_level: String,
 }
 
@@ -33,8 +25,6 @@ impl Default for Config {
             api_key: String::new(),
             agent_id: String::new(),
             interval_seconds: 30,
-            watch_paths: DEFAULT_WATCH_PATHS.iter().map(|s| s.to_string()).collect(),
-            ignore_patterns: DEFAULT_IGNORE_PATTERNS.iter().map(|s| s.to_string()).collect(),
             log_level: "INFO".to_string(),
         }
     }
