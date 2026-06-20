@@ -79,10 +79,43 @@ def _fetch_certspotter(domain: str) -> set[str]:
     return names
 
 
+# Common subdomain labels for DNS brute-force. These frequently exist without ever
+# issuing a TLS cert (internal tools, redirects, infra), so Certificate Transparency misses
+# them. Kept deliberately short — enough coverage without hammering a domain's nameservers.
+_COMMON_SUBDOMAINS = (
+    "www", "mail", "webmail", "smtp", "imap", "pop", "mx", "email", "ns1", "ns2",
+    "remote", "vpn", "gw", "proxy", "secure", "auth", "sso", "login", "portal",
+    "api", "app", "apps", "dev", "staging", "stage", "test", "qa", "demo", "beta",
+    "admin", "dashboard", "internal", "intranet", "corp", "git", "gitlab", "ci",
+    "jenkins", "jira", "confluence", "wiki", "docs", "support", "help", "status",
+    "monitor", "grafana", "kibana", "prometheus", "vault", "files", "ftp", "sftp",
+    "db", "redis", "cache", "cdn", "static", "assets", "media", "img", "blog",
+    "shop", "store", "registry", "k8s", "cloud", "server", "host",
+)
+
+
+def _bruteforce_subdomains(domain: str) -> set[str]:
+    """Resolve a fixed list of common subdomain labels against `domain`, keeping only the
+    ones that actually resolve. Finds hosts CT logs never saw (no cert ever issued).
+    Concurrent — the lookups are independent and most misses are fast NXDOMAINs."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    candidates = [f"{label}.{domain}" for label in _COMMON_SUBDOMAINS]
+    workers = max(1, settings.discovery_bruteforce_concurrency)
+    found: set[str] = set()
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for host, ips in zip(candidates, pool.map(resolve_ips, candidates)):
+            if ips:
+                found.add(host)
+    logger.info("discovery: DNS brute-force found %d live subdomain(s) for %s", len(found), domain)
+    return found
+
+
 def discover_subdomains(domain: str) -> set[str]:
     """
-    Subdomains of `domain` from Certificate Transparency logs. Passive. Uses crt.sh,
-    falling back to certspotter when crt.sh is unavailable (it frequently is).
+    Subdomains of `domain` from Certificate Transparency logs, plus a DNS brute-force of
+    common labels (which catches hosts that never issued a cert). Passive — CT lookups +
+    DNS resolution only. Uses crt.sh, falling back to certspotter when it's unavailable.
     """
     domain = domain.strip().lower().lstrip(".")
     try:
@@ -93,6 +126,11 @@ def discover_subdomains(domain: str) -> set[str]:
         names = _fetch_certspotter(domain)
         source = "certspotter"
     logger.info("discovery: %s returned %d unique names for %s", source, len(names), domain)
+
+    if settings.discovery_dns_bruteforce:
+        before = len(names)
+        names |= _bruteforce_subdomains(domain)
+        logger.info("discovery: brute-force added %d new name(s) for %s", len(names) - before, domain)
     return names
 
 

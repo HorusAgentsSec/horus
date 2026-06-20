@@ -158,6 +158,10 @@ class Settings(BaseSettings):
     discovery_crtsh_retries: int = 2
     # Only auto-create hosts that resolve in DNS (CT logs are full of dead names).
     discovery_resolve_dns: bool = True
+    # DNS brute-force of common subdomain labels — finds hosts that never issued a cert
+    # (so CT logs miss them). Passive (DNS lookups only); confirmed by resolution.
+    discovery_dns_bruteforce: bool = True
+    discovery_bruteforce_concurrency: int = 12
     # Safety cap: never auto-create more than this many assets in a single run.
     discovery_max_assets_per_run: int = 200
     # Private-network discovery (active ping sweep). Refuse CIDRs larger than this many

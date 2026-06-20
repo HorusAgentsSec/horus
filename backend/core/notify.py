@@ -96,6 +96,34 @@ def send_slack(webhook_url: str, summary: dict) -> None:
     _slack_post(webhook_url, f"🛡️ Scan complete — {summary['asset']}", body)
 
 
+def _teams_post(webhook_url: str, title: str, body: str) -> None:
+    """POST a MessageCard to a Microsoft Teams Incoming Webhook. MessageCard is the format
+    Teams accepts on connector/workflow webhook URLs; `text` renders Markdown."""
+    payload = {
+        "@type": "MessageCard",
+        "@context": "https://schema.org/extensions",
+        "themeColor": "2C6BED",  # Horus lapis
+        "summary": title,        # shown in notifications / clients without card support
+        "title": title,
+        "text": body,
+    }
+    resp = httpx.post(webhook_url, json=payload, timeout=_HTTP_TIMEOUT)
+    resp.raise_for_status()
+
+
+def _teams_md(slack_body: str) -> str:
+    """Adapt Slack-style markup to Teams: `*bold*` → `**bold**`, single newlines → blank
+    lines (Teams collapses a lone \\n)."""
+    return slack_body.replace("*", "**").replace("\n", "\n\n")
+
+
+def send_teams(webhook_url: str, summary: dict) -> None:
+    body = f"**{summary['total']} findings**: {_counts_line(summary['counts'])}"
+    if summary["kev"]:
+        body += "\n\n🔴 **Actively exploited (CISA KEV):** " + ", ".join(summary["kev"][:10])
+    _teams_post(webhook_url, f"🛡️ Scan complete — {summary['asset']}", body)
+
+
 def send_email(
     config: dict,
     subject: str,
@@ -223,6 +251,8 @@ def _dispatch(integration: dict, summary: dict) -> None:
 
     if itype == "slack":
         send_slack(config["webhook_url"], summary)
+    elif itype == "teams":
+        send_teams(config["webhook_url"], summary)
     elif itype == "email":
         subject, body = _email_body(summary)
         send_email(config, subject, body)
@@ -497,6 +527,8 @@ def notify_watchtower(org_id: str, alerts: list[dict], kind: str = "kev_added") 
         try:
             if itype == "slack":
                 _slack_post(config["webhook_url"], header, body)
+            elif itype == "teams":
+                _teams_post(config["webhook_url"], header, _teams_md(body))
             elif itype == "email":
                 subject = subject_tmpl.format(n=count)
                 email_body = (
@@ -623,6 +655,15 @@ def send_test(integration: dict) -> None:
             config["webhook_url"],
             "✅ Horus test",
             "Your Slack integration works. You'll get scan alerts here.",
+        )
+    elif itype == "teams":
+        url = config.get("webhook_url", "")
+        if not url:
+            raise ValueError("teams integration missing 'webhook_url'")
+        _teams_post(
+            url,
+            "✅ Horus test",
+            "Your Microsoft Teams integration works. You'll get scan alerts here.",
         )
     elif itype == "email":
         send_email(
