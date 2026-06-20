@@ -17,7 +17,9 @@ CONFIG_DIR="/etc/horus"
 CONFIG_FILE="${CONFIG_DIR}/iris.yaml"
 SERVICE_FILE="/etc/systemd/system/horus-iris.service"
 QUEUE_DIR="/var/lib/horus/iris"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# When piped (curl | bash) there is no script file, so BASH_SOURCE is unset. Guard it
+# under `set -u`; SCRIPT_DIR is only used by the build-from-source path (local checkout).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo /tmp)"
 
 # ── Build or download binary ──────────────────────────────────────────────────
 if [[ -n "${HORUS_URL:-}" ]]; then
@@ -100,13 +102,40 @@ else
 fi
 
 # ── systemd service ───────────────────────────────────────────────────────────
+# Written inline so the script works when piped (curl | bash), with no source checkout.
 if command -v systemctl &>/dev/null; then
     info "Installing systemd service …"
-    cp "${SCRIPT_DIR}/horus-iris.service" "${SERVICE_FILE}"
+    cat > "${SERVICE_FILE}" <<'UNIT'
+[Unit]
+Description=Horus Iris Security Agent
+Documentation=https://docs.horus.security/iris
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/horus-iris
+Restart=always
+RestartSec=10
+User=root
+
+EnvironmentFile=-/etc/horus/iris.env
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=horus-iris
+
+NoNewPrivileges=yes
+ProtectSystem=no
+PrivateTmp=no
+
+[Install]
+WantedBy=multi-user.target
+UNIT
     systemctl daemon-reload
     info "Service installed."
 else
-    warn "systemctl not found — run manually: horus-iris"
+    warn "systemctl not found; run manually: horus-iris"
 fi
 
 echo ""
