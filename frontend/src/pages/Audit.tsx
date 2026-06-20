@@ -126,7 +126,7 @@ export default function Audit() {
         </select>
       </div>
 
-      <div className="bg-surface border border-border rounded-lg overflow-hidden">
+      <div className="bg-surface border border-border rounded-lg overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-xs text-muted">

@@ -1,36 +1,39 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { setSessionExpiredHandler } from './lib/api'
 import { Layout } from './components/layout/Layout'
-import Login from './pages/Login'
-import ChangePassword from './pages/ChangePassword'
-import StylePreview from './pages/StylePreview'
-import Dashboard from './pages/Dashboard'
-import Assets from './pages/Assets'
-import Discovery from './pages/Discovery'
-import Watchtower from './pages/Watchtower'
-import Scans from './pages/Scans'
-import ScanDetail from './pages/ScanDetail'
-import Schedules from './pages/Schedules'
-import Jobs from './pages/Jobs'
-import Findings from './pages/Findings'
-import FindingDetail from './pages/FindingDetail'
-import Incidents from './pages/Incidents'
-import IncidentDetail from './pages/IncidentDetail'
-import Permissions from './pages/Permissions'
-import Team from './pages/Team'
-import Audit from './pages/Audit'
-import Integrations from './pages/Integrations'
-import Settings from './pages/Settings'
-import Analytics from './pages/Analytics'
-import AssetDetail from './pages/AssetDetail'
-import Adversarial from './pages/Adversarial'
-import AdversarialDetail from './pages/AdversarialDetail'
-import AuthPhishing from './pages/AuthPhishing'
-import CredentialExposure from './pages/CredentialExposure'
-import Iris from './pages/Iris'
-import NotFound from './pages/NotFound'
+
+// Each route is its own chunk: the initial download is just the shell + auth,
+// and heavy pages (recharts, etc.) load on demand.
+const Login = lazy(() => import('./pages/Login'))
+const ChangePassword = lazy(() => import('./pages/ChangePassword'))
+const StylePreview = lazy(() => import('./pages/StylePreview'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Assets = lazy(() => import('./pages/Assets'))
+const Discovery = lazy(() => import('./pages/Discovery'))
+const Watchtower = lazy(() => import('./pages/Watchtower'))
+const Scans = lazy(() => import('./pages/Scans'))
+const ScanDetail = lazy(() => import('./pages/ScanDetail'))
+const Schedules = lazy(() => import('./pages/Schedules'))
+const Jobs = lazy(() => import('./pages/Jobs'))
+const Findings = lazy(() => import('./pages/Findings'))
+const FindingDetail = lazy(() => import('./pages/FindingDetail'))
+const Incidents = lazy(() => import('./pages/Incidents'))
+const IncidentDetail = lazy(() => import('./pages/IncidentDetail'))
+const Permissions = lazy(() => import('./pages/Permissions'))
+const Team = lazy(() => import('./pages/Team'))
+const Audit = lazy(() => import('./pages/Audit'))
+const Integrations = lazy(() => import('./pages/Integrations'))
+const Settings = lazy(() => import('./pages/Settings'))
+const Analytics = lazy(() => import('./pages/Analytics'))
+const AssetDetail = lazy(() => import('./pages/AssetDetail'))
+const Adversarial = lazy(() => import('./pages/Adversarial'))
+const AdversarialDetail = lazy(() => import('./pages/AdversarialDetail'))
+const AuthPhishing = lazy(() => import('./pages/AuthPhishing'))
+const CredentialExposure = lazy(() => import('./pages/CredentialExposure'))
+const Iris = lazy(() => import('./pages/Iris'))
+const NotFound = lazy(() => import('./pages/NotFound'))
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, mustChangePassword } = useAuth()
@@ -70,6 +73,7 @@ export default function App() {
     <BrowserRouter>
       <ShortcutsOverlay />
       <SessionWatcher />
+      <Suspense fallback={<div className="min-h-screen bg-bg flex items-center justify-center text-muted text-sm">Loading…</div>}>
       <Routes>
         <Route path="/login" element={<Login />} />
         {/* Isolated showcase for the Horus + liquid-glass visual direction. */}
@@ -123,6 +127,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }

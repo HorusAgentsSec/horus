@@ -251,7 +251,7 @@ function EmployeesTab() {
           <p className="text-sm text-white/40">No employees yet — add them or import a CSV</p>
         </div>
       ) : (
-        <div className="glass border border-white/10 rounded-lg overflow-hidden">
+        <div className="glass border border-white/10 rounded-lg overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-white/40 text-xs">
@@ -1021,6 +1021,7 @@ function CampaignsTab() {
                   </div>
                 ))}
               </div>
+              <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-white/30 border-b border-white/10">
@@ -1043,6 +1044,7 @@ function CampaignsTab() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         </div>

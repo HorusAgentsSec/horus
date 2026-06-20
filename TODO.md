@@ -44,7 +44,7 @@
       Ejemplo objetivo: *"escanea la web → escanea la intranet → envía Slack con los resultados"*.
       Nodos: scan(asset/grupo), esperar, condición (ej. si hay CRITICAL), notificar, abrir ticket,
       ejecutar remediación. Persistir el grafo y ejecutarlo con el pool de workers existente. Podemos usar un sistema similar al de github workflows.
-- [~] `🟡 Normal` **Auto-discovery de activos** — encontrar activos solos, sin alta manual:
+- [x] `🟡 Normal` **Auto-discovery de activos** — encontrar activos solos, sin alta manual:
       - [x] **Por dominio** — HECHO: `core/discovery.py` (CT logs vía crt.sh + resolución DNS,
             guard SSRF como puerta para no añadir nada interno; cap de assets/run), tabla
             `discovery_sources` (programable vía cron, reusa el scheduler), API `api/discovery.py`
@@ -58,7 +58,13 @@
             real (no barrer redes ajenas en dev); falta probar contra una LAN propia.
       - [x] Fallback CT certspotter — HECHO: `discover_subdomains` usa crt.sh (con retry) y cae a
             certspotter si falla. Probado en vivo (crt.sh dio 502+timeout → retry lo absorbió; fallo
-            forzado → certspotter, 20 subdominios). Pendiente: brute-force DNS de subdominios comunes.
+            forzado → certspotter, 20 subdominios).
+      - [x] **Brute-force DNS de subdominios comunes** — HECHO (2026-06-20): `_bruteforce_subdomains`
+            en `core/discovery.py` resuelve ~70 labels comunes (www, api, vpn, git, staging…) en
+            paralelo (`ThreadPoolExecutor`, concurrencia configurable) y conserva solo los que
+            resuelven — encuentra hosts que CT nunca vio (sin cert emitido). Integrado en
+            `discover_subdomains` (unión con CT), gated por `discovery_dns_bruteforce` (default on).
+            Probado en vivo (google.com → 21 subdominios) + tests `backend/tests/test_discovery.py` (3).
 
 ## 👁️ Watchtower — monitorización continua de exposición (CTEM)
 
@@ -95,9 +101,16 @@
 - [x] **Slack + email** — HECHO (backend + UI): `core/notify.py` (dispatch best-effort, resumen
       de findings, filtro por severidad + KEV-active), API `api/integrations.py` (CRUD admin +
       `/test`, secretos redactados), hook en pipeline al completar scan, y página
-      `pages/Integrations.tsx` (admin-gated, formularios slack/email + botón Test). Pendiente solo
-      probar entrega real con un webhook/SMTP de verdad.
-- [ ] `🟡 Normal` Otros destinos a futuro: Teams, webhook genérico, Jira/ticketing.
+      `pages/Integrations.tsx` (admin-gated, formularios slack/email + botón Test). Entrega real de
+      email VERIFICADA (2026-06-20) contra mailpit (SMTP en `docker-compose`): `send_email` entregó
+      el mensaje (asunto + destinatario correctos en la API de mailpit).
+- [x] **Otros destinos: Teams + webhook genérico + Jira/ticketing** — HECHO. Webhook genérico
+      (HMAC-firmado, dispara en nuevos críticos) y Jira (tickets desde findings) ya estaban.
+      **Microsoft Teams** añadido (2026-06-20): `_teams_post`/`send_teams`/`_teams_md` en `core/notify.py`
+      (MessageCard a Incoming Webhook, markdown Teams), wired en `_dispatch` (resumen, gated por
+      severidad como Slack), `notify_watchtower` y `send_test`. `VALID_TYPES` + redacción de
+      `webhook_url` en `api/integrations.py`. UI: tab Teams + formulario en `Integrations.tsx`.
+      Tests `backend/tests/test_notify.py` (2). Verificado en vivo (tab + form renderizan).
 - [x] In-app notifications — HECHO: `notify._notify_in_app` crea una notificación por admin/analyst
       al completar scan (gated por umbral de severidad), y la campana 🔔 de `Header.tsx` ya es
       funcional (badge con contador, dropdown, marcar-leída, navega al scan; poll cada 60s).
@@ -163,6 +176,18 @@
 
 ## 👁️ UX / percepción
 
+- [x] **Navegación móvil + modales accesibles + code splitting** — HECHO (2026-06-21): tres
+      mejoras de UX que viajan juntas. (1) **Code splitting**: todas las rutas pasan a `React.lazy`
+      + `Suspense` en `App.tsx`, así la descarga inicial es solo el shell + auth y las páginas pesadas
+      (recharts, etc.) cargan a demanda; loader de fallback en `Layout`. (2) **Nav móvil**: `Sidebar`
+      es ahora un drawer (`open`/`onClose`, se cierra al cambiar de ruta y con Escape), `Header` gana
+      botón hamburguesa (`onMenuClick`) y reescribe el dropdown de notificaciones sobre Radix Popover;
+      `Layout` con padding responsive (`p-4 sm:p-6`) y animación de entrada por ruta. (3) **Modal
+      accesible**: `components/Modal.tsx` sobre Radix Dialog (focus trap, scroll lock, Escape,
+      backdrop, portal que escapa stacking contexts), adoptado por `ImportModal` y formularios.
+      Sistema de motion en `index.css` (page-enter, fade-in, modal-in, stagger) con bloque
+      `prefers-reduced-motion` que lo colapsa a instantáneo. Deps: `@radix-ui/react-dialog` +
+      `@radix-ui/react-popover`.
 - [x] **Timeline de postura (riesgo en el tiempo)** — HECHO (2026-06-07): el gráfico ejecutivo
       "¿baja nuestro riesgo?" que justifica renovar. `risk_score` determinista (findings abiertos
       ponderados por severidad + bonus KEV-active; menor = mejor) capturado en snapshots diarios.
@@ -227,9 +252,15 @@
       `core/rate_limit.py`. Cuando `REDIS_URL` está configurado usa `RedisWindowLimiter` (sorted set + Lua
       script atómico, sin race conditions entre workers). Sin Redis → fallback a `SlidingWindowLimiter`
       in-memory con warning. `redis==5.0.8` en requirements. `main.py` actualizado.
-- [x] **CSP a nivel de documento** — HECHO (2026-06-10): `<meta http-equiv="Content-Security-Policy">`
-      en `frontend/index.html` con policy restrictiva (default-src 'self', connect-src self+https+wss,
-      frame-ancestors 'none', base-uri 'self'). Más `X-Content-Type-Options` y `X-Frame-Options` como meta.
+- [x] **CSP a nivel de documento** — HECHO (2026-06-10; corregido 2026-06-20): `<meta http-equiv=
+      "Content-Security-Policy">` en `frontend/index.html` con policy restrictiva (default-src 'self',
+      connect-src self+https+wss, base-uri 'self', form-action 'self') como fallback que viaja con el
+      build. Las directivas que el navegador IGNORA en `<meta>` (`frame-ancestors`, `X-Frame-Options`,
+      `X-Content-Type-Options`) se entregan ahora como **cabeceras HTTP reales** en `vite.config.ts`
+      (`server.headers` + `preview.headers`) para dev/preview — verificado en vivo (X-Frame-Options:
+      DENY, CSP con frame-ancestors 'none'). El backend ya las emite en sus respuestas vía
+      `core/security_headers.py`. PENDIENTE prod: cuando haya host estático, replicar estas cabeceras
+      ahí (la config de Vite es solo dev/preview, no viaja en `dist/`).
 - [x] **Revocación de sesión al cambiar contraseña** — HECHO (2026-06-10): `evict_user_sessions(user_id)`
       en `auth.py` elimina todos los tokens cacheados del usuario tras cambio de contraseña. Llamado desde
       `account.change_password` justo después de `update_user_by_id`.

@@ -216,7 +216,7 @@ export default function Dashboard() {
 
       {/* ── Primary KPIs ────────────────────────────────────────────────────── */}
       {primaryVisible && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="stagger grid grid-cols-2 lg:grid-cols-4 gap-4">
           {show('act_now') && <ActNowCard value={metrics?.ssvc.act ?? null} />}
           {show('kev_exposure') && <KevCard value={metrics?.kev_active ?? null} />}
           {show('asset_coverage') && <CoverageCard coverage={metrics?.asset_coverage ?? null} />}

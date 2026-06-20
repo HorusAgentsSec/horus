@@ -70,3 +70,66 @@
     pointer-events: none;
   }
 }
+
+/* ── Motion: fast, intentional, exponential ease-out ────────────────────────── */
+@layer utilities {
+  @keyframes page-enter {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  /* Per-route entrance for the main content area (keyed by pathname). */
+  .animate-page-enter {
+    animation: page-enter 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.18s ease-out;
+  }
+
+  /* Modal entrance: small scale + fade, centered via translate. */
+  @keyframes modal-in {
+    from { opacity: 0; transform: translate(-50%, -48%) scale(0.97); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+  .animate-modal-in {
+    animation: modal-in 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Staggered list/grid reveal — drop `.stagger` on the container.
+     `both` holds the hidden state through the delay; the global
+     reduced-motion block collapses it to an instant appearance. */
+  @keyframes list-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .stagger > * {
+    animation: list-enter 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .stagger > *:nth-child(1)  { animation-delay: 0.03s; }
+  .stagger > *:nth-child(2)  { animation-delay: 0.06s; }
+  .stagger > *:nth-child(3)  { animation-delay: 0.09s; }
+  .stagger > *:nth-child(4)  { animation-delay: 0.12s; }
+  .stagger > *:nth-child(5)  { animation-delay: 0.15s; }
+  .stagger > *:nth-child(6)  { animation-delay: 0.18s; }
+  .stagger > *:nth-child(7)  { animation-delay: 0.21s; }
+  .stagger > *:nth-child(8)  { animation-delay: 0.24s; }
+  .stagger > *:nth-child(9)  { animation-delay: 0.27s; }
+  .stagger > *:nth-child(n+10) { animation-delay: 0.30s; }
+}
+
+/* Reduced motion: collapse every transition/animation to an instant change.
+   One block covers the Tailwind transition-* utilities and the keyframes above. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

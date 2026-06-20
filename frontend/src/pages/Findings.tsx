@@ -245,7 +245,7 @@ export default function Findings() {
       ) : findings.length === 0 ? (
         <p className="text-muted text-sm">No findings match the current filters.</p>
       ) : (
-        <div className="space-y-2">
+        <div className="stagger space-y-2">
           {standalone.map((f) => (
             <FindingCard
               key={f.id}

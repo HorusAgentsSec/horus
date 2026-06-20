@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Bell, Slack, Mail, Plus, Trash2, Send, X, FileText, AlertTriangle, Ticket, Webhook } from 'lucide-react'
+import { Bell, Slack, Mail, Plus, Trash2, Send, X, FileText, AlertTriangle, Ticket, Webhook, MessageSquare } from 'lucide-react'
 import { api, jiraApi, friendlyErrorMessage } from '../lib/api'
 import { useRole } from '../hooks/useRole'
 import { cn } from '../lib/utils'
 
-type IntegrationType = 'slack' | 'email' | 'pagerduty' | 'opsgenie' | 'jira' | 'webhook'
+type IntegrationType = 'slack' | 'teams' | 'email' | 'pagerduty' | 'opsgenie' | 'jira' | 'webhook'
 
 interface Integration {
   id: string
@@ -107,6 +107,8 @@ export default function Integrations() {
               <div className="flex items-center gap-3 min-w-0">
                 {it.type === 'slack' ? (
                   <Slack className="w-5 h-5 text-accent shrink-0" />
+                ) : it.type === 'teams' ? (
+                  <MessageSquare className="w-5 h-5 text-accent shrink-0" />
                 ) : it.type === 'email' ? (
                   <Mail className="w-5 h-5 text-accent shrink-0" />
                 ) : it.type === 'jira' ? (
@@ -117,9 +119,9 @@ export default function Integrations() {
                   <AlertTriangle className="w-5 h-5 text-accent shrink-0" />
                 )}
                 <div className="min-w-0">
-                  <p className="text-white capitalize">{it.type === 'pagerduty' ? 'PagerDuty' : it.type === 'opsgenie' ? 'OpsGenie' : it.type === 'jira' ? 'Jira' : it.type === 'webhook' ? 'Outgoing webhook' : it.type}</p>
+                  <p className="text-white capitalize">{it.type === 'pagerduty' ? 'PagerDuty' : it.type === 'opsgenie' ? 'OpsGenie' : it.type === 'jira' ? 'Jira' : it.type === 'webhook' ? 'Outgoing webhook' : it.type === 'teams' ? 'Microsoft Teams' : it.type}</p>
                   <p className="text-xs text-muted truncate">
-                    {it.type === 'slack'
+                    {it.type === 'slack' || it.type === 'teams'
                       ? it.config.webhook_url || 'webhook'
                       : it.type === 'email'
                       ? (it.config.to || []).join(', ') || 'no recipients'
@@ -202,7 +204,7 @@ function AddForm({ onCreated }: { onCreated: () => void }) {
   const submit = async () => {
     setError('')
     const config: Record<string, any> = {}
-    if (type === 'slack') {
+    if (type === 'slack' || type === 'teams') {
       if (!webhookUrl.trim()) return setError('Webhook URL is required')
       config.webhook_url = webhookUrl.trim()
       config.min_severity = minSeverity
@@ -248,6 +250,7 @@ function AddForm({ onCreated }: { onCreated: () => void }) {
 
   const TYPE_TABS: { value: IntegrationType; label: string; icon: React.ReactNode }[] = [
     { value: 'slack', label: 'Slack', icon: <Slack className="w-4 h-4" /> },
+    { value: 'teams', label: 'Teams', icon: <MessageSquare className="w-4 h-4" /> },
     { value: 'email', label: 'Email', icon: <Mail className="w-4 h-4" /> },
     { value: 'pagerduty', label: 'PagerDuty', icon: <AlertTriangle className="w-4 h-4" /> },
     { value: 'opsgenie', label: 'OpsGenie', icon: <AlertTriangle className="w-4 h-4" /> },
@@ -255,7 +258,7 @@ function AddForm({ onCreated }: { onCreated: () => void }) {
     { value: 'webhook', label: 'Webhook', icon: <Webhook className="w-4 h-4" /> },
   ]
 
-  const showSeveritySelector = type === 'slack' || type === 'email'
+  const showSeveritySelector = type === 'slack' || type === 'teams' || type === 'email'
 
   return (
     <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
@@ -283,6 +286,16 @@ function AddForm({ onCreated }: { onCreated: () => void }) {
             value={webhookUrl}
             onChange={(e) => setWebhookUrl(e.target.value)}
             placeholder="https://hooks.slack.com/services/…"
+          />
+        </div>
+      ) : type === 'teams' ? (
+        <div>
+          <label className={label}>Microsoft Teams Incoming Webhook URL</label>
+          <input
+            className={input}
+            value={webhookUrl}
+            onChange={(e) => setWebhookUrl(e.target.value)}
+            placeholder="https://…webhook.office.com/webhookb2/…"
           />
         </div>
       ) : type === 'email' ? (

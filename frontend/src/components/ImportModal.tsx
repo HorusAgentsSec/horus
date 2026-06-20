@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
-import { Upload, X } from 'lucide-react'
+import { Upload } from 'lucide-react'
 import { api } from '../lib/api'
+import { Modal } from './Modal'
 
 interface ImportResult {
   imported: number
@@ -21,8 +22,6 @@ export function ImportModal({ open, onClose, onSuccess }: ImportModalProps) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<ImportResult | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  if (!open) return null
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
@@ -77,18 +76,8 @@ export function ImportModal({ open, onClose, onSuccess }: ImportModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-surface border border-border rounded-lg p-6 max-w-sm w-full mx-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Import findings</h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-border rounded transition text-muted hover:text-white"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
+    <Modal open={open} onClose={onClose} title="Import findings">
+      <div className="space-y-4">
         {result ? (
           <div className="space-y-2 text-sm">
             <p className="text-success">Import completed</p>
@@ -163,6 +152,6 @@ export function ImportModal({ open, onClose, onSuccess }: ImportModalProps) {
           </>
         )}
       </div>
-    </div>
+    </Modal>
   )
 }

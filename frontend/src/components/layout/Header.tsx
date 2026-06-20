@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import { Bell, LogOut, Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import * as Popover from '@radix-ui/react-popover'
+import { Bell, LogOut, Menu, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { api } from '../../lib/api'
@@ -16,12 +17,11 @@ interface Notification {
   created_at: string
 }
 
-export function Header() {
+export function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const [items, setItems] = useState<Notification[]>([])
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
 
   const load = () => {
     api.get<Notification[]>('/notifications').then(setItems).catch(() => {})
@@ -33,15 +33,6 @@ export function Header() {
     return () => clearInterval(t)
   }, [])
 
-  // Close the dropdown when clicking outside it.
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [])
-
   const openNotification = async (n: Notification) => {
     setItems((list) => list.filter((x) => x.id !== n.id))
     api.patch(`/notifications/${n.id}/read`).catch(() => {})
@@ -51,20 +42,29 @@ export function Header() {
   }
 
   return (
-    <header className="h-14 glass border-b-0 border-white/10 shadow-sm flex items-center justify-between px-6 z-10 sticky top-0">
-      <button
-        onClick={() => window.dispatchEvent(new Event(PALETTE_TOGGLE_EVENT))}
-        className="flex items-center gap-2 w-72 max-w-[40vw] rounded-lg border border-white/10 glass px-3 py-1.5 text-sm text-white/60 hover:border-white/30 hover:text-white transition-colors"
-      >
-        <Search className="w-4 h-4" />
-        <span className="flex-1 text-left">Search…</span>
-        <kbd className="text-[10px] border border-white/10 bg-white/5 rounded px-1.5 py-0.5">{isMac ? '⌘' : 'Ctrl'} K</kbd>
-      </button>
-      <div className="flex items-center gap-4">
-        <div className="relative" ref={ref}>
-          <button
-            onClick={() => setOpen((o) => !o)}
-            className="relative text-white/60 hover:text-white transition-colors"
+    <header className="h-14 glass border-b-0 border-white/10 shadow-sm flex items-center justify-between gap-3 px-4 sm:px-6 z-10 sticky top-0">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <button
+          onClick={onMenuClick}
+          aria-label="Open navigation"
+          className="-ml-1 p-1.5 text-white/70 hover:text-white transition-colors md:hidden"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => window.dispatchEvent(new Event(PALETTE_TOGGLE_EVENT))}
+          className="flex items-center gap-2 w-72 max-w-full rounded-lg border border-white/10 glass px-3 py-1.5 text-sm text-white/60 hover:border-white/30 hover:text-white transition-colors"
+        >
+          <Search className="w-4 h-4 shrink-0" />
+          <span className="flex-1 text-left truncate">Search…</span>
+          <kbd className="hidden sm:inline text-[10px] border border-white/10 bg-white/5 rounded px-1.5 py-0.5">{isMac ? '⌘' : 'Ctrl'} K</kbd>
+        </button>
+      </div>
+      <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+        <Popover.Root open={open} onOpenChange={setOpen}>
+          <Popover.Trigger
+            aria-label={`Notifications${items.length ? ` (${items.length} unread)` : ''}`}
+            className="relative text-white/60 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-horus-lapis rounded"
           >
             <Bell className="w-4 h-4" />
             {items.length > 0 && (
@@ -72,10 +72,13 @@ export function Header() {
                 {items.length > 9 ? '9+' : items.length}
               </span>
             )}
-          </button>
-
-          {open && (
-            <div className="absolute right-0 mt-2 w-80 bg-black/90 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl z-50 overflow-hidden">
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content
+              align="end"
+              sideOffset={8}
+              className="z-50 w-80 max-w-[calc(100vw-1rem)] bg-black/90 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl overflow-hidden animate-fade-in focus:outline-none"
+            >
               <div className="px-4 py-2 border-b border-white/10 text-xs font-medium text-white/60">
                 Notifications
               </div>
@@ -98,11 +101,11 @@ export function Header() {
                   ))}
                 </div>
               )}
-            </div>
-          )}
-        </div>
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
 
-        <span className="text-xs text-white/60">{user?.email}</span>
+        <span className="hidden sm:inline text-xs text-white/60 max-w-[40vw] truncate">{user?.email}</span>
         <button
           onClick={signOut}
           className="text-white/60 hover:text-white transition-colors"

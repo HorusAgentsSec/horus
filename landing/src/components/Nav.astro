@@ -13,15 +13,20 @@ const { activePage = 'home' } = Astro.props;
       </div>
       Horus
     </a>
-    <div class="nav-links">
-      <a href="/services" class={`nav-link${activePage === 'platform' ? ' active' : ''}`}>Platform</a>
-      <a href="/pricing" class={`nav-link${activePage === 'pricing' ? ' active' : ''}`}>Pricing</a>
-      <a href="https://docs.horus.security" class="nav-link">Docs</a>
-      <a href="https://github.com/HorusAgentsSec/" class="nav-link">GitHub</a>
-    </div>
-    <div class="nav-ctas">
-      <a href="https://app.horusagents.com/login" class="nav-ghost">Sign in</a>
-      <a href="https://app.horusagents.com/login?demo=1" class="nav-gold">Try demo →</a>
+    <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="nav-menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="nav-menu" id="nav-menu">
+      <div class="nav-links">
+        <a href="/services" class={`nav-link${activePage === 'platform' ? ' active' : ''}`}>Platform</a>
+        <a href="/pricing" class={`nav-link${activePage === 'pricing' ? ' active' : ''}`}>Pricing</a>
+        <a href="https://docs.horus.security" class="nav-link">Docs</a>
+        <a href="https://github.com/HorusAgentsSec/" class="nav-link">GitHub</a>
+      </div>
+      <div class="nav-ctas">
+        <a href="https://app.horusagents.com/login" class="nav-ghost">Sign in</a>
+        <a href="https://app.horusagents.com/login?demo=1" class="nav-gold">Try demo →</a>
+      </div>
     </div>
   </div>
 </nav>
@@ -32,5 +37,18 @@ const { activePage = 'home' } = Astro.props;
     const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
+
+    const toggle = nav.querySelector('.nav-toggle');
+    toggle?.addEventListener('click', () => {
+      const open = nav.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+    // Cerrar al pulsar un enlace del menú móvil
+    nav.querySelector('.nav-menu')?.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('a')) {
+        nav.classList.remove('open');
+        toggle?.setAttribute('aria-expanded', 'false');
+      }
+    });
   }
 </script>
