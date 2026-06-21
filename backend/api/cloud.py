@@ -17,16 +17,33 @@ from backend.core import jobs
 router = APIRouter(prefix="/cloud", tags=["cloud"])
 
 
-def _run_audit_job(org_id: str, integration_id: str, trigger: str = "manual") -> None:
+def _run_audit_job(provider: str, org_id: str, integration_id: str, trigger: str = "manual") -> None:
     """Background entry point: run the audit inside a job record for history."""
     from backend.core.cloud.aws_audit import run_aws_audit
+    from backend.core.cloud.gcp_audit import run_gcp_audit
 
+    runner = run_aws_audit if provider == "aws" else run_gcp_audit
     try:
         with jobs.job_run(jobs.CLOUD_AUDIT, org_id=org_id, ref_id=integration_id, trigger=trigger) as d:
-            d.update(run_aws_audit(org_id, integration_id))
+            d.update(runner(org_id, integration_id))
     except Exception as e:  # logged by job_run; keep the worker alive
         import logging
         logging.getLogger(__name__).error("Cloud audit %s failed: %s", integration_id, e)
+
+
+async def _start_audit(provider: str, integration_id: str, background, user, db) -> dict:
+    row = (
+        db.table("integrations")
+        .select("id, type")
+        .eq("id", integration_id)
+        .eq("org_id", user["org_id"])
+        .single()
+        .execute()
+    )
+    if not row.data or row.data.get("type") != provider:
+        raise HTTPException(404, f"{provider.upper()} integration not found")
+    background.add_task(_run_audit_job, provider, user["org_id"], integration_id, "manual")
+    return {"status": "started"}
 
 
 @router.post("/aws/{integration_id}/audit")
@@ -37,18 +54,18 @@ async def run_aws_audit_now(
     db: Client = Depends(get_db),
 ):
     """Kick off an AWS audit in the background. Admin only (it uses cloud credentials)."""
-    row = (
-        db.table("integrations")
-        .select("id, type")
-        .eq("id", integration_id)
-        .eq("org_id", user["org_id"])
-        .single()
-        .execute()
-    )
-    if not row.data or row.data.get("type") != "aws":
-        raise HTTPException(404, "AWS integration not found")
-    background.add_task(_run_audit_job, user["org_id"], integration_id, "manual")
-    return {"status": "started"}
+    return await _start_audit("aws", integration_id, background, user, db)
+
+
+@router.post("/gcp/{integration_id}/audit")
+async def run_gcp_audit_now(
+    integration_id: str,
+    background: BackgroundTasks,
+    user=Depends(require_role("admin")),
+    db: Client = Depends(get_db),
+):
+    """Kick off a GCP audit in the background. Admin only (it uses cloud credentials)."""
+    return await _start_audit("gcp", integration_id, background, user, db)
 
 
 @router.get("/audits")

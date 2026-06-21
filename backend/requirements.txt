@@ -21,3 +21,6 @@ pytest==8.3.0
 redis==5.0.8
 # Cloud security audit (AWS). Only imported when an AWS audit runs, so the app starts without it.
 boto3==1.35.0
+# Cloud security audit (GCP). Only imported when a GCP audit runs.
+google-api-python-client==2.149.0
+google-auth==2.35.0

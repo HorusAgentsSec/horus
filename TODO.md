@@ -120,21 +120,24 @@
 - [x] In-app notifications — HECHO: `notify._notify_in_app` crea una notificación por admin/analyst
       al completar scan (gated por umbral de severidad), y la campana 🔔 de `Header.tsx` ya es
       funcional (badge con contador, dropdown, marcar-leída, navega al scan; poll cada 60s).
-- [~] `🔴 Difícil` **Integración Cloud (AWS) — CSPM + CI/CD** — MVP HECHO (2026-06-21): auditoría
-      read-only de AWS que produce findings en la lista normal (severidad/SSVC/dashboard sin
-      special-casing). Arquitectura por capas: `core/cloud/aws_checks.py` (capa PURA, 9 checks,
-      0 boto3/credenciales → testeable: `test_cloud_aws_checks.py`, 8) + `aws_collect.py` (efectos
-      boto3, best-effort por servicio) + `aws_audit.py` (orquesta: lee integración → collect →
-      evaluate → upsert asset cuenta + findings, fingerprint determinista por recurso → re-audit
-      idempotente). Checks CSPM: S3 público, S3 sin cifrar, IAM sin MFA, access keys rancias, root
-      con access keys, root sin MFA, security groups con puerto sensible abierto a 0.0.0.0/0. Checks
-      CI/CD: CodeBuild en modo privileged, secretos en PLAINTEXT en CodeBuild. Credenciales reusan la
-      tabla `integrations` (type `aws`, secret redactado). API `api/cloud.py` (`POST
-      /cloud/aws/{id}/audit` background+job, `GET /cloud/audits`). UI `pages/CloudSecurity.tsx`
-      (conectar cuenta, lanzar audit, historial, link a Findings) + sidebar admin. `boto3` (import
-      lazy). PENDIENTE: aplicar migración `20260621120000_cloud_assets.sql` (amplía el check
-      `assets.type` con 'cloud') en remoto; verificar end-to-end con credenciales reales; auto-resolver
-      findings que dejan de fallar; **GCP** y **logs (CloudTrail)** con el mismo patrón.
+- [~] `🔴 Difícil` **Integración Cloud (AWS + GCP) — CSPM + CI/CD** — MVP HECHO (2026-06-21): auditoría
+      read-only que produce findings en la lista normal (severidad/SSVC/dashboard sin special-casing).
+      Arquitectura por capas, común a ambos proveedores: `core/cloud/finding.py` (`CloudFinding` con
+      `provider` + puertos sensibles) + `persist.py` (upsert idempotente por fingerprint, asset
+      cuenta por proveedor) + por proveedor un `*_checks.py` (capa PURA, 0 SDK/credenciales →
+      testeable), `*_collect.py` (efectos del SDK, best-effort por servicio) y `*_audit.py` (orquesta
+      collect → evaluate → persist). **AWS** (`aws_*`, `boto3`, 9 checks): S3 público/sin cifrar, IAM
+      sin MFA, access keys rancias, root con keys/sin MFA, security groups abiertos; CI/CD CodeBuild
+      privileged + secretos PLAINTEXT. **GCP** (`gcp_*`, `google-api-python-client`, 7 checks):
+      buckets GCS públicos, ACLs legacy, claves user-managed de service accounts, roles primitivos
+      owner/editor a humanos, firewalls abiertos, Cloud SQL público; CI/CD Cloud Build con el SA por
+      defecto. Credenciales reusan `integrations` (type `aws`/`gcp`, secretos redactados). API
+      `api/cloud.py` (`POST /cloud/{aws,gcp}/{id}/audit` background+job, `GET /cloud/audits`). UI
+      `pages/CloudSecurity.tsx` (selector de proveedor, conectar cuenta, lanzar audit, historial, link
+      a Findings) + sidebar admin. SDKs con import lazy. Tests `test_cloud_aws_checks.py` (8) +
+      `test_cloud_gcp_checks.py` (7). PENDIENTE: aplicar migración `20260621120000_cloud_assets.sql`
+      (amplía `assets.type` con 'cloud') en remoto; verificar end-to-end con credenciales reales;
+      auto-resolver findings que dejan de fallar; **logs (CloudTrail / GCP Audit Logs)** con el mismo patrón.
 - [x] **PagerDuty / OpsGenie para findings SSVC "ACT"** — HECHO (2026-06-09): `_pagerduty_trigger()` y
       `_opsgenie_trigger()` en `core/notify.py`. `notify_scan_complete` filtra findings con
       `raw_data.ssvc.priority == "act"` y dispara P1/critical. Mapeo: `act`→P1/critical, `attend`→P2/error.

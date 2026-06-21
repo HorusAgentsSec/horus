@@ -8,7 +8,7 @@ interface Integration {
   id: string
   type: string
   enabled: boolean
-  config: { region?: string; label?: string }
+  config: { region?: string; label?: string; project_id?: string }
 }
 
 interface AuditJob {
@@ -30,7 +30,11 @@ export default function CloudSecurity() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ label: '', access_key_id: '', secret_access_key: '', region: 'us-east-1' })
+  const [provider, setProvider] = useState<'aws' | 'gcp'>('aws')
+  const [form, setForm] = useState({
+    label: '', access_key_id: '', secret_access_key: '', region: 'us-east-1',
+    project_id: '', service_account_json: '',
+  })
 
   const load = useCallback(async () => {
     try {
@@ -38,7 +42,7 @@ export default function CloudSecurity() {
         api.get<Integration[]>('/integrations'),
         api.get<AuditJob[]>('/cloud/audits'),
       ])
-      setAccounts(ints.filter((i) => i.type === 'aws'))
+      setAccounts(ints.filter((i) => i.type === 'aws' || i.type === 'gcp'))
       setAudits(jobs)
       setError(null)
     } catch (e: unknown) {
@@ -57,18 +61,22 @@ export default function CloudSecurity() {
     e.preventDefault()
     setBusy('add')
     try {
-      await api.post('/integrations', {
-        type: 'aws',
-        enabled: true,
-        config: {
-          label: form.label || undefined,
-          access_key_id: form.access_key_id,
-          secret_access_key: form.secret_access_key,
-          region: form.region,
-        },
-      })
+      const config = provider === 'aws'
+        ? {
+            label: form.label || undefined,
+            access_key_id: form.access_key_id,
+            secret_access_key: form.secret_access_key,
+            region: form.region,
+          }
+        : {
+            label: form.label || undefined,
+            project_id: form.project_id,
+            service_account_json: form.service_account_json,
+          }
+      await api.post('/integrations', { type: provider, enabled: true, config })
       setShowForm(false)
-      setForm({ label: '', access_key_id: '', secret_access_key: '', region: 'us-east-1' })
+      setForm({ label: '', access_key_id: '', secret_access_key: '', region: 'us-east-1',
+                project_id: '', service_account_json: '' })
       await load()
     } catch (e: unknown) {
       setError(friendlyErrorMessage(e, 'Failed to add account'))
@@ -77,10 +85,10 @@ export default function CloudSecurity() {
     }
   }
 
-  const runAudit = async (id: string) => {
+  const runAudit = async (id: string, type: string) => {
     setBusy(id)
     try {
-      await api.post(`/cloud/aws/${id}/audit`)
+      await api.post(`/cloud/${type}/${id}/audit`)
       await load()
     } catch (e: unknown) {
       setError(friendlyErrorMessage(e, 'Failed to start audit'))
@@ -94,10 +102,10 @@ export default function CloudSecurity() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-lg font-semibold flex items-center gap-2">
-            <Cloud className="w-5 h-5 text-accent" /> Cloud Security (AWS)
+            <Cloud className="w-5 h-5 text-accent" /> Cloud Security
           </h1>
           <p className="text-sm text-muted mt-1">
-            Read-only posture (CSPM) and CI/CD checks. Findings appear in the normal Findings list.
+            Read-only AWS &amp; GCP posture (CSPM) and CI/CD checks. Findings appear in the normal Findings list.
           </p>
         </div>
         <button
@@ -112,20 +120,49 @@ export default function CloudSecurity() {
 
       {showForm && (
         <form onSubmit={addAccount} className="bg-surface border border-border rounded-lg p-4 space-y-3">
-          <p className="text-xs text-muted">
-            Use a dedicated <strong>read-only</strong> IAM user (e.g. the AWS managed
-            <code className="mx-1">SecurityAudit</code> policy). Credentials are stored encrypted and never returned.
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <input className="bg-bg border border-border rounded px-3 py-2 text-sm" placeholder="Label (optional)"
-              value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} />
-            <input className="bg-bg border border-border rounded px-3 py-2 text-sm" placeholder="Region"
-              value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
-            <input className="bg-bg border border-border rounded px-3 py-2 text-sm" placeholder="Access key ID" required
-              value={form.access_key_id} onChange={(e) => setForm({ ...form, access_key_id: e.target.value })} />
-            <input className="bg-bg border border-border rounded px-3 py-2 text-sm" placeholder="Secret access key" type="password" required
-              value={form.secret_access_key} onChange={(e) => setForm({ ...form, secret_access_key: e.target.value })} />
+          <div className="flex gap-2">
+            {(['aws', 'gcp'] as const).map((p) => (
+              <button key={p} type="button" onClick={() => setProvider(p)}
+                className={cn('px-3 py-1.5 text-xs rounded border uppercase',
+                  provider === p ? 'border-accent text-accent' : 'border-border text-muted hover:text-white')}>
+                {p}
+              </button>
+            ))}
           </div>
+          {provider === 'aws' ? (
+            <>
+              <p className="text-xs text-muted">
+                Use a dedicated <strong>read-only</strong> IAM user (e.g. the AWS managed
+                <code className="mx-1">SecurityAudit</code> policy). Credentials are stored encrypted and never returned.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <input className="bg-bg border border-border rounded px-3 py-2 text-sm" placeholder="Label (optional)"
+                  value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} />
+                <input className="bg-bg border border-border rounded px-3 py-2 text-sm" placeholder="Region"
+                  value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
+                <input className="bg-bg border border-border rounded px-3 py-2 text-sm" placeholder="Access key ID" required
+                  value={form.access_key_id} onChange={(e) => setForm({ ...form, access_key_id: e.target.value })} />
+                <input className="bg-bg border border-border rounded px-3 py-2 text-sm" placeholder="Secret access key" type="password" required
+                  value={form.secret_access_key} onChange={(e) => setForm({ ...form, secret_access_key: e.target.value })} />
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-muted">
+                Use a <strong>read-only</strong> service account (e.g. roles <code className="mx-1">Viewer</code>
+                + <code className="mx-1">Security Reviewer</code>). Paste its JSON key. Stored encrypted, never returned.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <input className="bg-bg border border-border rounded px-3 py-2 text-sm" placeholder="Label (optional)"
+                  value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} />
+                <input className="bg-bg border border-border rounded px-3 py-2 text-sm" placeholder="Project ID" required
+                  value={form.project_id} onChange={(e) => setForm({ ...form, project_id: e.target.value })} />
+              </div>
+              <textarea className="w-full bg-bg border border-border rounded px-3 py-2 text-sm font-mono h-28"
+                placeholder='Service account JSON key {"type":"service_account", ...}' required
+                value={form.service_account_json} onChange={(e) => setForm({ ...form, service_account_json: e.target.value })} />
+            </>
+          )}
           <button disabled={busy === 'add'} className="bg-accent text-bg px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
             {busy === 'add' ? 'Saving…' : 'Save account'}
           </button>
@@ -140,11 +177,12 @@ export default function CloudSecurity() {
           <ul className="space-y-2">
             {accounts.map((a) => (
               <li key={a.id} className="flex items-center gap-3 border border-white/5 rounded-lg px-3 py-2">
-                <Cloud className="w-4 h-4 text-muted shrink-0" />
+                <span className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase text-muted">{a.type}</span>
                 <span className="flex-1 text-sm text-white/85">
-                  {a.config.label || 'AWS account'} <span className="text-muted">· {a.config.region || 'us-east-1'}</span>
+                  {a.config.label || `${a.type.toUpperCase()} account`}
+                  <span className="text-muted"> · {a.type === 'aws' ? (a.config.region || 'us-east-1') : (a.config.project_id || 'project')}</span>
                 </span>
-                <button onClick={() => runAudit(a.id)} disabled={busy === a.id}
+                <button onClick={() => runAudit(a.id, a.type)} disabled={busy === a.id}
                   className="flex items-center gap-1.5 text-xs border border-border px-2.5 py-1.5 rounded text-muted hover:text-white disabled:opacity-50">
                   {busy === a.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
                   Run audit

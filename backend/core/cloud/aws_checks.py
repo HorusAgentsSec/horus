@@ -10,36 +10,13 @@ weak root account) and "cicd" (CodeBuild/CodePipeline weaknesses — privileged 
 secrets). Add a check by writing a function and appending it to CHECKS.
 """
 
-from dataclasses import dataclass
 from typing import Callable
 
-# Inbound ports that should essentially never be open to 0.0.0.0/0. Map port -> human label.
-SENSITIVE_PORTS = {
-    22: "SSH", 3389: "RDP", 3306: "MySQL", 5432: "PostgreSQL",
-    6379: "Redis", 27017: "MongoDB", 9200: "Elasticsearch", 1433: "MSSQL",
-    11211: "Memcached", 5601: "Kibana",
-}
+from backend.core.cloud.finding import CloudFinding, SENSITIVE_PORTS
 
 # Env-var names that suggest a secret was stored in plaintext instead of Secrets Manager / SSM.
 _SECRET_NAME_HINTS = ("secret", "password", "passwd", "token", "api_key", "apikey",
                       "access_key", "private_key", "credential")
-
-
-@dataclass(frozen=True)
-class CloudFinding:
-    check_id: str           # stable id, e.g. "s3_public_bucket"
-    title: str
-    severity: str           # critical | high | medium | low | info
-    resource: str           # the specific resource (bucket name, sg id, user…) — part of the dedup key
-    description: str
-    remediation: str
-    service: str            # s3 | iam | ec2 | codebuild | account
-    category: str           # cspm | cicd
-
-    @property
-    def dedup_key(self) -> str:
-        """Stable per-resource key; the audit turns this into the finding fingerprint."""
-        return f"aws:{self.check_id}:{self.resource}"
 
 
 # ── CSPM checks ──────────────────────────────────────────────────────────────
