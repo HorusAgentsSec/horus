@@ -116,6 +116,15 @@ fi
 # Written inline so the script works when piped (curl | bash), with no source checkout.
 if command -v systemctl &>/dev/null; then
     info "Installing systemd service …"
+    # Stop any running instance BEFORE swapping the unit. Without this, an upgrade (e.g. the
+    # Python→Rust migration) leaves the old MainPID running under the service — daemon-reload alone
+    # does NOT restart it — so the old process keeps running (and, in the Python case, leaking
+    # memory) indefinitely while the new binary never starts.
+    was_active=no
+    if systemctl is-active --quiet horus-iris; then
+        was_active=yes
+    fi
+    systemctl stop horus-iris 2>/dev/null || true
     cat > "${SERVICE_FILE}" <<'UNIT'
 [Unit]
 Description=Horus Iris Security Agent
@@ -144,9 +153,23 @@ PrivateTmp=no
 WantedBy=multi-user.target
 UNIT
     systemctl daemon-reload
+    # If it was running, restart it now so the freshly installed binary actually takes over
+    # (instead of waiting for a manual command while the old process lingers).
+    if [ "${was_active}" = yes ]; then
+        systemctl restart horus-iris && info "Service restarted on the new binary."
+    fi
     info "Service installed."
 else
     warn "systemctl not found; run manually: horus-iris"
+fi
+
+# ── clean up the legacy Python install ─────────────────────────────────────────
+# Iris used to ship as a Python daemon under /opt/horus/iris (the one with the memory leak that
+# motivated this Rust rewrite). Once the Rust service is in place, remove it so it can't be
+# resurrected or confused with the current agent.
+if [ -d /opt/horus/iris ]; then
+    info "Removing legacy Python install at /opt/horus/iris …"
+    rm -rf /opt/horus/iris
 fi
 
 echo ""
