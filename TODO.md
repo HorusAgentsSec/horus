@@ -30,7 +30,13 @@
       Mejoras HECHAS (2026-06-07): **reintentos** auto de scans programados fallidos (`scan_max_retries`,
       en `executor._run_scan_safe` resetea a pending y reencola; user-triggered no reintenta) y
       **last_run/next_run en la UI** (API `/schedules` enriquece con último job + `scheduler.next_run_for`).
-      Pendiente: ventanas de mantenimiento.
+      **Ventanas de mantenimiento** HECHO (2026-06-21): `core/maintenance.py` (`parse_windows` +
+      `in_blackout` puros) lee `scan_blackout_windows` (specs `[DAYS ]HH:MM-HH:MM` separados por coma,
+      hora local del servidor, soporta listas de días `Sat,Sun` y cruce de medianoche `22:00-02:00`).
+      `scheduler._in_blackout_now` guarda `_run_scheduled_scan` y `_run_discovery`: un disparo **cron**
+      dentro de una ventana se salta y se registra `skipped=blackout_window` en el job; los disparos
+      **manuales** nunca se bloquean. Specs malformados se ignoran (nunca tumban el scheduler). Tests
+      `test_maintenance.py` (7). PENDIENTE: ventanas per-org + UI (hoy es config global por env).
 - [x] **Tabla `jobs` — histórico de toda la ejecución de fondo** — HECHO (2026-06-07): migración
       `20260607160000_jobs.sql` (org-scoped + globales `org_id null`, RLS, aplicada). `core/jobs.py`
       `job_run(job_type, org_id, ref_id, trigger)` context manager best-effort (inserta running →

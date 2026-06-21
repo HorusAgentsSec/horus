@@ -2,11 +2,19 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from backend.core.config import settings
 from backend.core.supabase_client import supabase
-from backend.core import jobs
+from backend.core import jobs, maintenance
+from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler()
+
+
+def _in_blackout_now() -> bool:
+    """Whether right now falls inside a configured maintenance (blackout) window."""
+    return maintenance.in_blackout(
+        datetime.now(), maintenance.parse_windows(settings.scan_blackout_windows)
+    )
 
 
 def _run_scheduled_scan(schedule_id: str, trigger: str = "cron"):
@@ -21,6 +29,9 @@ def _run_scheduled_scan(schedule_id: str, trigger: str = "cron"):
         pass
     try:
         with jobs.job_run(jobs.SCAN_SCHEDULE, org_id=org_id, ref_id=schedule_id, trigger=trigger) as d:
+            if trigger == "cron" and _in_blackout_now():
+                d["skipped"] = "blackout_window"
+                return
             submitted = run_pipeline_for_schedule(schedule_id)
             d["scans_submitted"] = submitted or 0
     except Exception as e:
@@ -203,6 +214,9 @@ def _run_discovery(source_id: str, org_id: str, trigger: str = "cron"):
     from backend.core.discovery import run_discovery
     try:
         with jobs.job_run(jobs.DISCOVERY, org_id=org_id, ref_id=source_id, trigger=trigger) as d:
+            if trigger == "cron" and _in_blackout_now():
+                d["skipped"] = "blackout_window"
+                return
             result = run_discovery(source_id, org_id)
             if isinstance(result, dict):
                 d.update(result)
