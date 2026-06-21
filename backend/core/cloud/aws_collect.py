@@ -189,6 +189,43 @@ def _collect_security_groups(session) -> list[dict]:
     return out
 
 
+def collect_cloudtrail(session, lookback_hours: int = 24, max_events: int = 2000) -> list[dict]:
+    """Recent CloudTrail management events, normalized for aws_cloudtrail.classify_event.
+
+    Bounded by both a time window and a hard event cap so a busy account can't pull an unbounded
+    page set into memory. Best-effort: any failure returns an empty list."""
+    import json
+    from datetime import datetime, timedelta, timezone
+
+    out: list[dict] = []
+    try:
+        ct = session.client("cloudtrail")
+        start = datetime.now(timezone.utc) - timedelta(hours=lookback_hours)
+        paginator = ct.get_paginator("lookup_events")
+        for page in paginator.paginate(StartTime=start):
+            for e in page.get("Events", []):
+                try:
+                    detail = json.loads(e.get("CloudTrailEvent", "{}"))
+                except (ValueError, TypeError):
+                    detail = {}
+                out.append({
+                    "event_id": e.get("EventId"),
+                    "event_name": e.get("EventName"),
+                    "event_time": str(e.get("EventTime", "")),
+                    "username": e.get("Username"),
+                    "event_source": e.get("EventSource"),
+                    "user_type": (detail.get("userIdentity") or {}).get("type"),
+                    "source_ip": detail.get("sourceIPAddress"),
+                    "request_params": detail.get("requestParameters") or {},
+                    "error_code": detail.get("errorCode"),
+                })
+                if len(out) >= max_events:
+                    return out
+    except Exception as e:
+        logger.warning("AWS collect: cloudtrail lookup_events failed: %s", e)
+    return out
+
+
 def _collect_codebuild(session) -> list[dict]:
     cb = session.client("codebuild")
     out = []

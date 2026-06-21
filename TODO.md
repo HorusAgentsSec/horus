@@ -134,10 +134,17 @@
       defecto. Credenciales reusan `integrations` (type `aws`/`gcp`, secretos redactados). API
       `api/cloud.py` (`POST /cloud/{aws,gcp}/{id}/audit` background+job, `GET /cloud/audits`). UI
       `pages/CloudSecurity.tsx` (selector de proveedor, conectar cuenta, lanzar audit, historial, link
-      a Findings) + sidebar admin. SDKs con import lazy. Tests `test_cloud_aws_checks.py` (8) +
-      `test_cloud_gcp_checks.py` (7). PENDIENTE: aplicar migración `20260621120000_cloud_assets.sql`
-      (amplía `assets.type` con 'cloud') en remoto; verificar end-to-end con credenciales reales;
-      auto-resolver findings que dejan de fallar; **logs (CloudTrail / GCP Audit Logs)** con el mismo patrón.
+      a Findings) + sidebar admin. SDKs con import lazy. **Capa de logs/actividad** HECHO (2026-06-21):
+      además del CSPM (config), cada audit escanea logs recientes en busca de señales de
+      compromiso/cambio peligroso. AWS `aws_cloudtrail.py` (`classify_event` puro sobre eventos de
+      CloudTrail vía `lookup_events`, ventana+cap acotados): uso de root, tampering de CloudTrail,
+      tampering de GuardDuty/Config, concesión de AdministratorAccess, creación de access keys/usuarios,
+      security group abierto, login fallido. GCP `gcp_auditlog.py` (sobre Cloud Audit Logs vía Logging
+      API): tampering de sinks, claves/cuentas de service account, firewall abierto, recurso hecho
+      público, cambios de IAM. Findings con `category="logs"`, fingerprint por id de evento (re-audit
+      idempotente). Tests `test_cloud_{aws_checks(8),gcp_checks(7),cloudtrail(10),gcp_auditlog(6)}`.
+      PENDIENTE: aplicar migración `20260621120000_cloud_assets.sql` (amplía `assets.type` con 'cloud')
+      en remoto; verificar end-to-end con credenciales reales; auto-resolver findings que dejan de fallar.
 - [x] **PagerDuty / OpsGenie para findings SSVC "ACT"** — HECHO (2026-06-09): `_pagerduty_trigger()` y
       `_opsgenie_trigger()` en `core/notify.py`. `notify_scan_complete` filtra findings con
       `raw_data.ssvc.priority == "act"` y dispara P1/critical. Mapeo: `act`→P1/critical, `attend`→P2/error.

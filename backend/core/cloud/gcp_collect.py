@@ -166,6 +166,46 @@ def _collect_sql(client, project_id: str) -> list[dict]:
     return out
 
 
+def collect_audit_logs(config: dict, lookback_hours: int = 24, max_events: int = 2000) -> list[dict]:
+    """Recent admin-activity audit log entries, normalized for gcp_auditlog.classify_event.
+
+    Bounded by a time window and a hard event cap. Best-effort: any failure returns an empty list."""
+    from datetime import datetime, timedelta, timezone
+    from googleapiclient import discovery
+
+    out: list[dict] = []
+    try:
+        creds = build_credentials(config)
+        project_id = config.get("project_id") or getattr(creds, "project_id", None)
+        logging_svc = discovery.build("logging", "v2", credentials=creds, cache_discovery=False)
+        start = (datetime.now(timezone.utc) - timedelta(hours=lookback_hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        log_filter = (
+            'logName:"cloudaudit.googleapis.com%2Factivity" '
+            f'AND timestamp>="{start}"'
+        )
+        body = {"resourceNames": [f"projects/{project_id}"], "filter": log_filter,
+                "orderBy": "timestamp desc", "pageSize": 500}
+        req = logging_svc.entries().list(body=body)
+        while req is not None and len(out) < max_events:
+            resp = req.execute()
+            for entry in resp.get("entries", []):
+                proto = entry.get("protoPayload", {})
+                out.append({
+                    "method_name": proto.get("methodName"),
+                    "principal": (proto.get("authenticationInfo") or {}).get("principalEmail"),
+                    "caller_ip": (proto.get("requestMetadata") or {}).get("callerIp"),
+                    "timestamp": entry.get("timestamp"),
+                    "insert_id": entry.get("insertId"),
+                    "request": proto.get("request") or {},
+                })
+                if len(out) >= max_events:
+                    break
+            req = logging_svc.entries().list_next(req, resp)
+    except Exception as e:
+        logger.warning("GCP collect: audit logs list failed: %s", e)
+    return out
+
+
 def _collect_cloudbuild(client, project_id: str) -> list[dict]:
     out = []
     try:
