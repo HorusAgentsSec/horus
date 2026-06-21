@@ -37,6 +37,10 @@ def _step(agent_type: str, fn):
 # Recon → Analyst → Correlation → ThreatIntel → Validation → Remediation → RiskManager → Reporter.
 # Validation (the red/blue debate) sits after enrichment (so it can use KEV/EPSS exploitability to
 # gate) and before Remediation (so we don't draft fixes for findings judged false positive).
+# Agents after which we flush findings to the DB for live streaming: threat_intel (findings now
+# have severity/CVEs/enrichment) and validation (verdicts added). Everything after is the slow tail.
+STREAM_AFTER = {"threat_intel", "validation"}
+
 AGENT_SEQUENCE = [
     _step("recon",        run_recon),
     AnalystAgent,
@@ -83,6 +87,11 @@ def run_pipeline(state: ScanState) -> ScanState:
                     model_used=agent.model_used,
                     detail=_agent_detail(agent.agent_type, state),
                 )
+            # Live streaming: once findings are enriched (threat_intel) and again once they're
+            # validated, flush them so the scan detail view fills in while the slow tail (debates,
+            # remediation, report) is still running. Final _persist_results re-upserts the truth.
+            if agent.agent_type in STREAM_AFTER:
+                _stream_findings(state)
         except Exception as e:
             msg = f"{agent.agent_type}: {e}"
             state.errors.append(msg)
@@ -308,6 +317,74 @@ def _mark_scan_canceled(scan_id: str) -> None:
         ).eq("id", scan_id).execute()
 
 
+def _persist_finding(state: ScanState, finding, seen_sigs: set) -> None:
+    """Upsert one analyzed finding. Idempotent (on_conflict org_id,fingerprint) so it's safe to
+    call mid-pipeline for live streaming and again at the end with the enriched verdict/SSVC."""
+    from backend.core import ssvc
+    from backend.core.noise import is_absence_finding
+
+    raw_finding = next((r for r in state.raw_findings if r.name == finding.title), None)
+    port = raw_finding.raw.get("port") if raw_finding else None
+    sig = (state.scan_id, state.asset.id, finding.title, port)
+    if sig in seen_sigs:
+        return
+    seen_sigs.add(sig)
+
+    enrichment = next((e for e in state.enriched_findings if e.finding_id == finding.id), None)
+
+    # SSVC deployer priority for every finding (not just those with a remediation), so the UI
+    # and prioritization have a contextual urgency label. Deterministic, 0 tokens.
+    ssvc_result = ssvc.assess(
+        exploitability=enrichment.exploitability if enrichment else None,
+        public_exploits_exist=bool(enrichment.public_exploits_exist) if enrichment else False,
+        severity=finding.severity,
+        cvss_score=finding.cvss_score,
+        is_internal=state.asset.is_internal,
+    )
+
+    supabase.table("findings").upsert(
+        {
+            "org_id": state.org_id,
+            "scan_id": state.scan_id,
+            "asset_id": state.asset.id,
+            "title": finding.title,
+            "description": finding.description,
+            "severity": finding.severity,
+            "cvss_score": finding.cvss_score,
+            "cve_ids": finding.cve_ids,
+            "fingerprint": finding.id,
+            # "No X found" / scanner self-noise: persisted for completeness but hidden
+            # from the default findings list (see backend/core/noise.py).
+            "is_noise": is_absence_finding(finding.title, finding.severity),
+            "raw_data": {
+                "confidence": finding.confidence,
+                "rationale": finding.rationale,
+                "threat_context": enrichment.threat_context if enrichment else None,
+                "exploitability": enrichment.exploitability if enrichment else None,
+                "source_service": finding.source_service,
+                "ssvc": ssvc_result.as_dict(),
+                "verdict": finding.verdict,
+                "verdict_rationale": finding.verdict_rationale,
+                "debate": finding.debate,
+            },
+            "last_seen_at": datetime.now(timezone.utc).isoformat(),
+        },
+        on_conflict="org_id,fingerprint",
+    ).execute()
+
+
+def _stream_findings(state: ScanState) -> None:
+    """Persist findings discovered so far so the scan detail view shows them appear while the slow
+    agents (validation debates, remediation) still run. Idempotent; best-effort — a flush failure
+    must never break the pipeline (the final _persist_results is the source of truth)."""
+    try:
+        seen: set[tuple] = set()
+        for finding in state.analyzed_findings:
+            _persist_finding(state, finding, seen)
+    except Exception:
+        logger.exception("live findings flush failed for scan %s", state.scan_id)
+
+
 def _persist_results(state: ScanState):
     """Upsert findings and insert suggestions into Supabase."""
     # Persist the executive scan report (summary + SSVC-ordered priorities) so the scan detail
@@ -329,62 +406,9 @@ def _persist_results(state: ScanState):
     except Exception:
         logger.exception("inventory persistence failed for scan %s", state.scan_id)
 
-    from backend.core import ssvc
-    from backend.core.noise import is_absence_finding
-
     seen_sigs: set[tuple] = set()
     for finding in state.analyzed_findings:
-        raw_finding = next((r for r in state.raw_findings if r.name == finding.title), None)
-        port = raw_finding.raw.get("port") if raw_finding else None
-        sig = (state.scan_id, state.asset.id, finding.title, port)
-        if sig in seen_sigs:
-            logger.debug("Skipping duplicate finding in scan %s: %s", state.scan_id, finding.title)
-            continue
-        seen_sigs.add(sig)
-
-        enrichment = next(
-            (e for e in state.enriched_findings if e.finding_id == finding.id), None
-        )
-
-        # SSVC deployer priority for every finding (not just those with a remediation), so the UI
-        # and prioritization have a contextual urgency label. Deterministic, 0 tokens.
-        ssvc_result = ssvc.assess(
-            exploitability=enrichment.exploitability if enrichment else None,
-            public_exploits_exist=bool(enrichment.public_exploits_exist) if enrichment else False,
-            severity=finding.severity,
-            cvss_score=finding.cvss_score,
-            is_internal=state.asset.is_internal,
-        )
-
-        supabase.table("findings").upsert(
-            {
-                "org_id": state.org_id,
-                "scan_id": state.scan_id,
-                "asset_id": state.asset.id,
-                "title": finding.title,
-                "description": finding.description,
-                "severity": finding.severity,
-                "cvss_score": finding.cvss_score,
-                "cve_ids": finding.cve_ids,
-                "fingerprint": finding.id,
-                # "No X found" / scanner self-noise: persisted for completeness but hidden
-                # from the default findings list (see backend/core/noise.py).
-                "is_noise": is_absence_finding(finding.title, finding.severity),
-                "raw_data": {
-                    "confidence": finding.confidence,
-                    "rationale": finding.rationale,
-                    "threat_context": enrichment.threat_context if enrichment else None,
-                    "exploitability": enrichment.exploitability if enrichment else None,
-                    "source_service": finding.source_service,
-                    "ssvc": ssvc_result.as_dict(),
-                    "verdict": finding.verdict,
-                    "verdict_rationale": finding.verdict_rationale,
-                    "debate": finding.debate,
-                },
-                "last_seen_at": datetime.now(timezone.utc).isoformat(),
-            },
-            on_conflict="org_id,fingerprint",
-        ).execute()
+        _persist_finding(state, finding, seen_sigs)
 
     # Insert remediation suggestions
     for suggestion in state.remediation_suggestions:

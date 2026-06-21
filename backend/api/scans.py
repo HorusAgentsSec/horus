@@ -213,8 +213,19 @@ async def get_scan(
         .order("started_at")
         .execute()
     )
+    # Findings stream in as the pipeline persists them (see _stream_findings); the scan detail
+    # view polls this endpoint so they appear progressively. Noise is hidden, as in the list view.
+    findings = (
+        db.table("findings")
+        .select("id, title, severity, cvss_score, cve_ids, raw_data")
+        .eq("scan_id", scan_id)
+        .eq("org_id", user["org_id"])
+        .eq("is_noise", False)
+        .order("last_seen_at")
+        .execute()
+    )
     enriched = _with_triggered_by_labels([scan.data], db, user)[0]
-    return {**enriched, "agent_runs": agent_runs.data}
+    return {**enriched, "agent_runs": agent_runs.data, "findings": findings.data}
 
 
 def _triggered_by_user_id(scan: dict) -> str | None:

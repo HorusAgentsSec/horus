@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { XCircle, FileText } from 'lucide-react'
+import { Link, useParams } from 'react-router-dom'
+import { XCircle, FileText, ShieldAlert } from 'lucide-react'
 import { api, friendlyErrorMessage } from '../lib/api'
 import { AgentRunTimeline } from '../components/agents/AgentRunTimeline'
 import { cn } from '../lib/utils'
@@ -27,6 +27,16 @@ interface Scan {
   report: ScanReport | null
   assets: { name: string; host: string }
   agent_runs: AgentRun[]
+  findings: Finding[]
+}
+
+interface Finding {
+  id: string
+  title: string
+  severity: string
+  cvss_score: number | null
+  cve_ids: string[]
+  raw_data: { verdict?: string | null } | null
 }
 
 interface AgentRun {
@@ -46,6 +56,14 @@ const STATUS_COLOR: Record<string, string> = {
   failed: 'text-severity-critical',
   canceled: 'text-muted',
   pending: 'text-muted',
+}
+
+const SEVERITY_COLOR: Record<string, string> = {
+  critical: 'text-severity-critical border-severity-critical/30',
+  high: 'text-severity-high border-severity-high/30',
+  medium: 'text-severity-medium border-severity-medium/30',
+  low: 'text-severity-low border-severity-low/30',
+  info: 'text-muted border-border',
 }
 
 export default function ScanDetail() {
@@ -182,6 +200,45 @@ export default function ScanDetail() {
                 {scan.report.recommended_next_steps}
               </p>
             </div>
+          )}
+        </div>
+      )}
+
+      {(scan.findings.length > 0 || scan.status === 'running') && (
+        <div className="bg-surface border border-border rounded-lg p-5">
+          <h2 className="text-sm font-medium text-muted uppercase mb-4 flex items-center gap-1.5">
+            <ShieldAlert className="w-4 h-4 text-accent" /> Findings
+            {scan.findings.length > 0 && <span className="text-white/40">({scan.findings.length})</span>}
+          </h2>
+          {scan.findings.length === 0 ? (
+            <p className="text-sm text-muted">
+              {scan.status === 'running' ? 'Scanning… findings will appear here as they are found.' : 'No findings.'}
+            </p>
+          ) : (
+            <ul className="stagger space-y-1.5">
+              {scan.findings.map((f) => (
+                <li key={f.id}>
+                  <Link
+                    to={`/findings/${f.id}`}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg border border-white/5 px-3 py-2 text-sm transition-colors hover:border-white/20 hover:bg-white/[0.03]',
+                      f.raw_data?.verdict === 'false_positive' && 'opacity-50',
+                    )}
+                  >
+                    <span className={cn('shrink-0 rounded border px-1.5 py-0.5 text-[10px] uppercase bg-white/[0.02]', SEVERITY_COLOR[f.severity] ?? SEVERITY_COLOR.info)}>
+                      {f.severity}
+                    </span>
+                    <span className="flex-1 truncate text-white/85">{f.title}</span>
+                    {f.cve_ids?.length > 0 && (
+                      <span className="shrink-0 text-xs text-muted">{f.cve_ids.length} CVE</span>
+                    )}
+                    {f.raw_data?.verdict && (
+                      <span className="shrink-0 text-[10px] uppercase text-white/40">{f.raw_data.verdict.replace(/_/g, ' ')}</span>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}

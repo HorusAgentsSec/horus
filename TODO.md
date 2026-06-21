@@ -224,13 +224,16 @@
       (barra apilada + grid 2×2). Bottom: Top Risky Assets + Recent Scans (ambos navegables).
       Personalización: panel "Customize" con 11 widget toggles persistidos en localStorage
       (`horus_dashboard_widgets`). Nuevo endpoint `GET /dashboard/metrics` en backend.
-- [~] **Progreso del scan en tiempo real** — PARCIAL (2026-06-07): cada agente ahora escribe un
-      resumen en `agent_runs.output_state` al completarse (`_agent_detail` en pipeline), y el
-      `AgentRunTimeline` (poll cada 2.5s) lo muestra — incluida la **deliberación red/blue expandible**
-      del paso de validación (transparencia del debate "en vivo" a granularidad de agente). Pendiente:
-      streaming finding-a-finding real (hoy aparece al completar cada agente) y/o Supabase Realtime.
-      NOTA: arreglado de paso un bug latente — el check constraint de `agent_runs.agent_type` no incluía
-      'validation' (migración `20260607140000`, aplicada), sin el cual la validación nunca corría en prod.
+- [x] **Progreso del scan en tiempo real** — HECHO (2026-06-21; parcial previo 2026-06-07): los
+      findings ahora aparecen en vivo en `ScanDetail` mientras el scan corre, no solo al final. El
+      pipeline hace un **flush incremental** (`_stream_findings`) tras `threat_intel` (findings ya con
+      severidad/CVEs/SSVC) y tras `validation` (con veredicto), reusando el upsert idempotente por
+      fingerprint (`_persist_finding`, extraído de `_persist_results`); el `_persist_results` final
+      reescribe la verdad enriquecida. Best-effort: un flush fallido nunca rompe el pipeline. `GET
+      /scans/{id}` devuelve ahora `findings` (sin ruido); `ScanDetail` muestra la sección "Findings"
+      que se va poblando con el poll de 2.5s ya existente (filas con severidad/CVE/veredicto, animación
+      `.stagger`, link al detalle). Base previa (2026-06-07): `agent_runs.output_state` + `AgentRunTimeline`
+      con la deliberación red/blue expandible. PENDIENTE opcional: Supabase Realtime (push en vez de poll).
 - [x] **Vista de detalle de finding** — HECHO (2026-06-09): `FindingDetail.tsx` + componente
       `FindingDetail.tsx`. Añadidos: badge "KEV Active" (rojo, `AlertTriangle`) en cabecera cuando
       `exploitability=active`; EPSS `X.X%` bajo CVSS; selector de status inline (llama `PATCH /findings/{id}`
