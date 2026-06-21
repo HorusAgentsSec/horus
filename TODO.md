@@ -120,7 +120,21 @@
 - [x] In-app notifications — HECHO: `notify._notify_in_app` crea una notificación por admin/analyst
       al completar scan (gated por umbral de severidad), y la campana 🔔 de `Header.tsx` ya es
       funcional (badge con contador, dropdown, marcar-leída, navega al scan; poll cada 60s).
-- [ ] `🔴 Difícil` Integrar con plataformas de cloud como AWS y GCP para auditar pipelines de CI/CD, logs de esas plataformas, etc.
+- [~] `🔴 Difícil` **Integración Cloud (AWS) — CSPM + CI/CD** — MVP HECHO (2026-06-21): auditoría
+      read-only de AWS que produce findings en la lista normal (severidad/SSVC/dashboard sin
+      special-casing). Arquitectura por capas: `core/cloud/aws_checks.py` (capa PURA, 9 checks,
+      0 boto3/credenciales → testeable: `test_cloud_aws_checks.py`, 8) + `aws_collect.py` (efectos
+      boto3, best-effort por servicio) + `aws_audit.py` (orquesta: lee integración → collect →
+      evaluate → upsert asset cuenta + findings, fingerprint determinista por recurso → re-audit
+      idempotente). Checks CSPM: S3 público, S3 sin cifrar, IAM sin MFA, access keys rancias, root
+      con access keys, root sin MFA, security groups con puerto sensible abierto a 0.0.0.0/0. Checks
+      CI/CD: CodeBuild en modo privileged, secretos en PLAINTEXT en CodeBuild. Credenciales reusan la
+      tabla `integrations` (type `aws`, secret redactado). API `api/cloud.py` (`POST
+      /cloud/aws/{id}/audit` background+job, `GET /cloud/audits`). UI `pages/CloudSecurity.tsx`
+      (conectar cuenta, lanzar audit, historial, link a Findings) + sidebar admin. `boto3` (import
+      lazy). PENDIENTE: aplicar migración `20260621120000_cloud_assets.sql` (amplía el check
+      `assets.type` con 'cloud') en remoto; verificar end-to-end con credenciales reales; auto-resolver
+      findings que dejan de fallar; **GCP** y **logs (CloudTrail)** con el mismo patrón.
 - [x] **PagerDuty / OpsGenie para findings SSVC "ACT"** — HECHO (2026-06-09): `_pagerduty_trigger()` y
       `_opsgenie_trigger()` en `core/notify.py`. `notify_scan_complete` filtra findings con
       `raw_data.ssvc.priority == "act"` y dispara P1/critical. Mapeo: `act`→P1/critical, `attend`→P2/error.

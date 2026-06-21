@@ -33,6 +33,7 @@ const AdversarialDetail = lazy(() => import('./pages/AdversarialDetail'))
 const AuthPhishing = lazy(() => import('./pages/AuthPhishing'))
 const CredentialExposure = lazy(() => import('./pages/CredentialExposure'))
 const Iris = lazy(() => import('./pages/Iris'))
+const CloudSecurity = lazy(() => import('./pages/CloudSecurity'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -119,6 +120,7 @@ export default function App() {
           <Route path="auth-phishing" element={<AuthPhishing />} />
           <Route path="credential-exposure" element={<CredentialExposure />} />
           <Route path="iris" element={<Iris />} />
+          <Route path="cloud" element={<CloudSecurity />} />
           {/* Legacy paths (old bookmarks / muscle memory) — redirect, don't 404. */}
           <Route path="red-blue" element={<Navigate to="/adversarial" replace />} />
           <Route path="red-blue/:id" element={<Navigate to="/adversarial" replace />} />

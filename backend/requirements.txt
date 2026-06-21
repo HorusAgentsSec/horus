@@ -19,3 +19,5 @@ pytest==8.3.0
 # Optional: shared rate-limit store for multi-worker deployments. Falls back to
 # in-memory when REDIS_URL is not set, so Redis is not required for single-worker dev.
 redis==5.0.8
+# Cloud security audit (AWS). Only imported when an AWS audit runs, so the app starts without it.
+boto3==1.35.0

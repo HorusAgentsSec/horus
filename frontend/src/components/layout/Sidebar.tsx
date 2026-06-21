@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Swords, LayoutDashboard, Server, Search, AlertTriangle, AlertCircle, Lock, Settings, Users, ScrollText, Brain, Bell, Clock, Radar, Eye, Activity, Mail, ShieldAlert, Radio, X } from 'lucide-react'
+import { Swords, LayoutDashboard, Server, Search, AlertTriangle, AlertCircle, Lock, Settings, Users, ScrollText, Brain, Bell, Clock, Radar, Eye, Activity, Mail, ShieldAlert, Radio, Cloud, X } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useRole, type Role } from '../../hooks/useRole'
 
@@ -10,6 +10,7 @@ const links: { to: string; icon: React.ElementType; label: string; minRole?: Rol
   { to: '/discovery', icon: Radar, label: 'Discovery' },
   { to: '/watchtower', icon: Eye, label: 'Watchtower' },
   { to: '/iris', icon: Radio, label: 'Iris' },
+  { to: '/cloud', icon: Cloud, label: 'Cloud Security', minRole: 'admin' },
   { to: '/scans', icon: Search, label: 'Scans' },
   { to: '/schedules', icon: Clock, label: 'Schedules' },
   { to: '/jobs', icon: Activity, label: 'Job history' },

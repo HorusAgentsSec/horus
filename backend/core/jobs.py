@@ -34,6 +34,7 @@ POSTURE_SNAPSHOT = "posture_snapshot"
 POSTURE_REPORT = "posture_report"
 COMMUNITY_REFRESH = "community_refresh"
 ADVERSARIAL = "adversarial"
+CLOUD_AUDIT = "cloud_audit"
 
 
 class _JobDetail(dict):
