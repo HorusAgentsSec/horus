@@ -7,6 +7,12 @@ use crate::config::Config;
 
 const MAX_RETRIES: u32 = 3;
 const RETRY_BASE_MS: u64 = 2_000;
+/// Hard cap on the offline backlog. Beyond this we drop the OLDEST events: a security agent that
+/// can't reach the server must not OOM the host it's protecting. ~5k events is plenty of buffer.
+const MAX_QUEUE: usize = 5_000;
+/// Belt-and-suspenders: never load a queue file larger than this into memory. Guards against a
+/// pathologically large file left by an older buggy build — discard it instead of OOMing on boot.
+const MAX_QUEUE_BYTES: u64 = 16 * 1024 * 1024;
 
 pub struct IrisReporter {
     client: reqwest::Client,
@@ -41,7 +47,10 @@ impl IrisReporter {
         }
     }
 
-    pub async fn send_events(&self, events: &[Value]) -> bool {
+    /// POST events to the server, with retries. Pure transport: does NOT touch the local queue,
+    /// so callers control queueing. (Folding enqueue into here is what let flush_queue re-enqueue
+    /// the backlog onto itself and balloon the queue file.)
+    async fn try_post(&self, events: &[Value]) -> bool {
         if events.is_empty() {
             return true;
         }
@@ -66,6 +75,16 @@ impl IrisReporter {
                 tokio::time::sleep(Duration::from_millis(RETRY_BASE_MS << attempt)).await;
             }
         }
+        false
+    }
+
+    pub async fn send_events(&self, events: &[Value]) -> bool {
+        if events.is_empty() {
+            return true;
+        }
+        if self.try_post(events).await {
+            return true;
+        }
         self.enqueue_local(events);
         false
     }
@@ -76,7 +95,9 @@ impl IrisReporter {
             return 0;
         }
         tracing::info!("Flushing {} queued events", queued.len());
-        if self.send_events(&queued).await {
+        // Send the backlog directly. On failure leave the file as-is — re-enqueuing it (via
+        // send_events) would append the backlog to itself and double the queue every tick.
+        if self.try_post(&queued).await {
             self.write_queue(&[]);
             queued.len()
         } else {
@@ -96,6 +117,13 @@ impl IrisReporter {
     fn enqueue_local(&self, events: &[Value]) {
         let mut existing = self.read_queue();
         existing.extend_from_slice(events);
+        // Bound the backlog: keep only the newest MAX_QUEUE events, dropping the oldest. An agent
+        // that can't reach the server for days must never grow the queue without limit.
+        if existing.len() > MAX_QUEUE {
+            let overflow = existing.len() - MAX_QUEUE;
+            existing.drain(0..overflow);
+            tracing::warn!("Queue exceeded {} events; dropped {} oldest", MAX_QUEUE, overflow);
+        }
         self.write_queue(&existing);
         tracing::info!("Enqueued {} events locally ({} total)", events.len(), existing.len());
     }
@@ -103,6 +131,18 @@ impl IrisReporter {
     fn read_queue(&self) -> Vec<Value> {
         if !self.queue_path.exists() {
             return vec![];
+        }
+        // Guard against a pathologically large queue file (e.g. left by an older build that grew
+        // it unbounded): discarding stale telemetry is far better than OOMing the host on boot.
+        if let Ok(meta) = std::fs::metadata(&self.queue_path) {
+            if meta.len() > MAX_QUEUE_BYTES {
+                tracing::error!(
+                    "Queue file is {} bytes (> {} cap); discarding to avoid OOM",
+                    meta.len(), MAX_QUEUE_BYTES
+                );
+                self.write_queue(&[]);
+                return vec![];
+            }
         }
         std::fs::read_to_string(&self.queue_path)
             .ok()
