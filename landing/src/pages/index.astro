@@ -10,6 +10,13 @@ import Footer from '../components/Footer.astro';
   ogTitle="Horus: Stop doing security manually"
   ogDescription="Eight AI agents. Configure once. They work forever."
 >
+  <!-- Announce bar -->
+  <div class="announce-bar">
+    <strong>Horus is now in public beta.</strong>
+    <span class="announce-detail">MIT licensed · self-host for free · no vendor lock-in</span>
+    <a href="https://app.horusagents.com/login?demo=1" class="announce-cta">Try the demo →</a>
+  </div>
+
   <Nav activePage="home" />
 
   <!-- Hero -->
@@ -26,13 +33,33 @@ import Footer from '../components/Footer.astro';
 
       <div class="hero-ctas">
         <a href="https://app.horusagents.com/login?demo=1" class="btn-gold btn-gold-lg">
-          See it live
+          Open live demo
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </a>
         <a href="https://github.com/HorusAgentsSec/" class="btn-ghost">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
           Self-host free
         </a>
+      </div>
+
+      <!-- Number story -->
+      <div class="hero-nums">
+        <div class="hero-num">
+          <div class="hero-num-val c-gold">338K+</div>
+          <div class="hero-num-label">CVEs indexed<br>and synced daily</div>
+        </div>
+        <div class="hero-num">
+          <div class="hero-num-val">8</div>
+          <div class="hero-num-label">specialized AI agents<br>per pipeline run</div>
+        </div>
+        <div class="hero-num">
+          <div class="hero-num-val c-teal">24/7</div>
+          <div class="hero-num-label">automated scanning,<br>no on-call needed</div>
+        </div>
+        <div class="hero-num">
+          <div class="hero-num-val">$0</div>
+          <div class="hero-num-label">to self-host,<br>MIT licensed</div>
+        </div>
       </div>
 
       <!-- Value props -->
@@ -75,6 +102,25 @@ import Footer from '../components/Footer.astro';
     <div class="trust-label-row">Built on the frameworks security teams already trust</div>
     <div class="trust-row">
       <span>MITRE ATT&amp;CK</span><span>CISA KEV</span><span>FIRST EPSS</span><span>SSVC</span><span>OWASP</span><span>NVD</span><span>Nuclei</span><span>CVSS</span>
+    </div>
+  </div>
+
+  <!-- Integrations band -->
+  <div class="integ-band">
+    <div class="container">
+      <span class="integ-label">Integrates with your stack</span>
+      <div class="integ-pills">
+        <span class="integ-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>PagerDuty</span>
+        <span class="integ-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>OpsGenie</span>
+        <span class="integ-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Slack</span>
+        <span class="integ-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>AWS</span>
+        <span class="integ-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>GCP</span>
+        <span class="integ-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Azure</span>
+        <span class="integ-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>GitHub Actions</span>
+        <span class="integ-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Jira</span>
+        <span class="integ-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Ollama (BYO model)</span>
+        <span class="integ-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Webhook</span>
+      </div>
     </div>
   </div>
 
@@ -1120,6 +1166,66 @@ import Footer from '../components/Footer.astro';
     .ag-name { font-size: 10px; }
     .ag-sub { display: none; }
     .ag-ticker { padding: 0 16px; }
+  }
+
+  /* ── Announce bar ── */
+  .announce-bar {
+    background: rgba(232,185,74,0.06);
+    border-bottom: 1px solid rgba(232,185,74,0.12);
+    padding: 8px 24px;
+    text-align: center;
+    font-size: 12px; color: var(--muted);
+    display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;
+  }
+  .announce-bar strong { color: var(--ivory); font-weight: 500; }
+  .announce-cta {
+    font-size: 12px; font-weight: 600; color: var(--gold);
+    padding: 2px 9px; border: 1px solid rgba(232,185,74,0.28); border-radius: 4px;
+    transition: background .15s;
+  }
+  .announce-cta:hover { background: rgba(232,185,74,0.14); }
+  @media (max-width: 580px) { .announce-detail { display: none; } }
+
+  /* ── Hero nums ── */
+  .hero-nums {
+    display: flex; gap: 0; flex-wrap: wrap;
+    border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    margin: 0 0 36px;
+  }
+  .hero-num {
+    flex: 1; min-width: 120px; padding: 18px 22px;
+    border-right: 1px solid var(--border);
+  }
+  .hero-num:last-child { border-right: none; }
+  .hero-num-val {
+    font-size: clamp(20px, 2.2vw, 26px); font-weight: 800;
+    letter-spacing: -0.03em; color: #fff; line-height: 1; margin-bottom: 4px;
+  }
+  .hero-num-val.c-gold { color: var(--gold); }
+  .hero-num-val.c-teal { color: var(--teal); }
+  .hero-num-label { font-size: 11px; color: var(--muted); line-height: 1.4; }
+  @media (max-width: 580px) {
+    .hero-num { min-width: 50%; border-bottom: 1px solid var(--border); }
+    .hero-num:nth-child(odd) { border-right: 1px solid var(--border); }
+    .hero-num:nth-child(even) { border-right: none; }
+    .hero-num:nth-last-child(-n+2) { border-bottom: none; }
+  }
+
+  /* ── Integrations band ── */
+  .integ-band { border-bottom: 1px solid var(--border); padding: 22px 0; }
+  .integ-band .container { display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
+  .integ-label { font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: rgba(122,132,153,0.7); white-space: nowrap; padding-top: 4px; }
+  .integ-pills { display: flex; flex-wrap: wrap; gap: 7px; flex: 1; }
+  .integ-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 500; color: var(--muted);
+    padding: 5px 11px; border: 1px solid var(--border); border-radius: 7px;
+    background: var(--surface); transition: border-color .18s, color .18s;
+  }
+  .integ-pill:hover { border-color: var(--border2); color: var(--ivory); }
+  @media (max-width: 780px) {
+    .integ-band .container { gap: 12px; }
+    .integ-label { width: 100%; padding-top: 0; }
   }
 
   /* ── Iris ── */
