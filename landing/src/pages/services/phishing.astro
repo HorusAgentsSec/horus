@@ -1,0 +1,217 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+import '../../styles/service-page.css';
+---
+
+<Layout
+  title="Phishing & Human Risk · Horus"
+  description="Simulate phishing attacks against your own team before real attackers do. Track who clicks. Check credential exposure in breach databases. Train at scale."
+>
+  <Nav activePage="platform" />
+
+  <div class="page-hero">
+    <div class="hero-scan" aria-hidden="true"></div>
+    <div class="container">
+      <a href="/services" class="sp-back">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        All services
+      </a>
+      <div class="cat-eyebrow ey-orange"><span class="dot"></span>Phishing &amp; Human Risk</div>
+      <h1><span class="hw hw1">Your firewall</span> <span class="hw hw2">is solid.</span><br><span class="hw hw3">But one employee</span> <span class="hw hw4">clicked</span> <em class="hw hw5" style="color:var(--orange);">a link.</em></h1>
+      <p>Technical controls don't stop social engineering. Phishing is the leading initial access vector because it bypasses everything you've hardened. The only defense is knowing who on your team would click, before attackers find out.</p>
+      <div class="page-hero-ctas">
+        <a href="https://app.horusagents.com/login?demo=1" class="btn-gold btn-gold-lg">
+          See a campaign live
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <a href="https://github.com/HorusAgentsSec/" class="btn-ghost">Self-host free</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="sp-ps">
+      <div class="sp-ps-col">
+        <div class="sp-ps-label bad">Without phishing simulation</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>You don't know which employees would click a credential-harvesting lure. Attackers are willing to find out. You aren't running the test first.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>Three of your finance employees have had their credentials leaked in third-party breaches. Nobody checked. Those passwords may still be in use.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>Annual security awareness training is a checkbox. A PDF nobody reads. No measurement of actual behavior under pressure.</div>
+      </div>
+      <div class="sp-ps-col">
+        <div class="sp-ps-label good">With Horus Phishing</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>PhishingAgent uses your asset inventory to craft context-aware lures — branded to your own domains, referencing real tools your team uses. Click tracking per target.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>HIBP Domain Search runs against your org's email domain. Leaked employees flagged with a karma score. You see who needs immediate password rotation.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>Repeat clickers identified automatically. Awareness landing page shown on click — education at the moment of failure, not months later.</div>
+      </div>
+    </div>
+
+    <div class="sp-section-hd">
+      <div class="slabel sl-orange">How it works</div>
+      <h2>Profile. Craft. Send. Measure.</h2>
+      <p>Campaigns are built from your own asset inventory, not generic templates. Every lure references something real about your org.</p>
+    </div>
+
+    <div class="sp-steps">
+      <div class="sp-step">
+        <div class="sp-step-n" style="color:var(--orange);">01 / PROFILE</div>
+        <h3>Target list from your inventory</h3>
+        <p>PhishingAgent reads your asset inventory: domain names, technologies in use, integrations. Builds a target profile per employee. Lures reference tools they actually use.</p>
+      </div>
+      <div class="sp-step">
+        <div class="sp-step-n" style="color:var(--gold);">02 / CRAFT + SEND</div>
+        <h3>Context-aware lure generated</h3>
+        <p>Choose objective: click-only, credential harvest drill, or report-to-security training. MFA/OTP simulation available. Campaign sent on schedule, tracking pixel embedded.</p>
+      </div>
+      <div class="sp-step">
+        <div class="sp-step-n" style="color:var(--teal);">03 / TRACK + EDUCATE</div>
+        <h3>Analytics, then awareness</h3>
+        <p>Click rate, credential entry rate, report rate. Department and repeat-offender breakdown. Clickers hit an awareness landing page immediately. Results feed into your security posture score.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sp-visual container">
+    <div class="sp-visual-label">Campaign results · acmecorp.io · 142 targets</div>
+    <div class="product-mock" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,0.5);">
+      <div class="mock-titlebar">
+        <div class="m-dot" style="background:#E05252;opacity:.7;"></div>
+        <div class="m-dot" style="background:#E8B94A;opacity:.7;"></div>
+        <div class="m-dot" style="background:#27C2B6;opacity:.7;"></div>
+        <div class="mock-tab on">Campaigns</div>
+        <div class="mock-tab">Targets</div>
+        <div class="mock-tab">Credential Exposure</div>
+        <div style="margin-left:auto;display:flex;gap:6px;">
+          <span class="mbadge" style="background:rgba(245,158,11,0.15);color:#F59E0B;border:1px solid rgba(245,158,11,0.3);">24 clicked</span>
+          <span class="mbadge b-act">3 repeat offenders</span>
+        </div>
+      </div>
+      <div class="mock-toolbar">
+        <span class="mono">Q2 awareness drill · "IT password reset" lure</span>
+        <span class="mono" style="color:rgba(255,255,255,.18);">sent 2026-06-20</span>
+      </div>
+      <div class="mock-row">
+        <div class="mock-row-icon" style="background:rgba(224,82,82,0.10);border:1px solid rgba(224,82,82,0.2);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div class="mock-title">j.smith@acmecorp.io · Finance</div>
+          <div class="mock-meta"><span class="mono">clicked at 09:14 UTC</span><span class="mbadge b-act">repeat offender</span><span class="mbadge" style="background:rgba(245,158,11,0.12);color:#F59E0B;border:1px solid rgba(245,158,11,0.2);">credential entered</span></div>
+        </div>
+        <div class="mock-right"><span class="mono" style="color:var(--red);">HIGH RISK</span></div>
+      </div>
+      <div class="mock-row">
+        <div class="mock-row-icon" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.18);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div class="mock-title">m.rodriguez@acmecorp.io · Engineering</div>
+          <div class="mock-meta"><span class="mono">clicked at 11:02 UTC</span><span class="mbadge b-att">first click</span></div>
+        </div>
+        <div class="mock-right"><span class="mono" style="color:#F59E0B;">MEDIUM</span></div>
+      </div>
+      <div class="mock-row" style="background:rgba(39,194,182,0.025);">
+        <div class="mock-row-icon" style="background:rgba(39,194,182,0.10);border:1px solid rgba(39,194,182,0.2);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div class="mock-title">a.chen@acmecorp.io · Security</div>
+          <div class="mock-meta"><span class="mono">reported phishing at 08:47 UTC</span><span class="mbadge" style="background:rgba(39,194,182,0.12);color:var(--teal);border:1px solid rgba(39,194,182,0.25);">reported</span></div>
+        </div>
+        <div class="mock-right"><span class="mono" style="color:var(--teal);">GOOD</span></div>
+      </div>
+      <div style="padding:11px 16px;display:flex;align-items:center;justify-content:space-between;">
+        <span class="mono" style="color:rgba(122,132,153,0.4);">22 clicked · 1 reported · 118 no interaction</span>
+        <span class="mono" style="color:var(--gold);">Click rate: 16.9%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="sp-section-hd">
+      <div class="slabel sl-orange">Full capability set</div>
+      <h2>Everything in Phishing &amp; Human Risk.</h2>
+      <p>Phishing simulation campaigns and credential exposure monitoring. Two sides of the same human-vector risk.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card wide hl-orange">
+        <div class="feat-card-icon" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div class="tag" style="background:rgba(245,158,11,0.12);color:#F59E0B;border:1px solid rgba(245,158,11,0.2);">Social engineering</div>
+        <h3>Phishing Campaigns</h3>
+        <p>PhishingAgent reads your asset inventory to craft context-aware lures — branded to your domains, referencing real tools your team uses. Not generic templates. Choose objective: click-only, credential harvest drill, or report-to-security. Awareness landing page shown on click.</p>
+        <ul style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:12px;">
+          <li class="y">Asset-inventory-aware lure generation</li><li class="y">Objective: click / credential / report drill</li>
+          <li class="y">Per-target click and credential tracking</li><li class="y">Fake MFA/OTP simulation</li>
+          <li class="y">Department-level analytics</li><li class="y">Repeat-offender identification</li>
+          <li class="y">Awareness landing page on click</li><li class="y">Schedule: one-off or recurring</li>
+        </ul>
+      </div>
+      <div class="feat-card hl-purple">
+        <div class="feat-card-icon" style="background:var(--purple-dim);border:1px solid rgba(139,92,246,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <div class="tag tag-purple">HIBP integration</div>
+        <h3>Credential Exposure</h3>
+        <p>Have I Been Pwned Domain Search checks if your org's employees appear in public breach databases. Per-employee karma score. Sensitive breach flag for passwords and tokens. Surfaces accounts that need immediate rotation.</p>
+        <ul>
+          <li class="y">HIBP Domain Search integration</li>
+          <li class="y">Per-employee karma score</li>
+          <li class="y">Sensitive breach detection</li>
+          <li class="y">Priority rotation recommendations</li>
+        </ul>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:rgba(39,194,182,0.10);border:1px solid rgba(39,194,182,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="tag tag-teal">Posture impact</div>
+        <h3>Human Risk Score</h3>
+        <p>Click rates, credential entry rates and breach exposure combine into a human risk score that feeds into the org's overall security posture timeline. Drill down by department or individual.</p>
+        <ul>
+          <li class="y">Click rate and credential rate</li>
+          <li class="y">Breach exposure count</li>
+          <li class="y">Feeds posture timeline</li>
+          <li class="y">Department vs overall comparison</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-cta">
+    <div class="container">
+      <h2>Know who would click<br>before attackers test it.</h2>
+      <p>The demo includes a live phishing campaign with click tracking and credential exposure results.</p>
+      <div class="cta-row">
+        <a href="https://app.horusagents.com/login?demo=1" class="btn-gold btn-gold-lg">Open live demo →</a>
+        <a href="https://github.com/HorusAgentsSec/" class="btn-ghost">Self-host free</a>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>
+
+<style>
+  .ey-orange { color: var(--orange); background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.22); }
+  .sl-orange { color: var(--orange); }
+  .feat-card.hl-orange { background: rgba(245,158,11,0.03); border-left: 2px solid rgba(245,158,11,0.25); }
+  .feat-card.hl-orange:hover { background: rgba(245,158,11,0.06); }
+</style>
+
+<script>
+(function () {
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!('IntersectionObserver' in window)) return;
+  var ph = document.querySelector('.page-hero');
+  if (ph) requestAnimationFrame(function () { ph.classList.add('hero-boot'); });
+  if (reduce) return;
+  var io = new IntersectionObserver(function (e) {
+    e.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add('in'); io.unobserve(x.target); } });
+  }, { threshold: 0.15 });
+  function mark(el) { el.classList.add('reveal'); io.observe(el); }
+  document.querySelectorAll('.feat-grid, .sp-steps, .sp-ps, .sp-visual, .bottom-cta').forEach(mark);
+})();
+</script>

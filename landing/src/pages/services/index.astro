@@ -7,7 +7,7 @@ import '../../styles/service-page.css';
 
 <Layout
   title="Horus Platform: Services overview"
-  description="Four capability areas. Continuous Defense, Adversarial AI, Threat Intelligence, Governance, and Iris host agent."
+  description="Six services. Continuous Defense, Adversarial AI, Threat Intelligence, Phishing &amp; Human Risk, Governance, and Iris host agent."
 >
   <Nav activePage="platform" />
 
@@ -16,7 +16,7 @@ import '../../styles/service-page.css';
     <div class="container">
       <div class="page-hero-eyebrow">Platform overview</div>
       <h1><span class="hw hw1">Everything</span> <span class="hw hw2">Horus</span> <span class="hw hw3">does.</span><br><span class="hw hw4">Pick</span> <span class="hw hw5">your</span> <span class="hw hw6">area.</span></h1>
-      <p>Five capability areas. All run automatically, on a schedule you configure once.</p>
+      <p>Six services. All run automatically, on a schedule you configure once.</p>
     </div>
   </div>
 
@@ -46,9 +46,9 @@ import '../../styles/service-page.css';
           <div class="srv-body">
             <div class="srv-label" style="color:var(--red);">Adversarial AI</div>
             <h2>Attack. Defend.<br>Before the real thing.</h2>
-            <p>Red and Blue AI agents debate every ambiguous finding. Phishing campaigns test your team. Credential exposure checks HIBP. Verdicts stored and inherited across scans.</p>
+            <p>Red and Blue AI agents debate every ambiguous finding before it reaches your team. Verdicts stored and inherited across scans. Attack simulation cycles on live infrastructure.</p>
             <div class="srv-pills">
-              <span>Red/Blue Debate</span><span>Attack Simulation</span><span>Phishing</span><span>Credential Exposure</span>
+              <span>Red/Blue Debate</span><span>Attack Simulation</span><span>Verdict Memory</span>
             </div>
           </div>
           <div class="srv-arrow">→</div>
@@ -79,6 +79,21 @@ import '../../styles/service-page.css';
             <p>Permission policies define what agents can automate. Append-only audit trail covers every user and agent action. RBAC with Admin / Analyst / Viewer roles.</p>
             <div class="srv-pills">
               <span>Permission Policies</span><span>Audit Log</span><span>RBAC</span><span>Integrations</span><span>API Keys</span>
+            </div>
+          </div>
+          <div class="srv-arrow">→</div>
+        </a>
+
+        <a href="/services/phishing" class="srv-card srv-orange srv-wide">
+          <div class="srv-icon" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <div class="srv-body">
+            <div class="srv-label" style="color:var(--orange);">Phishing &amp; Human Risk</div>
+            <h2>Know who would click before attackers find out.</h2>
+            <p>Phishing campaigns built from your own asset inventory, not generic templates. Click and credential tracking per employee. HIBP breach exposure check. Human risk score feeds posture timeline.</p>
+            <div class="srv-pills">
+              <span>Phishing Campaigns</span><span>Credential Exposure</span><span>Human Risk Score</span><span>Awareness Training</span>
             </div>
           </div>
           <div class="srv-arrow">→</div>
@@ -131,6 +146,7 @@ import '../../styles/service-page.css';
   .srv-red:hover  { border-color: rgba(224,82,82,0.28); }
   .srv-teal:hover { border-color: rgba(39,194,182,0.28); }
   .srv-purple:hover { border-color: rgba(139,92,246,0.28); }
+  .srv-orange:hover { border-color: rgba(245,158,11,0.3); }
   .srv-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .srv-body { flex: 1; }
   .srv-label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px; }
