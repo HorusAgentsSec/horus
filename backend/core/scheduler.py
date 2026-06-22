@@ -4,16 +4,36 @@ from backend.core.config import settings
 from backend.core.supabase_client import supabase
 from backend.core import jobs, maintenance
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import logging
 
 logger = logging.getLogger(__name__)
-scheduler = BackgroundScheduler()
+# coalesce: si se pierden varios disparos de un cron (el job anterior aun corria, o
+# downtime), ejecutar solo uno al volver en vez de descartarlos en silencio.
+# misfire_grace_time: ventana para recuperar un disparo perdido (1h) en lugar del
+# default de 1s, que con scans largos saltaba ticks sin dejar rastro.
+scheduler = BackgroundScheduler(
+    job_defaults={"coalesce": True, "misfire_grace_time": 3600}
+)
+
+
+def _blackout_now() -> datetime:
+    """Current time in the timezone the blackout windows are expressed in. Jobs record UTC, so
+    evaluating windows against a naive datetime.now() would be off by the server's UTC offset
+    (the deploy runs UTC). Use the configured tz, or the server-local tz when unset."""
+    tz = settings.scan_blackout_timezone.strip()
+    if tz:
+        try:
+            return datetime.now(ZoneInfo(tz))
+        except Exception:
+            logger.warning("Invalid scan_blackout_timezone %r, falling back to local time", tz)
+    return datetime.now().astimezone()  # aware, server-local
 
 
 def _in_blackout_now() -> bool:
     """Whether right now falls inside a configured maintenance (blackout) window."""
     return maintenance.in_blackout(
-        datetime.now(), maintenance.parse_windows(settings.scan_blackout_windows)
+        _blackout_now(), maintenance.parse_windows(settings.scan_blackout_windows)
     )
 
 
@@ -395,70 +415,63 @@ def load_adversarial_schedules():
 def _run_scheduled_phishing(schedule_id: str, trigger: str = "cron"):
     import secrets as _secrets
     from datetime import datetime, timezone
+    from backend.api.phishing import _launch_campaign
 
+    s = supabase.table("phishing_schedules").select("*").eq("id", schedule_id).single().execute().data
+    if not s:
+        logger.error(f"Phishing schedule {schedule_id} not found")
+        return
+
+    org_id      = s["org_id"]
+    contact_ids = s.get("contact_ids") or []
+    asset_ids   = s.get("context_asset_ids") or []
+    objective   = s.get("objective", "click")
+
+    if not contact_ids:
+        logger.warning(f"Phishing schedule {schedule_id} has no contacts, skipping")
+        return
+
+    contacts = (
+        supabase.table("phishing_contacts")
+        .select("id, name, email")
+        .in_("id", contact_ids)
+        .eq("org_id", org_id)
+        .execute()
+        .data or []
+    )
+    if not contacts:
+        logger.warning(f"Phishing schedule {schedule_id}: contacts not found, skipping")
+        return
+
+    # job_run wraps the launch so a crash/cancel marks the row failed/canceled with a
+    # finished_at + duration, instead of leaving it stuck at 'running' forever.
     try:
-        s = supabase.table("phishing_schedules").select("*").eq("id", schedule_id).single().execute().data
-        if not s:
-            logger.error(f"Phishing schedule {schedule_id} not found")
-            return
+        with jobs.job_run("phishing_schedule", org_id=org_id, ref_id=schedule_id, trigger=trigger) as d:
+            camp = supabase.table("phishing_campaigns").insert({
+                "org_id":            org_id,
+                "name":              f"{s['name']} ({datetime.now(timezone.utc).strftime('%Y-%m-%d')})",
+                "objective":         objective,
+                "context_asset_ids": asset_ids,
+                "status":            "running",
+                "launched_at":       datetime.now(timezone.utc).isoformat(),
+            }).execute().data[0]
+            campaign_id = camp["id"]
 
-        org_id      = s["org_id"]
-        contact_ids = s.get("contact_ids") or []
-        asset_ids   = s.get("context_asset_ids") or []
-        objective   = s.get("objective", "click")
+            target_rows = [
+                {
+                    "campaign_id":    campaign_id,
+                    "org_id":         org_id,
+                    "employee_name":  c["name"],
+                    "employee_email": c["email"],
+                    "tracking_token": _secrets.token_hex(24),
+                }
+                for c in contacts
+            ]
+            supabase.table("phishing_targets").insert(target_rows).execute()
 
-        if not contact_ids:
-            logger.warning(f"Phishing schedule {schedule_id} has no contacts — skipping")
-            return
-
-        contacts = (
-            supabase.table("phishing_contacts")
-            .select("id, name, email")
-            .in_("id", contact_ids)
-            .eq("org_id", org_id)
-            .execute()
-            .data or []
-        )
-        if not contacts:
-            logger.warning(f"Phishing schedule {schedule_id}: contacts not found — skipping")
-            return
-
-        camp = supabase.table("phishing_campaigns").insert({
-            "org_id":            org_id,
-            "name":              f"{s['name']} ({datetime.now(timezone.utc).strftime('%Y-%m-%d')})",
-            "objective":         objective,
-            "context_asset_ids": asset_ids,
-            "status":            "running",
-            "launched_at":       datetime.now(timezone.utc).isoformat(),
-        }).execute().data[0]
-
-        campaign_id = camp["id"]
-
-        target_rows = [
-            {
-                "campaign_id":    campaign_id,
-                "org_id":         org_id,
-                "employee_name":  c["name"],
-                "employee_email": c["email"],
-                "tracking_token": _secrets.token_hex(24),
-            }
-            for c in contacts
-        ]
-        supabase.table("phishing_targets").insert(target_rows).execute()
-
-        job_row = supabase.table("jobs").insert({
-            "org_id":     org_id,
-            "job_type":   "phishing_schedule",
-            "ref_id":     schedule_id,
-            "trigger":    trigger,
-            "status":     "running",
-            "started_at": datetime.now(timezone.utc).isoformat(),
-            "detail":     {"campaign": camp["name"], "targets": len(target_rows)},
-        }).execute().data[0]
-
-        from backend.api.phishing import _launch_campaign
-        _launch_campaign(campaign_id, org_id, job_row["id"])
-
+            d["campaign"] = camp["name"]
+            d["targets"] = len(target_rows)
+            _launch_campaign(campaign_id, org_id, d.job_id)
     except Exception as e:
         logger.error(f"Scheduled phishing {schedule_id} failed: {e}")
 
@@ -513,6 +526,27 @@ def _register_iris_triage():
         logger.warning(f"Could not register Iris triage job: {e}")
 
 
+def _run_jobs_purge():
+    retention = getattr(settings, "jobs_retention_days", 90)
+    try:
+        with jobs.job_run("jobs_purge") as d:
+            d["deleted"] = jobs.purge_old_jobs(retention)
+    except Exception as e:
+        logger.error(f"Jobs purge failed: {e}")
+
+
+def _register_jobs_purge():
+    try:
+        scheduler.add_job(
+            _run_jobs_purge,
+            CronTrigger.from_crontab("30 3 * * *"),  # daily at 03:30
+            id="jobs_purge",
+            replace_existing=True,
+        )
+    except Exception as e:
+        logger.warning(f"Could not register jobs purge: {e}")
+
+
 def start():
     load_schedules()
     load_discovery_sources()
@@ -527,6 +561,7 @@ def start():
     _register_posture_report()
     _register_community_refresh()
     _register_adversarial()
+    _register_jobs_purge()
     scheduler.start()
 
 

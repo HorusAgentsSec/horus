@@ -77,15 +77,31 @@ export default function Watchtower() {
     }
   }, [progressLogs])
 
+  // Close any open stream when the component unmounts so the connection is not left
+  // alive and onmessage cannot setState on an unmounted component.
+  const esRef = useRef<EventSource | null>(null)
+  useEffect(() => () => esRef.current?.close(), [])
+
   const runNow = async () => {
     setRunning(true)
     setProgressLogs(['Starting Watchtower check...'])
 
-    // We get the token to use in the SSE connection since EventSource doesn't support custom headers easily.
-    const { data } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
-    const token = data.session?.access_token
+    // EventSource cannot send an Authorization header, so we mint a short-lived
+    // single-use ticket (via the authenticated api wrapper) and pass that in the URL
+    // instead of the JWT. A leaked ticket is useless: consumed on first use, expires fast.
     const url = import.meta.env.VITE_API_URL || '/api'
-    const eventSource = new EventSource(`${url}/watchtower/stream?token=${token}`)
+    let ticket: string
+    try {
+      const res = await api.post<{ ticket: string }>('/watchtower/stream-ticket')
+      ticket = res.ticket
+    } catch (err) {
+      setProgressLogs((prev) => [...prev, `Error: ${friendlyErrorMessage(err)}`])
+      setRunning(false)
+      return
+    }
+    esRef.current?.close()
+    const eventSource = new EventSource(`${url}/watchtower/stream?ticket=${ticket}`)
+    esRef.current = eventSource
 
     eventSource.onmessage = (event) => {
       try {

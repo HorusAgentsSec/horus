@@ -66,9 +66,13 @@ class Settings(BaseSettings):
     active_validation_timeout: float = 3.0
 
     # Maintenance (blackout) windows: scheduled scans/discovery that land inside a window are
-    # skipped (not queued for later). Comma-separated "[DAYS ]HH:MM-HH:MM" specs in server-local
-    # time, e.g. "Mon-Fri 09:00-18:00, Sat,Sun 00:00-23:59". Empty = never blacked out.
+    # skipped (not queued for later). Comma-separated "[DAYS ]HH:MM-HH:MM" specs, e.g.
+    # "Mon-Fri 09:00-18:00, Sat,Sun 00:00-23:59". Empty = never blacked out.
     scan_blackout_windows: str = ""
+    # IANA timezone the blackout windows are expressed in (e.g. "Europe/Madrid"). Empty = the
+    # server's local timezone. Set this on a UTC deploy (fly.io) so "business hours" windows
+    # mean the operator's local hours, not UTC.
+    scan_blackout_timezone: str = ""
 
     # App
     environment: str = "development"

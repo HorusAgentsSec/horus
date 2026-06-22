@@ -3,6 +3,8 @@
 import logging
 import httpx
 
+from backend.core.target_validation import assert_safe_probe_target, TargetValidationError
+
 logger = logging.getLogger(__name__)
 
 _EXPOSED_PATHS = [
@@ -57,6 +59,13 @@ def check_exposed_paths(base_url: str) -> dict:
     if not base_url.startswith(("http://", "https://")):
         base_url = f"https://{base_url}"
 
+    # SSRF guard: the host comes from the LLM, so block metadata/loopback/link-local
+    # before making any request (cloud IMDS credential theft, scanner-host pivot).
+    try:
+        assert_safe_probe_target(base_url)
+    except TargetValidationError as e:
+        return {"error": f"blocked target: {e}", "exposed": [], "issues": []}
+
     exposed = []
     errors = []
 
@@ -109,8 +118,15 @@ def check_security_headers(url: str) -> dict:
     if not url.startswith(("http://", "https://")):
         url = f"https://{url}"
 
+    # SSRF guard (LLM-supplied host). follow_redirects stays off so a 30x cannot
+    # bounce the probe to a metadata/loopback address after the initial check.
     try:
-        with httpx.Client(timeout=10.0, follow_redirects=True, verify=False) as client:
+        assert_safe_probe_target(url)
+    except TargetValidationError as e:
+        return {"error": f"blocked target: {e}", "headers": {}, "issues": []}
+
+    try:
+        with httpx.Client(timeout=10.0, follow_redirects=False, verify=False) as client:
             r = client.get(url, headers={"User-Agent": "Mozilla/5.0 (security-scanner)"})
     except Exception as e:
         return {"error": str(e), "headers": {}, "issues": []}

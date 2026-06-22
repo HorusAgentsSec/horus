@@ -98,7 +98,8 @@ def _check_term(term: str, api_key: str) -> dict:
 
     We normalize to a consistent shape for the frontend.
     """
-    url = f"{_BREACH_DIRECTORY_HOST}/?func=auto&term={term}"
+    url = f"{_BREACH_DIRECTORY_HOST}/"
+    params = {"func": "auto", "term": term}
     headers = {
         "X-RapidAPI-Key": api_key,
         "X-RapidAPI-Host": _BREACH_DIRECTORY_RAPID_HOST,
@@ -106,7 +107,9 @@ def _check_term(term: str, api_key: str) -> dict:
 
     try:
         with httpx.Client(timeout=_TIMEOUT_SECONDS) as client:
-            resp = client.get(url, headers=headers)
+            # term goes through params so httpx url-encodes it; interpolating it into
+            # the URL let an email/domain with & = ? # break the query or inject params.
+            resp = client.get(url, params=params, headers=headers)
 
         if resp.status_code == 404:
             # Not found in any breach

@@ -5,6 +5,8 @@ import socket
 import logging
 from datetime import datetime, timezone
 
+from backend.core.target_validation import assert_safe_probe_target, TargetValidationError
+
 logger = logging.getLogger(__name__)
 
 _WEAK_PROTOCOLS = {"SSLv2", "SSLv3", "TLSv1", "TLSv1.1"}
@@ -31,6 +33,14 @@ def check_ssl_tls(host: str, port: int = 443) -> dict:
         "san": [],
         "issues": [],
     }
+
+    # SSRF guard: host comes from the LLM. Block metadata/loopback/link-local before
+    # opening any socket (private ranges stay allowed for internal assets).
+    try:
+        assert_safe_probe_target(host)
+    except TargetValidationError as e:
+        results["issues"].append(f"blocked target: {e}")
+        return results
 
     ctx = ssl.create_default_context()
     ctx.check_hostname = False

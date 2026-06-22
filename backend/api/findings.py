@@ -65,7 +65,10 @@ async def list_findings(
         query = query.eq("is_noise", False)
 
     if order_by == "severity":
-        query = query.order("severity", desc=False).order("created_at", desc=True)
+        # severity_rank is a generated column (0=critical … 4=info); ordering by the
+        # text column sorts alphabetically (critical, high, info, low, medium), which
+        # is not risk order. See migration 20260622_findings_severity_rank.
+        query = query.order("severity_rank", desc=False).order("created_at", desc=True)
     else:
         # default and fallback (epss/ssvc are inside jsonb, order by created_at)
         query = query.order("created_at", desc=True)
@@ -183,6 +186,9 @@ async def update_finding(
 ):
     _assert_owned(db, finding_id, user["org_id"])
     result = db.table("findings").update({"status": body.status}).eq("id", finding_id).execute()
+    if not result.data:
+        # Update affected no rows (race with a delete, or RLS) — 404 instead of IndexError 500.
+        raise HTTPException(status_code=404, detail="Finding not found")
     row = result.data[0]
 
     # Reflection loop: a human judgement on this finding becomes a prior for future scans
@@ -293,7 +299,11 @@ async def import_findings(
         fingerprint = hashlib.sha256(fingerprint_str.encode()).hexdigest()[:32]
 
         try:
-            db.table("findings").insert(
+            # Upsert on (org_id, fingerprint) so re-importing the same file refreshes
+            # last_seen_at instead of duplicating or failing the unique constraint.
+            # created_at is omitted on purpose: the column default sets it on insert and
+            # upsert leaves it untouched on conflict, preserving the original timestamp.
+            db.table("findings").upsert(
                 {
                     "org_id": user["org_id"],
                     "asset_id": asset_id,
@@ -305,9 +315,9 @@ async def import_findings(
                     "is_noise": is_noise,
                     "raw_data": raw_data,
                     "fingerprint": fingerprint,
-                    "created_at": now,
                     "last_seen_at": now,
-                }
+                },
+                on_conflict="org_id,fingerprint",
             ).execute()
             imported += 1
         except Exception as e:

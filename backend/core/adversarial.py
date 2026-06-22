@@ -27,6 +27,7 @@ def run_adversarial_cycle(
     from backend.agents.red_agent import RedAgent
     from backend.agents.blue_agent import BlueAgent
     from backend.core import cancel
+    from backend.core.token_budget import check_budget
 
     def _emit(event: dict) -> None:
         if emit:
@@ -45,6 +46,13 @@ def run_adversarial_cycle(
         if cancel.is_canceled(job_id):
             logger.info("Adversarial cycle canceled before org %s", oid)
             break
+
+        # The Red/Blue tool-loops make many LLM calls; honor the org token budget
+        # like the scan pipeline does, or a single org could blow past its limit.
+        if not check_budget(oid)["ok"]:
+            logger.warning("Adversarial cycle skipped for org %s — token budget exceeded", oid)
+            _emit({"type": "error", "message": "Token budget exceeded for this org"})
+            continue
 
         logger.info("Adversarial cycle starting for org %s", oid)
         red_count = 0

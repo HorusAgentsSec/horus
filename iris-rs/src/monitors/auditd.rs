@@ -110,7 +110,10 @@ impl Parser {
         // ponytail: bound memory; audit records without a clean EOE would leak otherwise.
         if groups.len() > MAX_OPEN_GROUPS {
             let mut keys: Vec<String> = groups.keys().cloned().collect();
-            keys.sort();
+            // Audit serials are monotonic counters. Sort numerically, not lexically (where
+            // "10000" < "9999"), so we evict the genuinely oldest open groups instead of
+            // dropping in-progress records by alphabetical accident.
+            keys.sort_by_key(|k| k.parse::<u64>().unwrap_or(0));
             for k in keys.into_iter().take(100) {
                 groups.remove(&k);
             }

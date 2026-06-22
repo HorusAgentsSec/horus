@@ -125,7 +125,7 @@ def search(term: str, api_key: str, max_results: int = 10) -> list[dict]:
             if status == 2:
                 break
         except httpx.HTTPStatusError as e:
-            logger.warning("IntellingX polling failed: %s", e)
+            logger.warning("IntelligenceX polling failed: %s", e)
             break
         except Exception as e:
             logger.warning("IntelligenceX poll error: %s", e)

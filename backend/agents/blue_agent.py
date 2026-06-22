@@ -182,7 +182,7 @@ class BlueAgent(ToolAgent):
         )
 
         try:
-            self.run_with_tools(_SYSTEM, user_content, _TOOLS, executor, emit=emit, job_id=job_id)
+            self.run_with_tools(_SYSTEM, user_content, _TOOLS, executor, emit=emit, job_id=job_id, org_id=org_id)
         except Exception as e:
             logger.error("BlueAgent failed for org %s: %s", org_id, e)
 

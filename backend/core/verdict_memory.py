@@ -28,8 +28,11 @@ STATUS_TO_VERDICT = {
 
 
 def _slug(text: str) -> str:
+    # Use the full title, not the first 6 words: distinct findings that share an opening
+    # ("Potential CSRF on ...") would otherwise collapse to one signature and have one
+    # verdict suppress the other. Both sides slug the same title text, so they still match.
     words = re.findall(r"[a-z0-9]+", (text or "").lower())
-    return "-".join(words[:6])
+    return "-".join(words)
 
 
 def finding_signature(

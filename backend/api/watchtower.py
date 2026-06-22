@@ -60,13 +60,25 @@ from fastapi.responses import StreamingResponse
 import json
 
 from fastapi import Query
-from backend.api.auth import _resolve_user
+from backend.api.auth import mint_stream_ticket, consume_stream_ticket
+from backend.api.deps import require_role
+
+
+@router.post("/stream-ticket")
+async def stream_ticket(user=Depends(require_role("admin"))):
+    """Mint a short-lived single-use ticket so the EventSource (which cannot send an
+    Authorization header) authenticates without putting the JWT in the URL."""
+    return {"ticket": mint_stream_ticket(user)}
+
 
 @router.get("/stream")
-async def stream_run(token: str = Query(...)):
-    """Stream an on-demand watchtower pass and return progress."""
-    user = _resolve_user(token)
-    if user["role"] != "admin":
+async def stream_run(ticket: str = Query(...)):
+    """Stream an on-demand watchtower pass and return progress.
+
+    Auth is via a single-use stream ticket (see /stream-ticket), not the raw JWT,
+    so the credential in the query string cannot be replayed from logs."""
+    user = consume_stream_ticket(ticket)
+    if user.get("role") != "admin":
         from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="Forbidden")
 

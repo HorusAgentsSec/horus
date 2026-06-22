@@ -66,6 +66,65 @@ def _ip_is_unsafe(ip_str: str) -> bool:
     )
 
 
+def assert_safe_probe_target(host_or_url: str) -> str:
+    """
+    Guard for the agent HTTP/TLS probe tools, whose target host comes from the LLM.
+
+    Unlike validate_scan_target this does NOT block private ranges (the red/blue
+    agents legitimately probe internal assets), but it ALWAYS blocks cloud metadata,
+    loopback, link-local and unspecified/multicast/reserved addresses, which are never
+    a legitimate probe target and are the SSRF vectors that matter (IMDS credential
+    theft, hitting the scanner host itself). Returns the extracted hostname.
+    Raises TargetValidationError if unsafe.
+    """
+    extracted = _extract_host(host_or_url)
+    if not extracted:
+        raise TargetValidationError(f"Could not parse a hostname from '{host_or_url}'")
+    if not _HOST_RE.match(extracted):
+        raise TargetValidationError(f"Host '{extracted}' contains illegal characters")
+
+    def _ip_forbidden(ip_str: str) -> bool:
+        if ip_str in ALWAYS_BLOCKED_IPS:
+            return True
+        try:
+            ip = ipaddress.ip_address(ip_str)
+        except ValueError:
+            return False
+        # Private ranges are allowed (internal assets); the rest are never valid.
+        return (
+            ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+            or ip.is_unspecified
+        )
+
+    # Literal IP: check directly. (TargetValidationError subclasses ValueError, so the
+    # ip_address parse is isolated in its own try to avoid swallowing our own raise.)
+    is_ip = True
+    try:
+        ipaddress.ip_address(extracted)
+    except ValueError:
+        is_ip = False
+    if is_ip:
+        if _ip_forbidden(extracted):
+            raise TargetValidationError(f"'{extracted}' is not a permitted probe target")
+        return extracted
+
+    # Hostname: resolve and reject if any resolved IP is forbidden (catches DNS that
+    # points at metadata/loopback).
+    try:
+        resolved = {info[4][0] for info in socket.getaddrinfo(extracted, None)}
+    except (socket.gaierror, UnicodeError):
+        return extracted  # unresolvable now; the probe will simply find nothing
+    for ip_str in resolved:
+        if _ip_forbidden(ip_str):
+            raise TargetValidationError(
+                f"'{extracted}' resolves to a forbidden address ({ip_str})"
+            )
+    return extracted
+
+
 def validate_scan_target(host: str, is_internal: bool = False) -> str:
     """
     Validates and normalizes a scan target. Returns the clean hostname.

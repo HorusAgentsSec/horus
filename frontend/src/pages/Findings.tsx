@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, Boxes, Download, Upload } from 'lucide-react'
-import { api, exportApi } from '../lib/api'
+import { api, exportApi, friendlyErrorMessage } from '../lib/api'
 import { useAssets } from '../hooks/useAssets'
 import { FindingCard } from '../components/findings/FindingCard'
 import { SeverityBadge } from '../components/findings/SeverityBadge'
@@ -50,6 +50,7 @@ const BULK_ACTIONS = [
 export default function Findings() {
   const [findings, setFindings] = useState<Finding[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [severity, setSeverity] = useState('')
   const [status, setStatus] = useState('')
   const [assetId, setAssetId] = useState('')
@@ -72,6 +73,7 @@ export default function Findings() {
 
   const load = () => {
     setLoading(true)
+    setLoadError('')
     const params = new URLSearchParams()
     if (severity) params.set('severity', severity)
     if (status) params.set('status', status)
@@ -80,11 +82,17 @@ export default function Findings() {
     if (tool) params.set('tool', tool)
     if (orderBy) params.set('order_by', orderBy)
     if (showNoise) params.set('include_noise', 'true')
-    api.get<FindingsResponse>(`/findings?${params}`).then((data) => {
-      setFindings(data.items)
-      setNoiseCount(data.noise_count)
-      setLoading(false)
-    })
+    api
+      .get<FindingsResponse>(`/findings?${params}`)
+      .then((data) => {
+        setFindings(data.items)
+        setNoiseCount(data.noise_count)
+        setLoading(false)
+      })
+      .catch((e) => {
+        setLoadError(friendlyErrorMessage(e, 'Could not load findings'))
+        setLoading(false)
+      })
   }
 
   useEffect(load, [severity, status, assetId, cveFilter, tool, orderBy, showNoise])
@@ -242,6 +250,8 @@ export default function Findings() {
 
       {loading ? (
         <p className="text-muted text-sm">Loading…</p>
+      ) : loadError ? (
+        <p className="text-sm text-severity-critical">{loadError}</p>
       ) : findings.length === 0 ? (
         <p className="text-muted text-sm">No findings match the current filters.</p>
       ) : (

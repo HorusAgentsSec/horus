@@ -267,6 +267,25 @@ def _raise_alerts(org_id: str, alerts: list[tuple[dict, str, dict]]) -> list[dic
     return created
 
 
+def _fetch_all(table: str, columns: str) -> list[dict]:
+    """Page through a table in 1000-row chunks. PostgREST caps a single select at ~1000 rows,
+    so a plain .select() silently truncates large tables — which would leave the dedup set
+    'already' incomplete and re-raise alerts that already exist (non-idempotent)."""
+    page = 1000
+    out: list[dict] = []
+    start = 0
+    while True:
+        rows = (
+            supabase.table(table).select(columns).range(start, start + page - 1).execute().data
+            or []
+        )
+        out.extend(rows)
+        if len(rows) < page:
+            break
+        start += page
+    return out
+
+
 def run_watchtower_generator(lookback_days: int | None = None):
     """
     Generator that yields progress strings, then finally yields the summary dict.
@@ -304,16 +323,16 @@ def run_watchtower_generator(lookback_days: int | None = None):
         return
 
     yield "Fetching asset inventory..."
-    inventory = supabase.table("asset_inventory").select("*").execute().data or []
+    # ponytail: paginate to avoid the ~1000-row PostgREST cap; still loads all orgs into
+    # memory at once (per-org .range() iteration if memory ever becomes the ceiling).
+    inventory = _fetch_all("asset_inventory", "*")
     by_org: dict[str, list[dict]] = {}
     for row in inventory:
         by_org.setdefault(row["org_id"], []).append(row)
-    
+
     yield f"Analyzing {len(inventory)} assets across {len(by_org)} organizations..."
 
-    existing = (
-        supabase.table("watchtower_alerts").select("asset_id, cve_id").execute().data or []
-    )
+    existing = _fetch_all("watchtower_alerts", "asset_id, cve_id")
     already = {(a["asset_id"], a["cve_id"]) for a in existing}
 
     total = 0

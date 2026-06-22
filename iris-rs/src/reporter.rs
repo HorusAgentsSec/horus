@@ -144,20 +144,48 @@ impl IrisReporter {
                 return vec![];
             }
         }
-        std::fs::read_to_string(&self.queue_path)
-            .ok()
-            .and_then(|t| serde_json::from_str::<Vec<Value>>(&t).ok())
-            .unwrap_or_default()
+        let text = match std::fs::read_to_string(&self.queue_path) {
+            Ok(t) => t,
+            Err(e) => {
+                tracing::error!("Failed to read queue file: {}", e);
+                return vec![];
+            }
+        };
+        match serde_json::from_str::<Vec<Value>>(&text) {
+            Ok(v) => v,
+            Err(e) => {
+                // A truncated/corrupt queue file used to be discarded silently; log it so the
+                // loss of queued telemetry leaves a trace instead of vanishing.
+                tracing::error!(
+                    "Queue file is corrupt ({}); discarding {} bytes of queued telemetry",
+                    e, text.len()
+                );
+                vec![]
+            }
+        }
     }
 
     fn write_queue(&self, events: &[Value]) {
         if let Some(parent) = self.queue_path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
-        if let Ok(text) = serde_json::to_string(events) {
-            if let Err(e) = std::fs::write(&self.queue_path, text) {
-                tracing::error!("Failed to write queue: {}", e);
+        let text = match serde_json::to_string(events) {
+            Ok(t) => t,
+            Err(e) => {
+                tracing::error!("Failed to serialize queue: {}", e);
+                return;
             }
+        };
+        // Write to a temp file then rename: rename is atomic on the same filesystem, so a crash
+        // mid-write can never leave a half-written queue.json that fails to parse on next boot.
+        let tmp = self.queue_path.with_extension("json.tmp");
+        if let Err(e) = std::fs::write(&tmp, &text) {
+            tracing::error!("Failed to write queue temp file: {}", e);
+            return;
+        }
+        if let Err(e) = std::fs::rename(&tmp, &self.queue_path) {
+            tracing::error!("Failed to rename queue temp file: {}", e);
+            let _ = std::fs::remove_file(&tmp);
         }
     }
 }

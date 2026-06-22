@@ -33,6 +33,7 @@ class ToolAgent(BaseAgent):
         max_iterations: int = 20,
         emit: Optional[Callable[[dict], None]] = None,
         job_id: Optional[str] = None,
+        org_id: Optional[str] = None,
     ) -> tuple[str, int]:
         """
         Runs the tool-calling loop.
@@ -58,6 +59,17 @@ class ToolAgent(BaseAgent):
                 logger.info("%s: job canceled, stopping at iteration %d", self.agent_type, iteration)
                 self.tokens_used += total_tokens
                 return "", total_tokens
+
+            # Honor the org token budget between iterations: a model that keeps calling
+            # tools can otherwise burn through the limit across up to max_iterations calls.
+            if org_id is not None:
+                from backend.core.token_budget import check_budget
+                if not check_budget(org_id)["ok"]:
+                    logger.warning(
+                        "%s: token budget exceeded, stopping at iteration %d", self.agent_type, iteration
+                    )
+                    self.tokens_used += total_tokens
+                    return "", total_tokens
 
             try:
                 response = _client.chat.completions.create(

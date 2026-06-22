@@ -19,7 +19,9 @@ def run_recon(state: ScanState) -> ScanState:
     # Defense in depth: never launch a subprocess against an unvalidated target,
     # even if a bad host slipped past asset creation.
     try:
-        validate_scan_target(asset.host, asset.is_internal)
+        # Use the validated/normalized host (URL -> host, :port stripped) for the scan,
+        # not the raw asset.host, so the sanitized value actually reaches the subprocess.
+        clean_host = validate_scan_target(asset.host, asset.is_internal)
     except TargetValidationError as e:
         msg = f"Refusing to scan unsafe target '{asset.host}': {e}"
         logger.error(msg)
@@ -33,12 +35,12 @@ def run_recon(state: ScanState) -> ScanState:
 
     for scanner in scanners:
         try:
-            findings = scanner.scan(asset.host, asset.port, scan_id=state.scan_id)
+            findings = scanner.scan(clean_host, asset.port, scan_id=state.scan_id)
             state.raw_findings.extend(findings)
             state.detected_services.extend(getattr(scanner, "detected_services", []))
             logger.info(
                 "run_recon: %s found %d findings on %s",
-                scanner.__class__.__name__, len(findings), asset.host,
+                scanner.__class__.__name__, len(findings), clean_host,
             )
         except Exception as e:
             msg = f"Scanner {scanner.__class__.__name__} failed: {e}"

@@ -196,13 +196,16 @@ def _query_nvd(product: str, version: str, vendor: str) -> list[tuple[str, float
         data = _nvd_get(
             {"virtualMatchString": match, "resultsPerPage": 2000, "startIndex": start}
         )
-        for item in data.get("vulnerabilities", []):
+        vulns = data.get("vulnerabilities", [])
+        for item in vulns:
             cve = item["cve"]
             score, sev = _extract_cvss(cve)
             results.append((cve["id"], score, sev))
         total = data.get("totalResults", 0)
-        start += data.get("resultsPerPage", 0)
-        if start >= total or not data.get("vulnerabilities"):
+        # Avanzar por el nº real de filas recibidas: resultsPerPage puede faltar o
+        # venir 0 y dejar start sin avanzar (bucle infinito sobre la misma página).
+        start += len(vulns)
+        if not vulns or start >= total:
             break
     return results
 

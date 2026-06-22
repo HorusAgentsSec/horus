@@ -89,12 +89,22 @@ class BaseAgent(ABC):
         try:
             response = _client.chat.completions.create(**kwargs)
         except Exception as e:
-            # Some providers/models don't support response_format — retry without it
-            if json_mode and "response_format" in str(e):
-                kwargs.pop("response_format", None)
-                response = _client.chat.completions.create(**kwargs)
-            else:
+            # Some providers/models reject response_format with a 400 (bad request).
+            # Retry once without it, but only for that case: matching on the exception
+            # status code (not a substring of the message) avoids swallowing unrelated
+            # failures like timeouts or rate limits.
+            if not (json_mode and getattr(e, "status_code", None) == 400):
                 raise
+            logger.warning(
+                "%s: provider rejected response_format (%s); retrying as plain text",
+                self.agent_type, e,
+            )
+            kwargs.pop("response_format", None)
+            try:
+                response = _client.chat.completions.create(**kwargs)
+            except Exception as retry_exc:
+                # Preserve the original response_format failure as the cause.
+                raise retry_exc from e
 
         text = response.choices[0].message.content or ""
         if redactor:

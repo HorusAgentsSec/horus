@@ -297,7 +297,14 @@ def _agent_detail(agent_type: str, state: ScanState) -> dict:
 
 
 def _scan_is_canceled(scan_id: str) -> bool:
-    scan = supabase.table("scans").select("status, error_message").eq("id", scan_id).single().execute()
+    # Checked at the top/after every agent. A transient DB/network error here must NOT
+    # abort the whole pipeline (the call sites don't catch it), so treat any read
+    # failure as "not canceled" and let the run continue.
+    try:
+        scan = supabase.table("scans").select("status, error_message").eq("id", scan_id).single().execute()
+    except Exception as e:
+        logger.warning("Cancel check failed for scan %s, assuming not canceled: %s", scan_id, e)
+        return False
     return bool(scan.data and _scan_row_is_canceled(scan.data))
 
 
@@ -323,12 +330,12 @@ def _persist_finding(state: ScanState, finding, seen_sigs: set) -> None:
     from backend.core import ssvc
     from backend.core.noise import is_absence_finding
 
-    raw_finding = next((r for r in state.raw_findings if r.name == finding.title), None)
-    port = raw_finding.raw.get("port") if raw_finding else None
-    sig = (state.scan_id, state.asset.id, finding.title, port)
-    if sig in seen_sigs:
+    # Dedup on the deterministic fingerprint (== the upsert conflict key), NOT title+port:
+    # two findings can share a title but differ by CVE/source_service (e.g. analyst vs
+    # correlation), and a title-based key would silently drop one of them.
+    if finding.id in seen_sigs:
         return
-    seen_sigs.add(sig)
+    seen_sigs.add(finding.id)
 
     enrichment = next((e for e in state.enriched_findings if e.finding_id == finding.id), None)
 

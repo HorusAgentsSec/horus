@@ -15,11 +15,7 @@ ALTER TABLE phishing_templates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "phishing_templates_org_isolation"
   ON phishing_templates
   FOR ALL
-  USING (
-    org_id IN (
-      SELECT org_id FROM team_members WHERE user_id = auth.uid()
-    )
-  );
+  USING (org_id = current_org_id());
 
 -- Link campaigns to an optional template
 ALTER TABLE phishing_campaigns

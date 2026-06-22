@@ -207,14 +207,30 @@ impl BruteForceTracker {
         while dq.front().map_or(false, |t| now.duration_since(*t) > BRUTE_WINDOW) {
             dq.pop_front();
         }
-        if dq.len() >= BRUTE_THRESHOLD {
+        let triggered = if dq.len() >= BRUTE_THRESHOLD {
             let last = self.alerted.get(ip).copied().unwrap_or(now - BRUTE_COOLDOWN * 2);
             if now.duration_since(last) > BRUTE_COOLDOWN {
                 self.alerted.insert(ip.to_string(), now);
-                return true;
+                true
+            } else {
+                false
             }
-        }
-        false
+        } else {
+            false
+        };
+
+        // Purge stale state so an attacker rotating source IPs can't grow these maps without
+        // bound (the leak that OOM'd the host): drop IPs whose failure window has fully aged
+        // out, and alert cooldowns that have expired.
+        self.failures.retain(|_, dq| {
+            while dq.front().map_or(false, |t| now.duration_since(*t) > BRUTE_WINDOW) {
+                dq.pop_front();
+            }
+            !dq.is_empty()
+        });
+        self.alerted.retain(|_, t| now.duration_since(*t) <= BRUTE_COOLDOWN);
+
+        triggered
     }
 }
 

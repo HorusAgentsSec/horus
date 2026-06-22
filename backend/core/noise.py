@@ -12,20 +12,21 @@ supabase/migrations/20260610100000_findings_noise.sql.
 
 import re
 
-# Absence-of-vulnerability phrasing → noise regardless of severity. Deliberately narrow:
-# "No rate limiting on login endpoint" (a missing control, i.e. a real finding) must NOT match,
-# which is why the leading-"No" pattern also requires found/detected/identified/observed.
+# Absence-of-vulnerability phrasing → noise regardless of severity.
 _ABSENCE_PATTERNS = [
-    re.compile(r"^\s*no\s+.*\b(found|detected|identified|observed)\b", re.I),
     re.compile(r"\bnot\s+vulnerable\b", re.I),
     re.compile(r"\b(returned|reported|revealed)\s+no\s+(finding|vulnerabilit|issue|result)", re.I),
     re.compile(r"\b(couldn'?t|could\s+not|unable\s+to)\s+(find|detect|identify)\b", re.I),
     re.compile(r"\bnone\s+(found|detected|identified)\b", re.I),
 ]
 
-# Scanner self-noise (script crashed, check came back inconclusive/negative): only noise when
-# the severity is info — anything higher means the Analyst saw real signal in it.
+# Only noise at info severity. A leading "No ... found" reads as scanner absence
+# ("No DOM-based XSS found on port 8080"), but at medium/high the same phrasing is usually a
+# real missing control ("No rate limiting found on login endpoint") that must stay visible —
+# so gating it on info is what keeps the broad leading-"No" pattern from hiding real findings.
+# Also covers scanner self-noise (script crashed, inconclusive, negative).
 _INFO_NOISE_PATTERNS = [
+    re.compile(r"^\s*no\s+.*\b(found|detected|identified|observed)\b", re.I),
     re.compile(r"\bscript\s+(error|execution\s+failed)\b", re.I),
     re.compile(r"\binconclusive\b", re.I),
     re.compile(r"\(negative\)", re.I),

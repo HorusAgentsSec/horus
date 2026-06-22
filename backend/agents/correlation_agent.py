@@ -23,12 +23,26 @@ _SEVERITY_MAP = {"critical": "critical", "high": "high", "medium": "medium", "lo
 
 
 def _severity(row: dict | None) -> str:
-    if row:
-        sev = (row.get("cvss_severity") or "").lower()
-        if sev in _SEVERITY_MAP:
-            return _SEVERITY_MAP[sev]
+    if not row:
+        return "low"
+    sev = (row.get("cvss_severity") or "").lower()
+    if sev in _SEVERITY_MAP:
+        return _SEVERITY_MAP[sev]
+    # NVD a veces rellena cvss_score antes que baseSeverity: derivar de los umbrales.
+    score = row.get("cvss_score")
+    if score is not None:
+        if score >= 9.0:
+            return "critical"
+        if score >= 7.0:
+            return "high"
         if row.get("in_kev"):
             return "high"
+        if score >= 4.0:
+            return "medium"
+        if score > 0:
+            return "low"
+    if row.get("in_kev"):
+        return "high"
     return "low"
 
 

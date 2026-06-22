@@ -21,6 +21,7 @@ from backend.agents.base import BaseAgent
 from backend.agents.state import ScanState
 from backend.core import active_probe, validation, verdict_memory
 from backend.core.config import settings
+from backend.core.cpe_intel import SERVICE_NAME_FALLBACKS, _normalize_version
 
 logger = logging.getLogger(__name__)
 
@@ -59,13 +60,28 @@ class ValidationAgent(BaseAgent):
         cap = settings.validation_max_debates
         enrichment = {e.finding_id: e for e in state.enriched_findings}
 
-        # Index detected services by their "<product> <version>" label (== a finding's
-        # source_service) so active validation can find the host:port to probe.
-        svc_index = {
-            f"{s['product']} {s['version']}": s
-            for s in state.detected_services
-            if s.get("product") and s.get("version") and s.get("port")
-        }
+        # Index detected services by the SAME label that cpe_intel.correlate_services
+        # produces (== a correlated finding's source_service) so active validation can find
+        # the host:port to probe. Mirror its labeling exactly, including the normalized
+        # version and the "(via <service>)" fallback form, or fallback-correlated findings
+        # never match and the probe never fires.
+        svc_index: dict[str, dict] = {}
+        for s in state.detected_services:
+            if not s.get("port"):
+                continue
+            version = _normalize_version(
+                (s.get("version") or "").strip() or (s.get("extrainfo") or "").strip()
+            )
+            if not version:
+                continue
+            product = (s.get("product") or "").strip()
+            service_name = (s.get("service") or "").strip().lower()
+            if product:
+                svc_index[f"{product} {version}"] = s
+            elif service_name in SERVICE_NAME_FALLBACKS:
+                svc_index[
+                    f"{SERVICE_NAME_FALLBACKS[service_name]} {version} (via {service_name})"
+                ] = s
 
         # Recall how humans judged findings like these — first this org's own feedback (the
         # reflection loop), then the anonymized cross-org community aggregate (the flywheel: a new
@@ -105,6 +121,19 @@ class ValidationAgent(BaseAgent):
             # (their correction becomes an org prior that wins next time).
             cprior = community.get(sig)
             if cprior in ("false_positive", "confirmed"):
+                # A cross-org false_positive prior is too blunt to silence a finding that is
+                # exploitable or internet-facing here: the same signature can be benign in one
+                # environment and a real exposure in another. Degrade to needs_verification in
+                # those cases so a human (or the debate) confirms before it is hidden.
+                risky = (exploitability or "").lower() in ("medium", "high") or not state.asset.is_internal
+                if cprior == "false_positive" and risky:
+                    self._set_verdict(
+                        f, "needs_verification", None,
+                        rationale="Community signal suggests false positive, but this finding is "
+                                  "exploitable or internet-facing — verifying before hiding it.",
+                        debate=None,
+                    )
+                    continue
                 why = (
                     "Commonly a false positive across similar environments (community signal)"
                     if cprior == "false_positive"
