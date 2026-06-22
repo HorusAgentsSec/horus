@@ -18,7 +18,45 @@ const { activePage = 'home' } = Astro.props;
     </button>
     <div class="nav-menu" id="nav-menu">
       <div class="nav-links">
-        <a href="/services" class={`nav-link${activePage === 'platform' ? ' active' : ''}`}>Platform</a>
+        <div class={`nav-dropdown${activePage === 'platform' ? ' active' : ''}`}>
+          <button class="nav-link nav-drop-btn" aria-expanded="false" aria-haspopup="true">
+            Services
+            <svg class="nav-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="nav-drop-panel" role="menu">
+            <a href="/services/continuous-defense" class="nav-drop-item" role="menuitem">
+              <div class="ndi-icon" style="background:var(--gold-dim);border:1px solid rgba(232,185,74,0.2);">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </div>
+              <div><div class="ndi-name">Continuous Defense</div><div class="ndi-desc">Asset discovery, scanning, SSVC priority</div></div>
+            </a>
+            <a href="/services/adversarial-ai" class="nav-drop-item" role="menuitem">
+              <div class="ndi-icon" style="background:var(--red-dim);border:1px solid rgba(224,82,82,0.2);">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </div>
+              <div><div class="ndi-name">Adversarial AI</div><div class="ndi-desc">Red/Blue debate, phishing, cred exposure</div></div>
+            </a>
+            <a href="/services/threat-intelligence" class="nav-drop-item" role="menuitem">
+              <div class="ndi-icon" style="background:var(--teal-dim);border:1px solid rgba(39,194,182,0.2);">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              </div>
+              <div><div class="ndi-name">Threat Intelligence</div><div class="ndi-desc">CVE correlation, CISA KEV, EPSS, IOC</div></div>
+            </a>
+            <a href="/services/governance" class="nav-drop-item" role="menuitem">
+              <div class="ndi-icon" style="background:var(--purple-dim);border:1px solid rgba(139,92,246,0.2);">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+              <div><div class="ndi-name">Governance</div><div class="ndi-desc">Policies, audit log, RBAC, integrations</div></div>
+            </a>
+            <a href="/services/iris" class="nav-drop-item" role="menuitem">
+              <div class="ndi-icon" style="background:var(--teal-dim);border:1px solid rgba(39,194,182,0.2);">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>
+              </div>
+              <div><div class="ndi-name">Iris · Host Agent</div><div class="ndi-desc">4MB Rust daemon, 4 monitors per host</div></div>
+            </a>
+            <a href="/services" class="nav-drop-all" role="menuitem">All services →</a>
+          </div>
+        </div>
         <a href="/pricing" class={`nav-link${activePage === 'pricing' ? ' active' : ''}`}>Pricing</a>
         <a href="https://docs.horus.security" class="nav-link">Docs</a>
         <a href="https://github.com/HorusAgentsSec/" class="nav-link">GitHub</a>
@@ -30,6 +68,68 @@ const { activePage = 'home' } = Astro.props;
     </div>
   </div>
 </nav>
+
+<style>
+  /* Dropdown wrapper */
+  .nav-dropdown { position: relative; }
+  .nav-drop-btn {
+    background: none; border: none; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: inherit;
+  }
+  .nav-chevron { transition: transform .2s; flex-shrink: 0; }
+  .nav-dropdown.open .nav-chevron { transform: rotate(180deg); }
+
+  /* Dropdown panel */
+  .nav-drop-panel {
+    display: none;
+    position: absolute; top: calc(100% + 10px); left: -16px;
+    width: 280px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 20px 56px rgba(0,0,0,0.55);
+    z-index: 100;
+  }
+  .nav-dropdown.open .nav-drop-panel { display: block; }
+
+  .nav-drop-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 9px 10px; border-radius: 8px;
+    transition: background .15s;
+  }
+  .nav-drop-item:hover { background: rgba(255,255,255,0.05); }
+  .ndi-icon {
+    width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .ndi-name { font-size: 13px; font-weight: 500; color: var(--ivory); margin-bottom: 1px; }
+  .ndi-desc { font-size: 11px; color: var(--muted); }
+
+  .nav-drop-all {
+    display: block; text-align: center;
+    font-size: 12px; color: var(--muted);
+    padding: 8px 10px 4px;
+    border-top: 1px solid var(--border);
+    margin-top: 2px;
+    transition: color .15s;
+  }
+  .nav-drop-all:hover { color: var(--ivory); }
+
+  /* Mobile: show panel inline */
+  @media (max-width: 780px) {
+    .nav-drop-panel {
+      position: static; width: 100%; box-shadow: none;
+      border: none; border-radius: 0; background: transparent;
+      padding: 0 0 0 12px;
+    }
+    .nav-drop-item { padding: 8px 4px; }
+    .nav-drop-all { text-align: left; padding: 8px 4px; }
+    .nav-dropdown { border-bottom: 1px solid var(--border); }
+    .nav-drop-btn { width: 100%; padding: 13px 4px; font-size: 15px; color: var(--muted); justify-content: space-between; }
+  }
+</style>
 
 <script>
   const nav = document.querySelector('.nav');
@@ -43,11 +143,32 @@ const { activePage = 'home' } = Astro.props;
       const open = nav.classList.toggle('open');
       toggle.setAttribute('aria-expanded', String(open));
     });
-    // Cerrar al pulsar un enlace del menú móvil
     nav.querySelector('.nav-menu')?.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('a')) {
         nav.classList.remove('open');
         toggle?.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Services dropdown
+    const dropdown = nav.querySelector('.nav-dropdown');
+    const dropBtn = nav.querySelector('.nav-drop-btn');
+    dropBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = dropdown?.classList.toggle('open');
+      dropBtn.setAttribute('aria-expanded', String(!!open));
+    });
+    document.addEventListener('click', (e) => {
+      if (!dropdown?.contains(e.target as Node)) {
+        dropdown?.classList.remove('open');
+        dropBtn?.setAttribute('aria-expanded', 'false');
+      }
+    });
+    // Keyboard: close on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        dropdown?.classList.remove('open');
+        dropBtn?.setAttribute('aria-expanded', 'false');
       }
     });
   }

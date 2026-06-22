@@ -1,0 +1,210 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+import '../../styles/service-page.css';
+---
+
+<Layout
+  title="Threat Intelligence · Horus"
+  description="338,000+ CVEs correlated. CISA KEV synced daily. EPSS spike detection. You find out the same day, not the same week."
+>
+  <Nav activePage="platform" />
+
+  <div class="page-hero">
+    <div class="hero-scan" aria-hidden="true"></div>
+    <div class="container">
+      <a href="/services" class="sp-back">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        All services
+      </a>
+      <div class="cat-eyebrow ey-teal"><span class="dot"></span>Threat Intelligence</div>
+      <h1><span class="hw hw1">A CVE just hit</span> <span class="hw hw2">CISA KEV</span> <span class="hw hw3">at 06:15 UTC.</span><br><span class="hw hw4">Do you know</span> <span class="hw hw5">if it affects</span> <em class="hw hw6" style="color:var(--teal);">your stack?</em></h1>
+      <p>Threat data is published faster than any human can process it. Horus syncs CISA KEV and EPSS daily, correlates against your persisted inventory, and alerts you the same morning. No re-scan needed.</p>
+      <div class="page-hero-ctas">
+        <a href="https://app.horusagents.com/login?demo=1" class="btn-gold btn-gold-lg">
+          See Watchtower live
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <a href="https://github.com/HorusAgentsSec/" class="btn-ghost">Self-host free</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="sp-ps">
+      <div class="sp-ps-col">
+        <div class="sp-ps-label bad">Without Horus</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>CISA adds ActiveMQ RCE to KEV on Tuesday. Your team finds out when someone shares a tweet on Friday. You re-scan the weekend.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>An EPSS score jumps from 0.03 to 0.34 overnight. A pre-KEV signal that this CVE is about to be weaponized. Nobody catches it.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>Your CVE correlation relies on scanner output. If the scanner didn't run this week, you're flying blind against new threats.</div>
+      </div>
+      <div class="sp-ps-col">
+        <div class="sp-ps-label good">With Horus</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>Watchtower syncs KEV at 06:30 UTC daily. Correlates against 847 inventory entries. ActiveMQ match → PagerDuty P1 before you open your laptop.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>EPSS spike detection triggers when a score jumps 0.2+ overnight. Catch the pre-KEV signal before the CVE gets weaponized publicly.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>Zero re-scan overhead. Watchtower re-correlates your persisted inventory — not your live network. Fast, free, and deterministic.</div>
+      </div>
+    </div>
+
+    <div class="sp-section-hd">
+      <div class="slabel sl-teal">How it works</div>
+      <h2>Sync. Correlate. Alert. No re-scan.</h2>
+      <p>The intelligence layer is entirely deterministic. No LLM involved. CVE correlation, SSVC inputs and Watchtower alerts are computed from structured data sources.</p>
+    </div>
+
+    <div class="sp-steps">
+      <div class="sp-step">
+        <div class="sp-step-n" style="color:var(--teal);">01 / SYNC</div>
+        <h3>Data sources synced nightly</h3>
+        <p>NVD API 2.0 (338K+ CVEs). CISA KEV catalog. FIRST EPSS scores. ThreatFox and URLhaus IOC feeds. All structured, all deterministic.</p>
+      </div>
+      <div class="sp-step">
+        <div class="sp-step-n" style="color:var(--gold);">02 / CORRELATE</div>
+        <h3>Inventory cross-referenced</h3>
+        <p>Persisted asset inventory (software, versions, ports) cross-referenced against new KEV entries, EPSS updates, and IOC feeds. ~25 CPE alias mappings. Version normalization.</p>
+      </div>
+      <div class="sp-step">
+        <div class="sp-step-n" style="color:var(--orange);">03 / ALERT</div>
+        <h3>Same-day notification</h3>
+        <p>KEV match → SSVC: Act guaranteed. EPSS spike → alert. IOC match → alert. PagerDuty P1, Slack, or email. You find out the same morning, not the same week.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sp-visual container">
+    <div class="sp-visual-label">Watchtower · daily run · 06:30 UTC</div>
+    <div class="terminal">
+      <div class="tbar">
+        <div class="tdot" style="background:#E05252;opacity:.6;"></div>
+        <div class="tdot" style="background:#E8B94A;opacity:.6;"></div>
+        <div class="tdot" style="background:#27C2B6;opacity:.6;"></div>
+        <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-left:8px;">watchtower · daily run · 2026-06-22 06:30 UTC</span>
+      </div>
+      <div class="tbody">
+        <p class="tm">cisa_kev sync complete · +4 new entries</p>
+        <p class="tm">epss_daily sync · 338,247 scores updated</p>
+        <br>
+        <p class="tb">→ cross-referencing 847 inventory entries</p>
+        <br>
+        <p class="tg">⚡ kev match: activemq/5.15.14</p>
+        <p class="td">&nbsp;&nbsp;CVE-2023-46604 · EPSS 0.97 · RCE</p>
+        <p class="td">&nbsp;&nbsp;asset: 10.0.1.15 (internal broker)</p>
+        <br>
+        <p class="to">→ epss spike: spring-webmvc/5.3.27</p>
+        <p class="td">&nbsp;&nbsp;CVE-2023-20861 · 0.03 → 0.34 (+0.31 overnight)</p>
+        <p class="td">&nbsp;&nbsp;pre-KEV signal · monitoring</p>
+        <br>
+        <p class="tr">→ SSVC: ACT · activemq finding escalated</p>
+        <p class="tt">→ incident #44 opened · PagerDuty P1 fired</p>
+        <br>
+        <p class="tm">run complete · 2 matches · 0 false positives<span class="cursor"></span></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="sp-section-hd">
+      <div class="slabel sl-teal">Full capability set</div>
+      <h2>Everything in Threat Intelligence.</h2>
+      <p>CVE correlation, KEV, EPSS, dark web feeds and data sovereignty. All deterministic.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card hl-teal">
+        <div class="feat-card-icon" style="background:var(--teal-dim);border:1px solid rgba(39,194,182,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="tag tag-teal">NVD + CPE</div>
+        <h3>CVE Correlation Engine</h3>
+        <p>338,000+ CVEs from NVD API 2.0. ~25 CPE product alias mappings. Version normalization: "2.4.41" and "2.4.41-1ubuntu1" treated as equal. No false CVEs. Deterministic only.</p>
+        <ul>
+          <li class="y">NVD API 2.0 (CVSS v3.1/v3/v2)</li>
+          <li class="y">~25 CPE alias mappings</li>
+          <li class="y">Version normalization</li>
+          <li class="y">Daily sync job</li>
+        </ul>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:var(--gold-dim);border:1px solid rgba(232,185,74,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="tag tag-gold">CISA</div>
+        <h3>Known Exploited Vulnerabilities</h3>
+        <p>CISA KEV catalog synced daily. KEV match = Exploitation:active in SSVC → Act priority guaranteed. KEV findings bypass the debate. Auto-confirmed.</p>
+        <ul>
+          <li class="y">Daily KEV catalog sync</li>
+          <li class="y">KEV match → SSVC: Act</li>
+          <li class="y">KEV badge on all affected findings</li>
+          <li class="y">Same-day Watchtower alert</li>
+        </ul>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <div class="tag" style="background:rgba(245,158,11,0.10);color:#F59E0B;border:1px solid rgba(245,158,11,0.2);">FIRST</div>
+        <h3>EPSS Scores</h3>
+        <p>Exploit Prediction Scoring System. EPSS &gt; 0.9 → Exploitation:likely in SSVC. Daily score updates. Spike detection (0.2+ overnight) catches pre-KEV signals.</p>
+        <ul>
+          <li class="y">338k EPSS scores updated daily</li>
+          <li class="y">EPSS &gt; 0.9 → SSVC: likely</li>
+          <li class="y">Spike detection: 0.2+ day-over-day</li>
+        </ul>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:rgba(139,92,246,0.10);border:1px solid rgba(139,92,246,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+        </div>
+        <div class="tag tag-purple">IOC feeds</div>
+        <h3>Dark Web + IOC Intelligence</h3>
+        <p>ThreatFox malware IOC + URLhaus malicious URL feed, checked against your domains and IPs daily. Ransomware victim list cross-referenced against your industry.</p>
+        <ul>
+          <li class="y">ThreatFox IOC feed</li>
+          <li class="y">URLhaus malicious URL feed</li>
+          <li class="y">Ransomware victim tracking</li>
+          <li class="y">Domain / email dark web search</li>
+        </ul>
+      </div>
+      <div class="feat-card wide">
+        <div class="feat-card-icon" style="background:rgba(44,107,237,0.10);border:1px solid rgba(44,107,237,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B9FEF" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        </div>
+        <div class="tag tag-lapis">Privacy</div>
+        <h3>Data Sovereignty: 4 Modes</h3>
+        <p>The deterministic core (CVE correlation, SSVC, Watchtower) never calls an LLM. When agents run, choose: <strong>No-cloud</strong> · <strong>Local model</strong> (Ollama/vLLM in your VPC) · <strong>Cloud + redacted</strong> (hosts/IPs pseudonymized before any prompt) · <strong>Cloud</strong>. GDPR and HIPAA ready.</p>
+        <ul style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:12px;">
+          <li class="y">Bidirectional redaction map</li><li class="y">Zero leaks verified in test suite</li>
+          <li class="y">Allowlist for reference domains</li><li class="y">Badge in UI: "No data leaves"</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-cta">
+    <div class="container">
+      <h2>Know about threats<br>the same day they're published.</h2>
+      <p>The demo shows Watchtower running against a live asset inventory.</p>
+      <div class="cta-row">
+        <a href="https://app.horusagents.com/login?demo=1" class="btn-gold btn-gold-lg">Open live demo →</a>
+        <a href="https://github.com/HorusAgentsSec/" class="btn-ghost">Self-host free</a>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>
+
+<script>
+(function () {
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!('IntersectionObserver' in window)) return;
+  var ph = document.querySelector('.page-hero');
+  if (ph) requestAnimationFrame(function () { ph.classList.add('hero-boot'); });
+  if (reduce) return;
+  var io = new IntersectionObserver(function (e) {
+    e.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add('in'); io.unobserve(x.target); } });
+  }, { threshold: 0.15 });
+  function mark(el) { el.classList.add('reveal'); io.observe(el); }
+  document.querySelectorAll('.feat-grid, .sp-steps, .sp-ps, .sp-visual, .bottom-cta').forEach(mark);
+})();
+</script>

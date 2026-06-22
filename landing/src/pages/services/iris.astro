@@ -1,0 +1,231 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+import '../../styles/service-page.css';
+---
+
+<Layout
+  title="Iris · Host Agent · Horus"
+  description="A 4MB Rust daemon on every host. Watches processes, files, network, and logs. Triage AI decides what's worth escalating. Queues offline. Ships to Horus."
+>
+  <Nav activePage="platform" />
+
+  <div class="page-hero">
+    <div class="hero-scan" aria-hidden="true"></div>
+    <div class="container">
+      <a href="/services" class="sp-back">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        All services
+      </a>
+      <div class="cat-eyebrow ey-teal"><span class="dot"></span>Iris · Host Agent</div>
+      <h1><span class="hw hw1">Attackers hide</span> <span class="hw hw2">between</span> <span class="hw hw3">log lines.</span><br><span class="hw hw4">At the process level.</span> <em class="hw hw5" style="color:var(--teal);">Where your SIEM</em> <span class="hw hw6">can't see.</span></h1>
+      <p>Traditional security tools see network edges and application logs. Iris sits on the host itself. It watches process execution, file changes, network events and log patterns — and uses AI triage to decide what actually matters before escalating to Horus.</p>
+      <div class="page-hero-ctas">
+        <a href="https://app.horusagents.com/login?demo=1" class="btn-gold btn-gold-lg">
+          See Iris in the demo
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <a href="https://github.com/HorusAgentsSec/" class="btn-ghost">Self-host free</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="sp-ps">
+      <div class="sp-ps-col">
+        <div class="sp-ps-label bad">Without host visibility</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>A process spawns a reverse shell. Your network scanner doesn't see it. Your SIEM's log rules miss the parent-child relationship. Nobody alerts.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>A config file gets modified at 03:00 UTC by a process that shouldn't touch it. Nobody sees it until a service breaks days later.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>EDR would catch all of this, but costs more per seat than your entire security budget. So hosts run blind.</div>
+      </div>
+      <div class="sp-ps-col">
+        <div class="sp-ps-label good">With Iris</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>4MB Rust daemon. Single binary, zero dependencies, &lt;0.5% CPU on idle. Installs in 40 seconds. Watches 4 monitors simultaneously from inside the host.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>AI triage runs locally on each batch. Only events that pass the relevance threshold get queued to Horus. Noise filtered at the source, not at the SIEM.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>Offline queue with backpressure. If the server is unreachable, events queue to local disk and retry with backoff. No data loss. No OOM.</div>
+      </div>
+    </div>
+
+    <div class="sp-section-hd">
+      <div class="slabel sl-teal">How it works</div>
+      <h2>Install. Watch. Triage. Queue.</h2>
+      <p>Iris is a single Rust binary. It runs four monitors in parallel threads and uses AI triage to decide what's worth sending to Horus.</p>
+    </div>
+
+    <div class="sp-steps">
+      <div class="sp-step">
+        <div class="sp-step-n" style="color:var(--teal);">01 / INSTALL</div>
+        <h3>Single binary, 40 seconds</h3>
+        <p>One install script. Registers as a systemd service. 4MB binary, zero dependencies. Works on Ubuntu 20+, Debian 11+. Stops and restarts existing service on upgrade automatically.</p>
+      </div>
+      <div class="sp-step">
+        <div class="sp-step-n" style="color:var(--gold);">02 / MONITOR</div>
+        <h3>4 monitors running in parallel</h3>
+        <p>Process monitor (spawns + exits). File watcher (critical config paths). Network events (connections + listens). Log scraper (journald + auditd patterns). Each runs in its own thread.</p>
+      </div>
+      <div class="sp-step">
+        <div class="sp-step-n" style="color:var(--orange);">03 / TRIAGE + SHIP</div>
+        <h3>AI scores, queue ships</h3>
+        <p>Batches of events scored by AI triage model. Only relevant events queued. Bounded queue prevents OOM. Backpressure and retry with exponential backoff. Events correlated in Horus pipeline.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sp-visual container">
+    <div class="sp-visual-label">Iris daemon · live event stream</div>
+    <div class="terminal">
+      <div class="tbar">
+        <div class="tdot" style="background:#E05252;opacity:.6;"></div>
+        <div class="tdot" style="background:#E8B94A;opacity:.6;"></div>
+        <div class="tdot" style="background:#27C2B6;opacity:.6;"></div>
+        <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-left:8px;">iris · host-agent · 10.0.1.15 · v0.4.1</span>
+      </div>
+      <div class="tbody">
+        <p class="tm">monitors armed · proc / file / net / log</p>
+        <p class="tm">queue: 0 pending · server: reachable</p>
+        <br>
+        <p class="tb">→ [proc] python3 spawned by bash (pid 3821)</p>
+        <p class="td">&nbsp;&nbsp;parent: /bin/bash · user: www-data · unusual</p>
+        <br>
+        <p class="to">→ [file] /etc/cron.d/cleanup modified</p>
+        <p class="td">&nbsp;&nbsp;writer: pid 3821 (python3) · 03:14:22 UTC</p>
+        <br>
+        <p class="tr">→ [net] outbound :4444 established</p>
+        <p class="td">&nbsp;&nbsp;proc: python3 pid 3821 · dest: 185.220.101.x</p>
+        <br>
+        <p class="tg">→ AI triage: HIGH relevance · batch queued</p>
+        <p class="tt">→ shipped to Horus · incident created<span class="cursor"></span></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="sp-section-hd">
+      <div class="slabel sl-teal">Full capability set</div>
+      <h2>Everything Iris does.</h2>
+      <p>Four monitors, AI triage, offline resilience and deep Horus integration.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card hl-teal">
+        <div class="feat-card-icon" style="background:var(--teal-dim);border:1px solid rgba(39,194,182,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div class="tag tag-teal">Rust daemon</div>
+        <h3>Single Binary</h3>
+        <p>4MB Rust binary. Zero dependencies. &lt;0.5% CPU idle. Registers as systemd service on install. Bounded offline queue prevents OOM. Single install script.</p>
+        <ul>
+          <li class="y">Ubuntu 20+ / Debian 11+</li>
+          <li class="y">&lt;0.5% CPU on idle</li>
+          <li class="y">40-second install</li>
+          <li class="y">Auto-restarts on upgrade</li>
+        </ul>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:rgba(44,107,237,0.10);border:1px solid rgba(44,107,237,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B9FEF" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </div>
+        <div class="tag tag-lapis">Monitor 1</div>
+        <h3>Process Monitor</h3>
+        <p>Watches process spawns and exits. Captures parent-child relationships, user context, and binary path. Detects unusual spawners (web server → shell → python).</p>
+        <ul>
+          <li class="y">Spawn + exit events</li>
+          <li class="y">Parent-child chain</li>
+          <li class="y">User + binary context</li>
+        </ul>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:var(--gold-dim);border:1px solid rgba(232,185,74,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="tag tag-gold">Monitor 2</div>
+        <h3>File Watcher</h3>
+        <p>Watches critical config paths: /etc, /var/spool/cron, SSH keys, sudoers. Captures who wrote what and when. Detects unauthorized modifications.</p>
+        <ul>
+          <li class="y">Critical config paths</li>
+          <li class="y">Writer PID + timestamp</li>
+          <li class="y">Configurable watch list</li>
+        </ul>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:var(--red-dim);border:1px solid rgba(224,82,82,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+        </div>
+        <div class="tag tag-red">Monitor 3</div>
+        <h3>Network Events</h3>
+        <p>Tracks outbound connections and new listeners. Ties connections back to the originating process. Detects unexpected C2 callbacks, port binds and lateral movement.</p>
+        <ul>
+          <li class="y">Outbound connections + dest</li>
+          <li class="y">New listeners on all interfaces</li>
+          <li class="y">Process-to-connection linkage</li>
+        </ul>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:rgba(122,132,153,0.10);border:1px solid rgba(122,132,153,0.15);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A8499" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <div class="tag" style="background:rgba(122,132,153,0.10);color:var(--muted);border:1px solid rgba(122,132,153,0.18);">Monitor 4</div>
+        <h3>Log Scraper</h3>
+        <p>Tails journald and auditd logs. Pattern-matches against known attack signatures: sudo escalations, failed auth bursts, kernel module loads.</p>
+        <ul>
+          <li class="y">journald + auditd</li>
+          <li class="y">Pattern-matched signatures</li>
+          <li class="y">Auth and escalation events</li>
+        </ul>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        </div>
+        <div class="tag" style="background:rgba(245,158,11,0.10);color:#F59E0B;border:1px solid rgba(245,158,11,0.2);">AI</div>
+        <h3>AI Triage</h3>
+        <p>Batches of events scored by AI triage model. Only relevant events queued and shipped to Horus. Noise filtered at the source. Token-economic: cheap periodic triage, not per-event LLM calls.</p>
+        <ul>
+          <li class="y">Batch scoring (not per-event)</li>
+          <li class="y">Relevance threshold configurable</li>
+          <li class="y">Token-economic design</li>
+        </ul>
+      </div>
+      <div class="feat-card wide">
+        <div class="feat-card-icon" style="background:rgba(39,194,182,0.10);border:1px solid rgba(39,194,182,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="tag tag-teal">Resilience</div>
+        <h3>Offline Queue + Backpressure</h3>
+        <p>If the Horus server is unreachable, events queue to local disk with a configurable maximum size. Retry with exponential backoff. Bounded queue prevents OOM even on disk-constrained hosts. No data loss. No duplicate delivery.</p>
+        <ul style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:12px;">
+          <li class="y">Bounded queue (configurable max)</li><li class="y">Retry with exponential backoff</li>
+          <li class="y">No OOM on disk-constrained hosts</li><li class="y">No duplicate delivery</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-cta">
+    <div class="container">
+      <h2>Host visibility,<br>at minimal cost.</h2>
+      <p>4MB binary. 40-second install. MIT licensed. See Iris running in the live demo.</p>
+      <div class="cta-row">
+        <a href="https://app.horusagents.com/login?demo=1" class="btn-gold btn-gold-lg">Open live demo →</a>
+        <a href="https://github.com/HorusAgentsSec/" class="btn-ghost">Self-host free</a>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>
+
+<script>
+(function () {
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!('IntersectionObserver' in window)) return;
+  var ph = document.querySelector('.page-hero');
+  if (ph) requestAnimationFrame(function () { ph.classList.add('hero-boot'); });
+  if (reduce) return;
+  var io = new IntersectionObserver(function (e) {
+    e.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add('in'); io.unobserve(x.target); } });
+  }, { threshold: 0.15 });
+  function mark(el) { el.classList.add('reveal'); io.observe(el); }
+  document.querySelectorAll('.feat-grid, .sp-steps, .sp-ps, .sp-visual, .bottom-cta').forEach(mark);
+})();
+</script>

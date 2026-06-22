@@ -1,0 +1,156 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+import '../../styles/service-page.css';
+---
+
+<Layout
+  title="Horus Platform: Services overview"
+  description="Four capability areas. Continuous Defense, Adversarial AI, Threat Intelligence, Governance, and Iris host agent."
+>
+  <Nav activePage="platform" />
+
+  <div class="page-hero">
+    <div class="hero-scan" aria-hidden="true"></div>
+    <div class="container">
+      <div class="page-hero-eyebrow">Platform overview</div>
+      <h1><span class="hw hw1">Everything</span> <span class="hw hw2">Horus</span> <span class="hw hw3">does.</span><br><span class="hw hw4">Pick</span> <span class="hw hw5">your</span> <span class="hw hw6">area.</span></h1>
+      <p>Five capability areas. All run automatically, on a schedule you configure once.</p>
+    </div>
+  </div>
+
+  <div style="padding:64px 0 80px;">
+    <div class="container">
+      <div class="srv-grid">
+
+        <a href="/services/continuous-defense" class="srv-card srv-gold">
+          <div class="srv-icon" style="background:var(--gold-dim);border:1px solid rgba(232,185,74,0.25);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <div class="srv-body">
+            <div class="srv-label" style="color:var(--gold);">Continuous Defense</div>
+            <h2>Discover. Scan. Prioritize.<br>Every night, without you.</h2>
+            <p>Asset discovery, vulnerability scanning, SSVC prioritization, Watchtower alerts and incident tracking. Eight AI agents run every night on a schedule you set once.</p>
+            <div class="srv-pills">
+              <span>Asset Discovery</span><span>Nuclei Scanning</span><span>SSVC Priority</span><span>Watchtower</span><span>Incidents</span>
+            </div>
+          </div>
+          <div class="srv-arrow">→</div>
+        </a>
+
+        <a href="/services/adversarial-ai" class="srv-card srv-red">
+          <div class="srv-icon" style="background:var(--red-dim);border:1px solid rgba(224,82,82,0.25);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <div class="srv-body">
+            <div class="srv-label" style="color:var(--red);">Adversarial AI</div>
+            <h2>Attack. Defend.<br>Before the real thing.</h2>
+            <p>Red and Blue AI agents debate every ambiguous finding. Phishing campaigns test your team. Credential exposure checks HIBP. Verdicts stored and inherited across scans.</p>
+            <div class="srv-pills">
+              <span>Red/Blue Debate</span><span>Attack Simulation</span><span>Phishing</span><span>Credential Exposure</span>
+            </div>
+          </div>
+          <div class="srv-arrow">→</div>
+        </a>
+
+        <a href="/services/threat-intelligence" class="srv-card srv-teal">
+          <div class="srv-icon" style="background:var(--teal-dim);border:1px solid rgba(39,194,182,0.25);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <div class="srv-body">
+            <div class="srv-label" style="color:var(--teal);">Threat Intelligence</div>
+            <h2>338,000+ CVEs. Live feeds.<br>No hallucinations.</h2>
+            <p>CISA KEV and EPSS synced daily. Watchtower re-correlates your inventory the same morning new entries appear. EPSS spike detection catches pre-KEV signals.</p>
+            <div class="srv-pills">
+              <span>CVE Correlation</span><span>CISA KEV</span><span>EPSS</span><span>Dark Web IOC</span><span>Data Sovereignty</span>
+            </div>
+          </div>
+          <div class="srv-arrow">→</div>
+        </a>
+
+        <a href="/services/governance" class="srv-card srv-purple">
+          <div class="srv-icon" style="background:var(--purple-dim);border:1px solid rgba(139,92,246,0.25);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div class="srv-body">
+            <div class="srv-label" style="color:var(--purple);">Governance</div>
+            <h2>Control what AI does.<br>Prove what happened.</h2>
+            <p>Permission policies define what agents can automate. Append-only audit trail covers every user and agent action. RBAC with Admin / Analyst / Viewer roles.</p>
+            <div class="srv-pills">
+              <span>Permission Policies</span><span>Audit Log</span><span>RBAC</span><span>Integrations</span><span>API Keys</span>
+            </div>
+          </div>
+          <div class="srv-arrow">→</div>
+        </a>
+
+        <a href="/services/iris" class="srv-card srv-teal srv-wide">
+          <div class="srv-icon" style="background:var(--teal-dim);border:1px solid rgba(39,194,182,0.25);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>
+          </div>
+          <div class="srv-body">
+            <div class="srv-label" style="color:var(--teal);">Iris · Host Agent</div>
+            <h2>4MB Rust daemon. Watches every host from the inside.</h2>
+            <p>Process monitor, file watcher, network events, log scraper. AI triage scores batches before queuing to Horus. Bounded offline queue. Zero OOM. Single install script.</p>
+            <div class="srv-pills">
+              <span>Process Monitor</span><span>File Watcher</span><span>Network Events</span><span>Log Scraper</span><span>AI Triage</span><span>Offline Queue</span>
+            </div>
+          </div>
+          <div class="srv-arrow">→</div>
+        </a>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-cta">
+    <div class="container">
+      <h2>Configure it once.<br>Agents start tonight.</h2>
+      <p>The live demo has 30 days of posture history, real CVE findings, Red/Blue debate transcripts and phishing campaign results.</p>
+      <div class="cta-row">
+        <a href="https://app.horusagents.com/login?demo=1" class="btn-gold btn-gold-lg">Open live demo →</a>
+        <a href="https://github.com/HorusAgentsSec/" class="btn-ghost">Self-host free</a>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>
+
+<style>
+  .srv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .srv-card {
+    display: flex; align-items: flex-start; gap: 20px; padding: 28px 26px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    transition: border-color .2s, background .2s, transform .25s cubic-bezier(.16,1,.3,1);
+    text-decoration: none; position: relative;
+  }
+  .srv-card:hover { background: var(--surface2); transform: translateY(-3px); }
+  .srv-card.srv-wide { grid-column: span 2; }
+  .srv-gold:hover { border-color: rgba(232,185,74,0.3); }
+  .srv-red:hover  { border-color: rgba(224,82,82,0.28); }
+  .srv-teal:hover { border-color: rgba(39,194,182,0.28); }
+  .srv-purple:hover { border-color: rgba(139,92,246,0.28); }
+  .srv-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .srv-body { flex: 1; }
+  .srv-label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px; }
+  .srv-body h2 { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: -0.018em; line-height: 1.25; margin-bottom: 9px; }
+  .srv-body p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+  .srv-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+  .srv-pills span { font-size: 11px; color: rgba(122,132,153,0.8); background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; }
+  .srv-arrow { font-size: 18px; color: var(--muted); flex-shrink: 0; align-self: center; transition: transform .2s, color .2s; }
+  .srv-card:hover .srv-arrow { transform: translateX(4px); color: var(--ivory); }
+  @media (max-width: 780px) {
+    .srv-grid { grid-template-columns: 1fr; }
+    .srv-card.srv-wide { grid-column: span 1; }
+    .srv-card { flex-direction: column; gap: 14px; }
+    .srv-arrow { display: none; }
+  }
+</style>
+
+<script>
+(function () {
+  var ph = document.querySelector('.page-hero');
+  if (ph) requestAnimationFrame(function () { ph.classList.add('hero-boot'); });
+})();
+</script>

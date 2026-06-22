@@ -1,0 +1,221 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+import '../../styles/service-page.css';
+---
+
+<Layout
+  title="Adversarial AI · Horus"
+  description="Two AI agents debate every ambiguous finding before you see it. Red Team attacks. Blue Team defends. Judge arbitrates. Only real threats reach your inbox."
+>
+  <Nav activePage="platform" />
+
+  <div class="page-hero">
+    <div class="hero-scan" aria-hidden="true"></div>
+    <div class="container">
+      <a href="/services" class="sp-back">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        All services
+      </a>
+      <div class="cat-eyebrow ey-red"><span class="dot"></span>Adversarial AI</div>
+      <h1><span class="hw hw1">Your scanner</span> <span class="hw hw2">says</span> <span class="hw hw3">it's critical.</span><br><span class="hw hw4">Is it</span> <em class="hw hw5" style="color:var(--red);">actually</em> <span class="hw hw6">exploitable?</span></h1>
+      <p>Scanners have no context. They flag everything with a CVSS score, then leave the judgment to you. Horus uses adversarial AI to argue both sides of every ambiguous finding before it reaches your team.</p>
+      <div class="page-hero-ctas">
+        <a href="https://app.horusagents.com/login?demo=1" class="btn-gold btn-gold-lg">
+          See a debate live
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <a href="https://github.com/HorusAgentsSec/" class="btn-ghost">Self-host free</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="sp-ps">
+      <div class="sp-ps-col">
+        <div class="sp-ps-label bad">Without adversarial validation</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>Sprint planning derailed by a CVSS 9.8 finding that, on closer inspection, only affects internal hosts with no public exploit available.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>Your team spends two hours investigating whether a flagged service is patched. It is. That time is gone.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>Everyone stops trusting the scanner. Real threats get buried under false positives.</div>
+      </div>
+      <div class="sp-ps-col">
+        <div class="sp-ps-label good">With adversarial AI</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>Red Team generates a concrete attack narrative. Blue Team presents the defensive case. Judge calibrates confidence 0.0-1.0. You only see the verdict.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>Verdicts are stored. Future scans of the same finding inherit the decision. No re-debating. 4 hours of triage saved per finding.</div>
+        <div class="sp-ps-item"><span class="sp-ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>KEV-active findings bypass the debate entirely. They're auto-confirmed. The AI argues only where there's genuine ambiguity.</div>
+      </div>
+    </div>
+
+    <div class="sp-section-hd">
+      <div class="slabel sl-gold">How it works</div>
+      <h2>Attack. Defend. Judge. Store.</h2>
+      <p>Every ambiguous finding goes through a 3-step adversarial process before it gets an SSVC priority.</p>
+    </div>
+
+    <div class="sp-steps">
+      <div class="sp-step">
+        <div class="sp-step-n" style="color:var(--red);">01 / RED TEAM</div>
+        <h3>Attack narrative generated</h3>
+        <p>Red Team agent builds a concrete exploit path: threat actor motive, blast radius, attack vector. Context-aware, not boilerplate CVSS descriptions.</p>
+      </div>
+      <div class="sp-step">
+        <div class="sp-step-n" style="color:#6B9FEF;">02 / BLUE TEAM</div>
+        <h3>Defensive case argued</h3>
+        <p>Blue Team agent counters: compensating controls, network segmentation, non-exploitable conditions. Checks whether the finding is already mitigated.</p>
+      </div>
+      <div class="sp-step">
+        <div class="sp-step-n" style="color:var(--teal);">03 / JUDGE + STORE</div>
+        <h3>Verdict calibrated and persisted</h3>
+        <p>A third LLM weighs both arguments and outputs a confidence score 0.0-1.0. Verdict stored. Future scans inherit it without re-debating. Triage time drops to zero.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sp-visual container">
+    <div class="sp-visual-label">Live debate · CVE-2022-3602 · confidence 0.55</div>
+    <div class="debate" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 20px 56px rgba(0,0,0,0.4);">
+      <div style="display:flex;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02);">
+        <div style="flex:1;padding:11px 16px;font-size:12px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--red);border-bottom:2px solid var(--red);">Red Team</div>
+        <div style="flex:1;padding:11px 16px;font-size:12px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:#6B9FEF;border-bottom:2px solid #6B9FEF;text-align:right;">Blue Team</div>
+      </div>
+      <div style="padding:16px 18px;">
+        <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:14px;padding:10px 12px;border-radius:8px;background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.14);">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--ivory);margin-bottom:2px;">CVE-2022-3602 · OpenSSL X.509 Overflow</div>
+            <div class="mono">admin.acmecorp.io · :443 · confidence 0.55</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+          <div style="padding:11px;border-radius:8px;background:rgba(224,82,82,0.06);border:1px solid rgba(224,82,82,0.14);">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--red);margin-bottom:6px;">Red Team</div>
+            <p style="font-size:12px;color:var(--muted);line-height:1.5;">Stack-based overflow in X.509 cert parsing. Attacker controls a cert in the TLS chain → code execution plausible. Internet-facing on port 443.</p>
+          </div>
+          <div style="padding:11px;border-radius:8px;background:rgba(107,159,239,0.06);border:1px solid rgba(107,159,239,0.14);">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6B9FEF;margin-bottom:6px;">Blue Team</div>
+            <p style="font-size:12px;color:var(--muted);line-height:1.5;">OpenSSL 3.0.7 patches this. Banner shows 3.0.7-1ubuntu1. WAF terminates TLS before OpenSSL processes it. NVD exploitability: none.</p>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:rgba(39,194,182,0.07);border:1px solid rgba(39,194,182,0.2);">
+          <div style="width:28px;height:28px;border-radius:6px;background:rgba(39,194,182,0.14);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:1px;">Judge verdict · confidence calibrated</div>
+            <div style="font-size:13px;font-weight:600;color:var(--teal);">Likely false positive · SSVC: TRACK</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <span class="mono" style="color:rgba(122,132,153,0.45);">verdict stored · future scans inherit</span>
+          <span class="mono" style="color:var(--teal);">4h triage saved</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="sp-section-hd">
+      <div class="slabel sl-gold">Full capability set</div>
+      <h2>Everything in Adversarial AI.</h2>
+      <p>Red/Blue debate, attack simulation, phishing campaigns and credential exposure checks.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card wide hl-red">
+        <div class="feat-card-icon" style="background:var(--red-dim);border:1px solid rgba(224,82,82,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="tag tag-red">AI debate · per finding</div>
+        <h3>Red / Blue Adversarial Validation</h3>
+        <p>For ambiguous findings (confidence 0.2–0.9, no known exploit): Red argues attack, Blue argues defense, Judge calibrates. KEV-active findings skip debate, they're auto-confirmed. Verdicts stored and inherited across scans.</p>
+        <ul style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:12px;">
+          <li class="y">Context-aware attack narrative (Red)</li><li class="y">Compensating control analysis (Blue)</li>
+          <li class="y">Calibrated confidence 0.0–1.0</li><li class="y">Verdict memory across scans</li>
+          <li class="y">Cap: 15 debates per scan</li><li class="y">KEV always bypasses → auto-confirmed</li>
+        </ul>
+      </div>
+      <div class="feat-card hl-red">
+        <div class="feat-card-icon" style="background:var(--red-dim);border:1px solid rgba(224,82,82,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E05252" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="tag tag-red">Attack simulation</div>
+        <h3>Red Team Simulation Cycles</h3>
+        <p>Full adversarial cycles against your live infrastructure. Red Team generates attack findings across multiple categories. Results feed into the main findings pipeline.</p>
+        <ul>
+          <li class="y">DNS spoofing attempts</li>
+          <li class="y">Certificate / SSL attacks</li>
+          <li class="y">Subdomain takeover checks</li>
+          <li class="y">Known breach correlation</li>
+          <li class="y">Live streaming progress (SSE)</li>
+        </ul>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:rgba(39,194,182,0.10);border:1px solid rgba(39,194,182,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="tag tag-teal">Federated learning</div>
+        <h3>Community Verdict Memory</h3>
+        <p>Anonymous aggregation of verdicts across all Horus orgs. k-anonymity guarantee. New customers benefit from industry-learned FP suppression from day one.</p>
+        <ul>
+          <li class="y">k-anonymity (no org_id stored)</li>
+          <li class="y">Priority: KEV &gt; human &gt; community</li>
+          <li class="y">Nightly community refresh</li>
+        </ul>
+      </div>
+      <div class="feat-card hl-gold">
+        <div class="feat-card-icon" style="background:var(--gold-dim);border:1px solid rgba(232,185,74,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8B94A" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div class="tag tag-gold">Social engineering</div>
+        <h3>Phishing Campaigns</h3>
+        <p>PhishingAgent uses your asset inventory to craft credible lures. Click tracking. Department and repeat-offender analytics. Awareness landing page on click.</p>
+        <ul>
+          <li class="y">Asset-aware lure generation</li>
+          <li class="y">Objective: click / credential / report drill</li>
+          <li class="y">Per-target tracking</li>
+          <li class="y">Fake MFA/OTP simulation</li>
+        </ul>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:rgba(139,92,246,0.10);border:1px solid rgba(139,92,246,0.2);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <div class="tag tag-purple">HIBP integration</div>
+        <h3>Credential Exposure</h3>
+        <p>Have I Been Pwned domain search for your org's employees. Per-employee karma score. Sensitive breach detection for passwords and tokens.</p>
+        <ul>
+          <li class="y">HIBP Domain Search integration</li>
+          <li class="y">Per-employee karma score</li>
+          <li class="y">Sensitive breach detection</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-cta">
+    <div class="container">
+      <h2>Stop triaging manually.<br>Let AI argue first.</h2>
+      <p>The live demo includes Red/Blue debate transcripts and phishing campaign results.</p>
+      <div class="cta-row">
+        <a href="https://app.horusagents.com/login?demo=1" class="btn-gold btn-gold-lg">Open live demo →</a>
+        <a href="https://github.com/HorusAgentsSec/" class="btn-ghost">Self-host free</a>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>
+
+<script>
+(function () {
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!('IntersectionObserver' in window)) return;
+  var ph = document.querySelector('.page-hero');
+  if (ph) requestAnimationFrame(function () { ph.classList.add('hero-boot'); });
+  if (reduce) return;
+  var io = new IntersectionObserver(function (e) {
+    e.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add('in'); io.unobserve(x.target); } });
+  }, { threshold: 0.15 });
+  function mark(el) { el.classList.add('reveal'); io.observe(el); }
+  document.querySelectorAll('.feat-grid, .sp-steps, .sp-ps, .sp-visual, .bottom-cta').forEach(mark);
+})();
+</script>
