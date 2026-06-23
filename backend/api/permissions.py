@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from supabase import Client
 from backend.api.auth import get_current_user, get_db
@@ -63,7 +65,9 @@ async def delete_policy(
     db: Client = Depends(get_db),
 ):
     _assert_owned(db, policy_id, user["org_id"])
-    db.table("permission_policies").delete().eq("id", policy_id).execute()
+    db.table("permission_policies").update(
+        {"deleted_at": datetime.now(timezone.utc).isoformat()}
+    ).eq("id", policy_id).execute()
     log_action(
         user["org_id"], user["id"], "permission_policy.deleted",
         entity_type="permission_policy", entity_id=policy_id,

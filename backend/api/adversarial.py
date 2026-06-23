@@ -103,6 +103,32 @@ async def update_red_finding(
     return result.data[0] if result.data else {"id": finding_id, **updates}
 
 
+@router.delete("/findings/{finding_id}", status_code=204)
+async def delete_red_finding(
+    finding_id: str,
+    user=Depends(require_role("analyst")),
+    db: Client = Depends(get_db),
+):
+    existing = (
+        db.table("red_findings")
+        .select("id")
+        .eq("id", finding_id)
+        .eq("org_id", user["org_id"])
+        .maybe_single()
+        .execute()
+    )
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Finding not found")
+
+    db.table("red_findings").update(
+        {"deleted_at": datetime.now(timezone.utc).isoformat()}
+    ).eq("id", finding_id).eq("org_id", user["org_id"]).execute()
+    log_action(
+        user["org_id"], user["id"], "adversarial.finding_deleted",
+        entity_type="red_finding", entity_id=finding_id,
+    )
+
+
 @router.post("/run", status_code=202)
 async def run_adversarial(
     background_tasks: BackgroundTasks,
@@ -361,5 +387,7 @@ async def delete_adversarial_schedule(
     db: Client = Depends(get_db),
 ):
     from backend.core import scheduler as _scheduler
-    db.table("adversarial_schedules").delete().eq("id", schedule_id).eq("org_id", user["org_id"]).execute()
+    db.table("adversarial_schedules").update(
+        {"deleted_at": datetime.now(timezone.utc).isoformat(), "enabled": False}
+    ).eq("id", schedule_id).eq("org_id", user["org_id"]).execute()
     _scheduler.unschedule_job(f"adversarial:{schedule_id}")

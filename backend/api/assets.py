@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from supabase import Client
 from backend.api.auth import get_current_user, get_db
@@ -91,7 +93,9 @@ async def delete_asset(
     db: Client = Depends(get_db),
 ):
     asset = _assert_asset_owned(db, asset_id, user["org_id"])
-    db.table("assets").delete().eq("id", asset_id).execute()
+    db.table("assets").update(
+        {"deleted_at": datetime.now(timezone.utc).isoformat(), "is_active": False}
+    ).eq("id", asset_id).execute()
     log_action(
         user["org_id"], user["id"], "asset.deleted",
         entity_type="asset", entity_id=asset_id,

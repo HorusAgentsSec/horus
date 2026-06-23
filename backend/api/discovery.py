@@ -8,6 +8,7 @@ last_run_at / last_found_count and the assets list.
 """
 
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from supabase import Client
@@ -81,7 +82,9 @@ async def update_source(
 async def delete_source(
     source_id: str, user=Depends(require_role("analyst")), db: Client = Depends(get_db)
 ):
-    db.table("discovery_sources").delete().eq("id", source_id).eq("org_id", user["org_id"]).execute()
+    db.table("discovery_sources").update(
+        {"deleted_at": datetime.now(timezone.utc).isoformat(), "enabled": False}
+    ).eq("id", source_id).eq("org_id", user["org_id"]).execute()
     scheduler.unschedule_discovery(source_id)
 
 

@@ -22,6 +22,7 @@ import csv
 import io
 import logging
 import secrets
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -173,7 +174,9 @@ async def import_employees(
 async def delete_employee(
     employee_id: str, user=Depends(require_role("admin")), db: Client = Depends(get_db)
 ):
-    db.table("employees").delete().eq("id", employee_id).eq("org_id", user["org_id"]).execute()
+    db.table("employees").update(
+        {"deleted_at": datetime.now(timezone.utc).isoformat()}
+    ).eq("id", employee_id).eq("org_id", user["org_id"]).execute()
     log_action(user["org_id"], user["id"], "employee.deleted", entity_type="employee", entity_id=employee_id)
 
 
@@ -358,7 +361,9 @@ async def update_template(
 async def delete_template(
     template_id: str, user=Depends(require_role("admin")), db: Client = Depends(get_db)
 ):
-    db.table("phishing_templates").delete().eq("id", template_id).eq("org_id", user["org_id"]).execute()
+    db.table("phishing_templates").update(
+        {"deleted_at": datetime.now(timezone.utc).isoformat()}
+    ).eq("id", template_id).eq("org_id", user["org_id"]).execute()
     log_action(user["org_id"], user["id"], "template.deleted", entity_type="phishing_template", entity_id=template_id)
 
 
@@ -486,7 +491,9 @@ async def update_campaign(
 async def delete_campaign(
     campaign_id: str, user=Depends(require_role("admin")), db: Client = Depends(get_db)
 ):
-    db.table("phishing_campaigns").delete().eq("id", campaign_id).eq("org_id", user["org_id"]).execute()
+    db.table("phishing_campaigns").update(
+        {"deleted_at": datetime.now(timezone.utc).isoformat()}
+    ).eq("id", campaign_id).eq("org_id", user["org_id"]).execute()
     log_action(user["org_id"], user["id"], "campaign.deleted", entity_type="phishing_campaign", entity_id=campaign_id)
 
 

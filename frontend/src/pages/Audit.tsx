@@ -60,6 +60,7 @@ const ACTION_META: Record<string, { label: string; tone: string }> = {
   // Adversarial
   'adversarial.run_triggered': { label: 'Adversarial run', tone: 'text-accent' },
   'adversarial.finding_updated': { label: 'Adversarial finding updated', tone: 'text-mode-approval' },
+  'adversarial.finding_deleted': { label: 'Adversarial finding deleted', tone: 'text-severity-critical' },
   // Phishing / human attack surface
   'campaign.created': { label: 'Campaign created', tone: 'text-mode-auto' },
   'campaign.launched': { label: 'Campaign launched', tone: 'text-accent' },

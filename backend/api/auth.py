@@ -109,6 +109,7 @@ def _resolve_user(token: str) -> dict:
             supabase.table("profiles")
             .select("org_id, role, must_change_password")
             .eq("id", user.id)
+            .is_("deleted_at", "null")
             .single()
             .execute()
         )

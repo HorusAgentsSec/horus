@@ -1,5 +1,6 @@
 import secrets
 import string
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
@@ -41,6 +42,7 @@ async def list_members(user: dict = Depends(get_current_user)):
         supabase.table("profiles")
         .select("id, role, full_name, created_at")
         .eq("org_id", user["org_id"])
+        .is_("deleted_at", "null")
         .order("created_at")
         .execute()
     )
@@ -150,7 +152,9 @@ async def remove_member(
     if user_id == user["id"]:
         raise HTTPException(status_code=400, detail="Cannot remove yourself")
     _assert_same_org(user_id, user["org_id"])
-    supabase.table("profiles").delete().eq("id", user_id).execute()
+    supabase.table("profiles").update(
+        {"deleted_at": datetime.now(timezone.utc).isoformat()}
+    ).eq("id", user_id).execute()
     log_action(
         user["org_id"], user["id"], "team.member_removed",
         entity_type="profile", entity_id=user_id,

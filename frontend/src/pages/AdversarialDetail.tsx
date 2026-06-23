@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Swords, Shield, Terminal, ExternalLink,
-  ChevronDown, ChevronRight, CheckCircle, XCircle, Clock,
+  ChevronDown, ChevronRight, CheckCircle, XCircle, Clock, Trash2,
 } from 'lucide-react'
 import { api, friendlyErrorMessage } from '../lib/api'
 import { SeverityBadge } from '../components/findings/SeverityBadge'
@@ -78,6 +78,18 @@ export default function AdversarialDetail() {
     } catch (e) {
       setError(friendlyErrorMessage(e, 'Failed to update status'))
     } finally {
+      setSaving(false)
+    }
+  }
+
+  const deleteFinding = async () => {
+    if (!id || !window.confirm('Delete this finding permanently? This cannot be undone.')) return
+    setSaving(true)
+    try {
+      await api.delete(`/adversarial/findings/${id}`)
+      navigate('/adversarial')
+    } catch (e) {
+      setError(friendlyErrorMessage(e, 'Failed to delete finding'))
       setSaving(false)
     }
   }
@@ -243,23 +255,35 @@ export default function AdversarialDetail() {
       ) : null}
 
       {/* ── Actions ───────────────────────────────────────────────────────── */}
-      {can('analyst') && finding.status !== 'accepted' && finding.status !== 'false_positive' && (
-        <div className="flex gap-3">
+      {can('analyst') && (
+        <div className="flex flex-wrap gap-3 items-center">
+          {finding.status !== 'accepted' && finding.status !== 'false_positive' && (
+            <>
+              <button
+                disabled={saving}
+                onClick={() => updateStatus('accepted')}
+                className="flex items-center gap-2 px-4 py-2 rounded-md bg-mode-auto/10 text-mode-auto border border-mode-auto/30 text-sm hover:bg-mode-auto/20 disabled:opacity-50 transition-colors"
+              >
+                <CheckCircle className="w-4 h-4" />
+                Accept risk
+              </button>
+              <button
+                disabled={saving}
+                onClick={() => updateStatus('false_positive')}
+                className="flex items-center gap-2 px-4 py-2 rounded-md bg-surface text-muted border border-border text-sm hover:text-white hover:border-white/20 disabled:opacity-50 transition-colors"
+              >
+                <XCircle className="w-4 h-4" />
+                False positive
+              </button>
+            </>
+          )}
           <button
             disabled={saving}
-            onClick={() => updateStatus('accepted')}
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-mode-auto/10 text-mode-auto border border-mode-auto/30 text-sm hover:bg-mode-auto/20 disabled:opacity-50 transition-colors"
+            onClick={deleteFinding}
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-severity-critical/10 text-severity-critical border border-severity-critical/30 text-sm hover:bg-severity-critical/20 disabled:opacity-50 transition-colors ml-auto"
           >
-            <CheckCircle className="w-4 h-4" />
-            Accept risk
-          </button>
-          <button
-            disabled={saving}
-            onClick={() => updateStatus('false_positive')}
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-surface text-muted border border-border text-sm hover:text-white hover:border-white/20 disabled:opacity-50 transition-colors"
-          >
-            <XCircle className="w-4 h-4" />
-            False positive
+            <Trash2 className="w-4 h-4" />
+            Delete
           </button>
         </div>
       )}

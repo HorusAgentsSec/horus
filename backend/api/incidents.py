@@ -337,9 +337,9 @@ async def remove_finding(
 ):
     org_id = user["org_id"]
     _load_incident(db, incident_id, org_id)
-    db.table("incident_findings").delete().eq("incident_id", incident_id).eq(
-        "finding_id", finding_id
-    ).execute()
+    db.table("incident_findings").update(
+        {"deleted_at": datetime.now(timezone.utc).isoformat()}
+    ).eq("incident_id", incident_id).eq("finding_id", finding_id).execute()
 
 
 # ── Notes ────────────────────────────────────────────────────────────────────
@@ -393,9 +393,12 @@ def _link_findings(
     owned = _owned_finding_ids(db, org_id, finding_ids)
     if not owned:
         return 0
-    rows = [{"incident_id": incident_id, "finding_id": fid} for fid in owned]
-    # upsert so re-linking an already-linked finding is idempotent (PK conflict).
-    db.table("incident_findings").upsert(
+    # deleted_at=None so re-linking revives a previously unlinked (soft-deleted) row.
+    rows = [{"incident_id": incident_id, "finding_id": fid, "deleted_at": None} for fid in owned]
+    # Service-role upsert: a soft-deleted row is invisible to the authed client (RLS hides
+    # deleted_at IS NOT NULL), so reviving it must bypass RLS. Ownership was already checked
+    # above via _owned_finding_ids on the authed client.
+    supabase.table("incident_findings").upsert(
         rows, on_conflict="incident_id,finding_id"
     ).execute()
     return len(owned)

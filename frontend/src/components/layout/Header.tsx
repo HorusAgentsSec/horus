@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import * as Popover from '@radix-ui/react-popover'
-import { Bell, LogOut, Menu, Search } from 'lucide-react'
+import { Bell, LogOut, Menu, Search, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { api } from '../../lib/api'
@@ -39,6 +39,12 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
     setOpen(false)
     const scanId = n.metadata?.scan_id
     if (scanId) navigate(`/scans/${scanId}`)
+  }
+
+  const dismissNotification = (e: MouseEvent, n: Notification) => {
+    e.stopPropagation()
+    setItems((list) => list.filter((x) => x.id !== n.id))
+    api.delete(`/notifications/${n.id}`).catch(() => {})
   }
 
   return (
@@ -87,17 +93,28 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
               ) : (
                 <div className="max-h-96 overflow-y-auto">
                   {items.map((n) => (
-                    <button
+                    <div
                       key={n.id}
-                      onClick={() => openNotification(n)}
-                      className="w-full text-left px-4 py-3 border-b border-white/10 hover:bg-white/5 transition-colors"
+                      className="group relative flex items-start border-b border-white/10 hover:bg-white/5 transition-colors"
                     >
-                      <p className="text-sm text-horus-ivory">{n.title}</p>
-                      {n.body && <p className="text-xs text-white/60 mt-0.5">{n.body}</p>}
-                      <p className="text-[10px] text-white/40 mt-1">
-                        {new Date(n.created_at).toLocaleString()}
-                      </p>
-                    </button>
+                      <button
+                        onClick={() => openNotification(n)}
+                        className="flex-1 text-left px-4 py-3 min-w-0"
+                      >
+                        <p className="text-sm text-horus-ivory">{n.title}</p>
+                        {n.body && <p className="text-xs text-white/60 mt-0.5">{n.body}</p>}
+                        <p className="text-[10px] text-white/40 mt-1">
+                          {new Date(n.created_at).toLocaleString()}
+                        </p>
+                      </button>
+                      <button
+                        onClick={(e) => dismissNotification(e, n)}
+                        aria-label="Dismiss notification"
+                        className="shrink-0 p-2 mt-1 mr-1 text-white/30 hover:text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-horus-lapis"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}

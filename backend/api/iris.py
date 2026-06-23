@@ -103,6 +103,7 @@ def _resolve_iris_key(x_iris_key: str) -> dict:
             _admin_supabase.table("iris_agents")
             .select("id, org_id, name, hostname, asset_id")
             .eq("api_key_hash", key_hash)
+            .is_("deleted_at", "null")
             .single()
             .execute()
         )
@@ -470,12 +471,13 @@ async def delete_agent(
     user: dict = Depends(get_current_user),
     db: Client = Depends(get_db),
 ):
-    """Delete an Iris agent and all its events."""
+    """Soft-delete an Iris agent. Its events are preserved and recoverable in the DB."""
     rows = (
         _admin_supabase.table("iris_agents")
-        .delete()
+        .update({"deleted_at": datetime.now(timezone.utc).isoformat()})
         .eq("id", agent_id)
         .eq("org_id", user["org_id"])
+        .is_("deleted_at", "null")
         .execute()
         .data
     )

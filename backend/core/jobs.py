@@ -27,18 +27,12 @@ logger = logging.getLogger(__name__)
 
 
 def purge_old_jobs(retention_days: int = 90) -> int:
-    """Delete finished job rows older than retention_days so the table does not grow
-    unbounded (iris_triage et al. insert a row every few minutes). Best-effort; the
-    .lt filter both bounds the delete and excludes still-running rows (finished_at NULL)."""
-    from backend.core.supabase_client import supabase
-
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days)).isoformat()
-    try:
-        res = supabase.table("jobs").delete().lt("finished_at", cutoff).execute()
-        return len(res.data or [])
-    except Exception:
-        logger.debug("jobs: purge failed", exc_info=True)
-        return 0
+    """Disabled by policy: nothing is ever physically deleted, including job history.
+    Kept as a no-op so existing scheduler/caller wiring stays intact. If the jobs table
+    growth ever becomes a real problem, archive to cold storage instead of deleting."""
+    # ponytail: no-op on purpose, soft-retention policy. Re-enable with a real delete only
+    # if the table size is measured as a problem.
+    return 0
 
 # Known job types (kept in sync with the scheduler entry points + manual triggers).
 SCAN_SCHEDULE = "scan_schedule"

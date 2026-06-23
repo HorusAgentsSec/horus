@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from supabase import Client
 from backend.api.auth import get_current_user, get_db
@@ -108,9 +110,9 @@ async def update_schedule(
 async def delete_schedule(
     schedule_id: str, user=Depends(get_current_user), db: Client = Depends(get_db)
 ):
-    db.table("scan_schedules").delete().eq("id", schedule_id).eq(
-        "org_id", user["org_id"]
-    ).execute()
+    db.table("scan_schedules").update(
+        {"deleted_at": datetime.now(timezone.utc).isoformat(), "enabled": False}
+    ).eq("id", schedule_id).eq("org_id", user["org_id"]).execute()
     scheduler.unschedule_job(schedule_id)
 
 
@@ -141,6 +143,15 @@ async def mark_read(
     db.table("notifications").update({"read": True}).eq("id", notification_id).eq(
         "user_id", user["id"]
     ).execute()
+
+
+@notifications_router.delete("/{notification_id}", status_code=204)
+async def delete_notification(
+    notification_id: str, user=Depends(get_current_user), db: Client = Depends(get_db)
+):
+    db.table("notifications").update(
+        {"deleted_at": datetime.now(timezone.utc).isoformat()}
+    ).eq("id", notification_id).eq("user_id", user["id"]).execute()
 
 
 api_router.include_router(notifications_router)

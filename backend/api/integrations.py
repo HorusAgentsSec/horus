@@ -8,6 +8,7 @@ core to the "configure once and trust it" goal.
 """
 
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -93,7 +94,9 @@ async def update_integration(
 async def delete_integration(
     integration_id: str, user=Depends(require_role("admin")), db: Client = Depends(get_db)
 ):
-    db.table("integrations").delete().eq("id", integration_id).eq("org_id", user["org_id"]).execute()
+    db.table("integrations").update(
+        {"deleted_at": datetime.now(timezone.utc).isoformat()}
+    ).eq("id", integration_id).eq("org_id", user["org_id"]).execute()
     log_action(
         user["org_id"], user["id"], "integration.deleted",
         entity_type="integration", entity_id=integration_id,

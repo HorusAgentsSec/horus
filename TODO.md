@@ -89,8 +89,12 @@
       datos reales: nginx 1.18.0 → CVE-2023-44487 (KEV) → alerta `high` creada, luego limpieza.
       NOTA: `_newly_kev_cves` topa al límite por defecto de PostgREST (1000 filas) — irrelevante
       con `lookback_days=3` (KEV añade unos pocos/día); paginar si se usa una ventana enorme.
-      PENDIENTE (mejoras): ~~disparo `epss_spike`~~ HECHO (2026-06-07, ver abajo); reverse-index
-      CVE→productos para no recorrer todo el inventario en orgs grandes.
+      PENDIENTE (mejoras): ~~disparo `epss_spike`~~ HECHO (2026-06-07, ver abajo).
+      ~~reverse-index CVE→productos~~ DESCARTADO (2026-06-22): el `corr_cache` de `match_exposures`
+      ya deduplica la correlación cara (llamadas a NVD) por `(product, version)` único; iterar el
+      inventario en memoria es O(n) trivial. Un reverse-index real exigiría parsear los CPE de cada
+      CVE urgente (más código, más frágil) sin beneficio medido. Reabrir solo si una org grande lo
+      demuestra como cuello de botella real.
 - [x] **Watchtower — disparo `epss_spike`** — HECHO (2026-06-07): alerta temprana cuando el EPSS de un
       CVE ya en el inventario salta día-a-día (a menudo antes de entrar en KEV). Migración
       `20260607150000_epss_previous.sql` (columna `epss_previous` + función `snapshot_epss()` con
