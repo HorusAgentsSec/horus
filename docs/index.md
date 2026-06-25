@@ -1,26 +1,38 @@
-# Horus Documentation
+---
+layout: home
 
-Horus is a security automation platform for small IT teams. It discovers your attack surface, scans for vulnerabilities, correlates findings against live threat intelligence, and surfaces only what needs your attention.
+hero:
+  name: "Horus"
+  text: "Security automation for small teams."
+  tagline: Discover your attack surface, scan for vulnerabilities, correlate findings against live threat intelligence, and surface only what needs your attention.
+  actions:
+    - theme: brand
+      text: Get started
+      link: /overview
+    - theme: alt
+      text: View on GitHub
+      link: https://github.com/HorusAgentsSec/horus
+    - theme: alt
+      text: Live demo
+      link: https://app.horusagents.com/login?demo=1
 
-## Sections
-
-| Document | Description |
-|---|---|
-| [Overview](overview.md) | What Horus is, architecture diagram, tech stack, and deployment targets |
-| [API Reference](api-reference.md) | All REST endpoints grouped by resource, with request/response shapes |
-| [Agents](agents.md) | The multi-agent AI pipeline: stages, each agent's role, token budget management |
-| [Scanners](scanners.md) | Nmap, Nuclei, ZAP scanners; CVE/EPSS/HIBP/IntelX threat intel; SSVC prioritization |
-| [Data Models](data-models.md) | Database schema, RLS policies, soft deletes, Mermaid ERD |
-| [Iris](iris.md) | The Rust monitoring daemon: monitors, configuration, event schema, installation |
-| [Security](security.md) | Auth (Supabase JWT), roles, API keys, RLS, rate limiting, security headers |
-| [Frontend](frontend.md) | React app: routes, pages, layout, state management, auth flow |
-| [Deployment](deployment.md) | Local Docker Compose, environment variables, Fly.io, Cloudflare Pages |
-
-## Quick links
-
-- Local setup: [Deployment > Local development](deployment.md#local-development)
-- All API endpoints: [API Reference](api-reference.md)
-- How the AI pipeline works: [Agents](agents.md)
-- Database tables: [Data Models](data-models.md)
-- Iris installation: [Iris > Installation](iris.md#installation)
-- Role definitions: [Security > Authorization](security.md#authorization)
+features:
+  - icon: 🔍
+    title: Attack surface discovery
+    details: Subdomain enumeration via CT logs and DNS brute-force, network CIDR sweeps, automatic asset inventory.
+  - icon: 🛡️
+    title: Vulnerability scanning
+    details: Nmap port/service detection, Nuclei template engine, ZAP DAST web scanning — all feeding a unified findings pipeline.
+  - icon: 🧠
+    title: AI agent pipeline
+    details: 8-stage pipeline with Red/Blue adversarial debate on ambiguous findings. Verdicts stored and reused across scans.
+  - icon: 📡
+    title: Threat intelligence
+    details: NVD CVE/CVSS/EPSS, CISA KEV, HIBP breach data, IntelX credentials, abuse.ch feeds, ransomware.live — correlated per asset.
+  - icon: 🚨
+    title: Incident management
+    details: Case management with linked findings, append-only notes, and status tracking from triage to resolution.
+  - icon: 🦀
+    title: Iris daemon
+    details: Lightweight Rust daemon that monitors your servers via journald and auditd, reporting events back with AI triage.
+---
