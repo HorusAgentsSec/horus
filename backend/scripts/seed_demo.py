@@ -124,7 +124,7 @@ def main() -> None:
             "scan_id": scan_id,
             "asset_id": by_host[host],
             "title": title,
-            "description": f"Detectado en {host} durante el escaneo automatizado. Hallazgo de demostración.",
+            "description": f"Detected on {host} during automated scan.",
             "severity": sev,
             "cvss_score": cvss,
             "cve_ids": cves,
