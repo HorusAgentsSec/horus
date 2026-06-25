@@ -1,0 +1,154 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+
+const error = Astro.url.searchParams.get('error');
+const errorMessages: Record<string, string> = {
+  missing: 'A valid email address is required.',
+  send:    'Could not send. Please try again or email contact@horusagents.com.',
+  config:  'Configuration error. Please email contact@horusagents.com.',
+};
+---
+
+<Layout
+  title="Try the live demo — Horus"
+  description="Get instant access to a live Horus environment pre-loaded with 30 days of posture history and real CVE findings."
+>
+  <Nav />
+
+  <div class="form-page">
+    <div class="container">
+      <div class="form-layout">
+
+        <div class="form-copy">
+          <div class="eyebrow ey-gold"><span class="dot"></span>Live demo</div>
+          <h1>See Horus<br>in action.</h1>
+          <p>Pre-loaded with 30 days of posture history, real CVE findings, and a simulated phishing campaign. No setup, no credit card.</p>
+
+          <div class="form-trust">
+            <div class="trust-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Instant access, no signup required</span>
+            </div>
+            <div class="trust-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Read-only environment, safe to explore</span>
+            </div>
+            <div class="trust-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Full platform: posture, incidents, phishing</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          {error && (
+            <div class="form-error">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              {errorMessages[error] ?? 'Something went wrong. Please try again.'}
+            </div>
+          )}
+
+          <p class="card-title">Enter your work email to continue</p>
+
+          <form method="POST" action="/api/demo-lead" novalidate>
+            <div class="field">
+              <label for="email">Work email <span class="req">*</span></label>
+              <input type="email" id="email" name="email" placeholder="jane@company.com" required autocomplete="email" />
+            </div>
+
+            <button type="submit" class="submit-btn">
+              Open live demo
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+
+            <p class="form-legal">We'll only use this to follow up if you're interested. No spam.</p>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>
+
+<style>
+  .form-page { padding: 72px 0 80px; min-height: calc(100vh - 56px); }
+
+  .form-layout {
+    display: grid; grid-template-columns: 1fr 1.1fr; gap: 72px; align-items: center;
+  }
+
+  .form-copy h1 {
+    font-size: clamp(32px, 4vw, 52px); font-weight: 800; line-height: 1.06;
+    letter-spacing: -0.03em; color: #fff; margin-bottom: 18px;
+  }
+  .form-copy p { font-size: 15px; color: var(--muted); line-height: 1.7; margin-bottom: 32px; }
+
+  .form-trust { display: flex; flex-direction: column; gap: 10px; }
+  .trust-item { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--muted); }
+
+  .form-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 36px;
+  }
+
+  .card-title { font-size: 15px; font-weight: 600; color: var(--ivory); margin-bottom: 20px; }
+
+  .form-error {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--red);
+    background: rgba(224,82,82,0.08); border: 1px solid rgba(224,82,82,0.2);
+    border-radius: 8px; padding: 12px 14px; margin-bottom: 24px;
+  }
+
+  form { display: flex; flex-direction: column; gap: 18px; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+
+  label { font-size: 12px; font-weight: 600; color: var(--ivory); letter-spacing: 0.01em; }
+  .req { color: var(--gold); }
+
+  input[type="email"] {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 10px 13px;
+    font-family: inherit; font-size: 13px; color: var(--ivory);
+    outline: none; transition: border-color .15s, box-shadow .15s; width: 100%;
+  }
+  input::placeholder { color: rgba(122,132,153,0.5); }
+  input:focus {
+    border-color: rgba(232,185,74,0.5);
+    box-shadow: 0 0 0 3px rgba(232,185,74,0.08);
+  }
+
+  .submit-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 14px; font-weight: 700; background: var(--gold); color: #0A0E1A;
+    padding: 12px 24px; border-radius: 9px; border: none; cursor: pointer;
+    box-shadow: 0 2px 16px rgba(232,185,74,0.28);
+    transition: background .15s, box-shadow .15s, transform .1s;
+    width: 100%; position: relative; overflow: hidden;
+  }
+  .submit-btn:hover { background: #f0c44e; box-shadow: 0 4px 24px rgba(232,185,74,0.38); transform: translateY(-1px); }
+  .submit-btn::after {
+    content: ''; position: absolute; top: 0; left: -130%; width: 55%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent);
+    transform: skewX(-18deg); pointer-events: none;
+  }
+  .submit-btn:hover::after { animation: shine .85s ease; }
+  @keyframes shine { to { left: 150%; } }
+
+  .form-legal { font-size: 11px; color: rgba(122,132,153,0.5); text-align: center; }
+
+  @media (max-width: 860px) {
+    .form-layout { grid-template-columns: 1fr; gap: 40px; }
+    .form-page { padding: 48px 0 64px; }
+  }
+  @media (max-width: 540px) {
+    .form-card { padding: 24px; }
+  }
+</style>
