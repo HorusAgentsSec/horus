@@ -16,17 +16,18 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 
   const resend = new Resend(apiKey);
 
-  const { error } = await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from: 'Horus Leads <noreply@horusagents.com>',
     to: 'contact@horusagents.com',
-    reply_to: email,
+    replyTo: email,
     subject: `[Demo] ${email}`,
     html: `<p style="font-family:system-ui;background:#0A0E1A;color:#F0EBE1;padding:32px;">Nueva solicitud de demo: <a href="mailto:${email}" style="color:#2C6BED;">${email}</a></p>`,
   });
 
   if (error) {
-    console.error('Resend error:', error);
-    // ponytail: no bloquear la demo si falla el envío
+    console.error('[demo-lead] Resend error:', JSON.stringify(error));
+  } else {
+    console.log('[demo-lead] Sent OK, id:', data?.id);
   }
 
   return redirect('https://app.horusagents.com/login?demo=1', 303);
