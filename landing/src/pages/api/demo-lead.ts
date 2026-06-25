@@ -22,7 +22,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   const { error: userError } = await resend.emails.send({
     from: 'Horus <noreply@horusagents.com>',
     to: email,
-    subject: 'Tu acceso a la demo de Horus',
+    subject: 'Your Horus demo access',
     html: `
 <!DOCTYPE html>
 <html>
@@ -33,23 +33,23 @@ export const POST: APIRoute = async ({ request, redirect }) => {
       <span style="font-size:18px;font-weight:700;letter-spacing:-0.02em;">Horus</span>
     </div>
     <div style="padding:32px 28px;">
-      <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.02em;">Tu demo está lista.</p>
-      <p style="margin:0 0 28px;font-size:14px;color:#7A8499;line-height:1.6;">El entorno está pre-cargado con 30 días de historial de postura, hallazgos CVE reales y una campaña de phishing simulada.</p>
+      <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.02em;">Your demo is ready.</p>
+      <p style="margin:0 0 28px;font-size:14px;color:#7A8499;line-height:1.6;">The environment is pre-loaded with 30 days of posture history, real CVE findings, and a simulated phishing campaign.</p>
 
       <a href="${DEMO_URL}" style="display:inline-block;background:#E8B94A;color:#0A0E1A;font-weight:700;font-size:14px;padding:12px 24px;border-radius:9px;text-decoration:none;margin-bottom:32px;">
-        Abrir la demo →
+        Open live demo →
       </a>
 
-      <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#fff;">Qué puedes explorar:</p>
+      <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#fff;">What to explore:</p>
       <ul style="margin:0 0 28px;padding-left:20px;font-size:13px;color:#7A8499;line-height:2;">
-        <li><strong style="color:#F0EBE1;">Posture dashboard</strong> — puntuación de riesgo, activos expuestos y tendencia histórica</li>
-        <li><strong style="color:#F0EBE1;">Findings</strong> — CVEs reales con severidad CVSS, contexto y recomendaciones de remediación</li>
-        <li><strong style="color:#F0EBE1;">Incidents</strong> — gestión de casos con timeline completo y debate Red/Blue</li>
-        <li><strong style="color:#F0EBE1;">Phishing</strong> — campaña simulada con tasas de click y pantalla de concienciación</li>
-        <li><strong style="color:#F0EBE1;">Iris</strong> — monitorización continua de superficie de ataque</li>
+        <li><strong style="color:#F0EBE1;">Posture dashboard</strong> — risk score, exposed assets and historical trend</li>
+        <li><strong style="color:#F0EBE1;">Findings</strong> — real CVEs with CVSS severity, context and remediation guidance</li>
+        <li><strong style="color:#F0EBE1;">Incidents</strong> — case management with full timeline and Red/Blue debate</li>
+        <li><strong style="color:#F0EBE1;">Phishing</strong> — simulated campaign with click rates and awareness screen</li>
+        <li><strong style="color:#F0EBE1;">Iris</strong> — continuous attack surface monitoring</li>
       </ul>
 
-      <p style="margin:0;font-size:12px;color:rgba(122,132,153,0.5);">El acceso es de solo lectura. Nada de lo que veas afecta a sistemas reales.</p>
+      <p style="margin:0;font-size:12px;color:rgba(122,132,153,0.5);">Read-only access. Nothing you see affects real systems.</p>
     </div>
     <div style="padding:14px 28px;border-top:1px solid rgba(255,255,255,0.07);font-size:11px;color:rgba(122,132,153,0.4);">horusagents.com</div>
   </div>
@@ -58,18 +58,18 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   });
 
   if (userError) {
-    console.error('[demo-lead] Error enviando al usuario:', JSON.stringify(userError));
+    console.error('[demo-lead] Failed to send user email:', JSON.stringify(userError));
   } else {
-    console.log('[demo-lead] Email de acceso enviado a:', email);
+    console.log('[demo-lead] Access email sent to:', email);
   }
 
-  // Notificación de lead interna
+  // Internal lead notification
   await resend.emails.send({
     from: 'Horus Leads <noreply@horusagents.com>',
     to: 'contact@horusagents.com',
     replyTo: email,
     subject: `[Demo] ${email}`,
-    html: `<p style="font-family:system-ui;background:#0A0E1A;color:#F0EBE1;padding:32px;">Nueva solicitud de demo: <a href="mailto:${email}" style="color:#2C6BED;">${email}</a></p>`,
+    html: `<p style="font-family:system-ui;background:#0A0E1A;color:#F0EBE1;padding:32px;">New demo request: <a href="mailto:${email}" style="color:#2C6BED;">${email}</a></p>`,
   });
 
   return redirect('/demo/thanks', 303);
