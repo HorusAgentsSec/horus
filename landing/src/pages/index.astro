@@ -12,7 +12,7 @@ import Footer from '../components/Footer.astro';
 >
   <!-- Announce bar -->
   <div class="announce-bar">
-    <strong>Horus is now in public beta.</strong>
+    <strong>Horus is now available.</strong>
     <span class="announce-detail">MIT licensed · self-host for free · no vendor lock-in</span>
     <a href="/demo" class="announce-cta">Try the demo →</a>
   </div>
@@ -23,12 +23,12 @@ import Footer from '../components/Footer.astro';
   <section class="hero">
     <div class="hero-scan" aria-hidden="true"></div>
     <div class="container">
-      <div class="eyebrow ey-gold"><span class="dot"></span>AI-native · Open source · SSVC-first</div>
+      <div class="eyebrow ey-gold"><span class="dot"></span>AI-native security for teams of one</div>
 
       <h1><span class="hw hw1">Stop</span> <span class="hw hw2">doing</span><br><span class="hw hw3">security</span> <em class="hw hw4">manually.</em></h1>
 
       <p class="hero-sub">
-        Configure Horus once. <strong>Eight specialized AI agents</strong> then discover your attack surface, scan for vulnerabilities, correlate against CISA KEV + EPSS, simulate attacks, debate ambiguous findings, and alert your team every night, without you.
+        Point Horus at your infrastructure. Every morning you get <strong>1-3 things that actually need your attention</strong> — not 400 alerts. Eight AI agents work the other 23 hours.
       </p>
 
       <div class="hero-ctas">
@@ -40,26 +40,6 @@ import Footer from '../components/Footer.astro';
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
           Self-host free
         </a>
-      </div>
-
-      <!-- Number story -->
-      <div class="hero-nums">
-        <div class="hero-num">
-          <div class="hero-num-val c-gold">338K+</div>
-          <div class="hero-num-label">CVEs indexed<br>and synced daily</div>
-        </div>
-        <div class="hero-num">
-          <div class="hero-num-val">8</div>
-          <div class="hero-num-label">specialized AI agents<br>per pipeline run</div>
-        </div>
-        <div class="hero-num">
-          <div class="hero-num-val c-teal">24/7</div>
-          <div class="hero-num-label">automated scanning,<br>no on-call needed</div>
-        </div>
-        <div class="hero-num">
-          <div class="hero-num-val">$0</div>
-          <div class="hero-num-label">to self-host,<br>MIT licensed</div>
-        </div>
       </div>
 
       <!-- Value props -->
@@ -325,8 +305,7 @@ import Footer from '../components/Footer.astro';
   <!-- Problem / Solution -->
   <section>
     <div class="container">
-      <div class="slabel sl-gold">The problem</div>
-      <h2 class="sh2">Attackers use AI to scale.<br>Your defenses still rely on humans.</h2>
+        <h2 class="sh2">Attackers use AI to scale.<br>Your defenses still rely on humans.</h2>
       <p class="ssub">AI-generated phishing, automated credential attacks and AI-assisted malware are outpacing manual security operations. Meanwhile your scanner still outputs 400 "critical" findings a week, and your team still triages them by hand.</p>
       <div class="prob-grid">
         <div class="prob-col">
@@ -352,22 +331,18 @@ import Footer from '../components/Footer.astro';
   <!-- How it works -->
   <section>
     <div class="container">
-      <div class="slabel sl-gold">How it works</div>
-      <h2 class="sh2">Configure once.<br>Agents do the rest.</h2>
+        <h2 class="sh2">Configure once.<br>Agents do the rest.</h2>
       <p class="ssub">Define your assets, set a schedule, connect your integrations. Horus takes it from there. Every night, every week, indefinitely.</p>
       <div class="steps">
         <div class="step">
-          <div class="step-n">01 / SETUP</div>
           <h3>Add your infrastructure</h3>
           <p>Point Horus at domains, CIDR ranges, or individual hosts. Discovery agents map subdomains via CT logs and internal IPs via ping sweep, automatically, on schedule.</p>
         </div>
         <div class="step">
-          <div class="step-n">02 / PIPELINE</div>
           <h3>Eight agents run in sequence</h3>
           <p>Recon → Analyst → Threat Intel → Red/Blue debate → Validation → SSVC Risk Manager → Reporter. Each run produces a prioritized findings list and executive summary.</p>
         </div>
         <div class="step">
-          <div class="step-n">03 / SIGNAL</div>
           <h3>Only what matters reaches you</h3>
           <p>SSVC:Act findings trigger PagerDuty P1. Watchtower KEV matches alert the same day. SSVC:Track findings accumulate silently. You open your inbox to signal, not noise.</p>
         </div>
@@ -679,11 +654,46 @@ import Footer from '../components/Footer.astro';
 
   <hr class="divider" />
 
+  <!-- FAQ -->
+  <section>
+    <div class="container">
+      <h2 class="sh2">Common questions.</h2>
+      <p class="ssub">Everything we hear before someone deploys.</p>
+      <div class="faq-grid">
+        <div class="faq-item">
+          <div class="faq-q">Does Horus send my infrastructure data to an LLM?</div>
+          <div class="faq-a">Only on the managed Pro tier, and only after redaction: hostnames, IPs, and internal paths are stripped before any API call. On the Open (self-hosted) tier, you control the model entirely — point it at a local <code>ollama</code> instance and nothing leaves your network.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Which LLM providers does Horus support?</div>
+          <div class="faq-a">Any OpenAI-compatible endpoint: OpenAI, Anthropic, Mistral, Groq, or a local <code>ollama</code> / <code>vLLM</code> server. You set one environment variable. Swapping models takes 30 seconds.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Can I self-host the full pipeline?</div>
+          <div class="faq-a">Yes. The Open tier is the full product under the MIT license. Clone the repo, run <code>docker compose up</code>, and you have the complete 8-agent pipeline. No usage limits, no phoning home.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">What's actually different between Open and Pro?</div>
+          <div class="faq-a">Feature set is identical. The difference is operational: Pro runs on infrastructure we manage, keeps itself updated, and adds email support + PagerDuty integration. Open is self-managed. Sovereign adds on-prem deployment, BYO model, SSO, and a dedicated SLA.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Does the scanner reach private network assets?</div>
+          <div class="faq-a">Yes. You run the Horus agent inside your network perimeter. The scan runs from there — it never needs inbound firewall rules or VPN access from our side. Results are pushed outbound to the dashboard.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How long does a full scan take?</div>
+          <div class="faq-a">Discovery and vulnerability scan: 15-45 minutes depending on asset count. AI triage and debate: 5-15 minutes after scan completes. First-run morning briefing is typically in your inbox within the hour.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
   <!-- Pricing -->
   <section>
     <div class="container">
-      <div class="slabel sl-gold">Pricing</div>
-      <h2 class="sh2">No lock-in.</h2>
+        <h2 class="sh2">No lock-in.</h2>
       <p class="ssub" style="margin-bottom:18px;">All tiers run the same pipeline. You choose where your data lives.</p>
       <a href="/pricing" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--gold);margin-bottom:28px;opacity:.85;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.85">
         See full feature comparison →
@@ -759,7 +769,6 @@ import Footer from '../components/Footer.astro';
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
           Self-host free
         </a>
-        <a href="/services" class="btn-ghost">View full platform →</a>
       </div>
     </div>
   </div>
@@ -805,8 +814,9 @@ import Footer from '../components/Footer.astro';
   :global(html.js) .hero-scan { animation: scanDown 2.8s cubic-bezier(0.4, 0, 1, 1) 0.4s both; }
 
   .hero h1 {
-    font-size: clamp(40px, 5.5vw, 68px); font-weight: 800; line-height: 1.06;
-    letter-spacing: -0.03em; color: #fff; margin-bottom: 24px; max-width: 780px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(46px, 7vw, 88px); font-weight: 800; line-height: 1.0;
+    letter-spacing: -0.015em; color: #fff; margin-bottom: 24px; max-width: 820px;
   }
 
   /* Hero word reveals */
@@ -995,7 +1005,7 @@ import Footer from '../components/Footer.astro';
   .price-col.hl { background: var(--surface2); position: relative; }
   .price-tag { position: absolute; top: -1px; right: 22px; font-size: 10px; font-weight: 700; letter-spacing: .05em; background: var(--gold); color: #0A0E1A; padding: 3px 10px; border-radius: 0 0 7px 7px; }
   .price-tier { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-  .price-num { font-size: 34px; font-weight: 800; letter-spacing: -0.025em; color: #fff; margin-bottom: 3px; }
+  .price-num { font-family: 'Barlow Condensed', sans-serif; font-size: 42px; font-weight: 700; letter-spacing: -0.01em; color: #fff; margin-bottom: 3px; }
   .price-period { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
   .price-desc { font-size: 13px; color: var(--muted); line-height: 1.55; margin-bottom: 22px; }
   .price-features { list-style: none; flex: 1; margin-bottom: 22px; }
@@ -1036,11 +1046,6 @@ import Footer from '../components/Footer.astro';
     margin: 0 0 72px; display: flex; align-items: center; gap: 40px;
     position: relative; overflow: hidden;
   }
-  .threat-stat::before {
-    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-    background: linear-gradient(180deg, var(--red), rgba(224,82,82,0.3));
-    border-radius: 3px 0 0 3px;
-  }
   .threat-stat-num { font-size: clamp(52px, 7vw, 80px); font-weight: 800; letter-spacing: -0.04em; color: var(--red); line-height: 1; flex-shrink: 0; text-shadow: 0 0 40px rgba(224,82,82,0.3); }
   .threat-stat-body { flex: 1; min-width: 0; }
   .threat-stat-title { font-size: 17px; font-weight: 700; color: var(--ivory); margin-bottom: 6px; line-height: 1.3; }
@@ -1060,7 +1065,7 @@ import Footer from '../components/Footer.astro';
       radial-gradient(400px 250px at 20% 80%, rgba(44,107,237,0.06), transparent 60%);
   }
   .final .container { position: relative; z-index: 1; }
-  .final h2 { font-size: clamp(26px, 4vw, 48px); font-weight: 800; letter-spacing: -0.03em; color: #fff; margin-bottom: 14px; text-wrap: balance; }
+  .final h2 { font-family: 'Barlow Condensed', sans-serif; font-size: clamp(30px, 4.5vw, 54px); font-weight: 700; letter-spacing: -0.01em; color: #fff; margin-bottom: 14px; text-wrap: balance; }
   .final p { font-size: 16px; color: var(--muted); max-width: 400px; margin: 0 auto 36px; line-height: 1.65; }
   .final-ctas { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
 
@@ -1079,6 +1084,25 @@ import Footer from '../components/Footer.astro';
   :global(.mock-row.pin .b-act) { animation: actGlow 2.5s ease-in-out infinite; }
   :global(.mbadge.b-kev) { animation: kevFlicker 6s ease-in-out 3s infinite; }
 
+  /* ── FAQ ── */
+  .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; background: var(--border); border-radius: 12px; overflow: hidden; margin-top: 44px; }
+  .faq-item { background: var(--surface); padding: 26px 28px; }
+  .faq-q { font-size: 14px; font-weight: 600; color: var(--ivory); margin-bottom: 10px; line-height: 1.4; }
+  .faq-a { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .faq-a code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border2); border-radius: 3px; padding: 1px 5px; color: var(--teal); }
+
+  /* ── Testimonials ── */
+  .testi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 44px; }
+  .testi-card { padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; gap: 14px; transition: transform .25s cubic-bezier(.16,1,.3,1), border-color .25s; }
+  .testi-card:hover { transform: translateY(-3px); border-color: var(--border2); }
+  .stars { color: var(--gold); font-size: 12px; letter-spacing: 2px; }
+  .testi-quote { font-size: 13px; color: var(--muted); line-height: 1.7; flex: 1; }
+  .testi-quote strong { color: var(--ivory); font-weight: 500; }
+  .testi-footer { display: flex; align-items: center; gap: 10px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .testi-avatar { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .testi-name { font-size: 13px; font-weight: 600; color: var(--ivory); line-height: 1.2; }
+  .testi-role { font-size: 11px; color: var(--muted); }
+
   /* ── Responsive ── */
   @media (max-width: 780px) {
     .threat-stat { flex-direction: column; gap: 16px; padding: 22px 20px; }
@@ -1092,6 +1116,8 @@ import Footer from '../components/Footer.astro';
     .price-col { border-radius: 12px; border: 1px solid var(--border); }
     .c-sep { display: none; }
     .d-cols { grid-template-columns: 1fr; }
+    .testi-grid { grid-template-columns: 1fr; }
+    .faq-grid { grid-template-columns: 1fr; }
   }
 
   /* ── Agent network ── */
@@ -1279,7 +1305,7 @@ import Footer from '../components/Footer.astro';
     staggerKids(c, 90, function (ch) { return ch.tagName === 'H1'; });
   });
 
-  ['.callout-inner', '.prob-grid', '.steps', '.price-grid'].forEach(function (sel) {
+  ['.callout-inner', '.prob-grid', '.steps', '.price-grid', '.faq-grid', '.testi-grid'].forEach(function (sel) {
     document.querySelectorAll(sel).forEach(function (c) { staggerKids(c); });
   });
 

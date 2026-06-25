@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Source+Sans+3:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -25,7 +25,7 @@
 
 html { scroll-behavior: smooth; }
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Source Sans 3', system-ui, sans-serif;
   background: var(--night);
   color: var(--ivory);
   -webkit-font-smoothing: antialiased;
@@ -150,8 +150,9 @@ svg { display: block; }
 .sl-teal  { color: var(--teal); }
 
 .sh2 {
-  font-size: clamp(26px, 3.5vw, 42px); font-weight: 800;
-  letter-spacing: -0.028em; color: #fff; line-height: 1.1; margin-bottom: 14px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(28px, 4vw, 50px); font-weight: 700;
+  letter-spacing: -0.01em; color: #fff; line-height: 1.05; margin-bottom: 14px;
 }
 .ssub { font-size: 16px; color: var(--muted); line-height: 1.65; max-width: 520px; }
 .ssub strong { color: var(--ivory); font-weight: 500; }
