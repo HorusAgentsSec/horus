@@ -1,0 +1,21 @@
+# El Dockerfile del backend solo necesita ./backend. Todo lo demás engorda y
+# encarece el build de Fly.
+frontend
+landing
+iris-rs
+docs
+e2e
+infra
+supabase
+memory
+.git
+.github
+.planning
+.impeccable
+.claude
+.agents
+**/__pycache__
+**/*.pyc
+**/.env
+**/node_modules
+**/target
