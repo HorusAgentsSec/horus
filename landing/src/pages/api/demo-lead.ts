@@ -42,11 +42,11 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 
       <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#fff;">What to explore:</p>
       <ul style="margin:0 0 28px;padding-left:20px;font-size:13px;color:#7A8499;line-height:2;">
-        <li><strong style="color:#F0EBE1;">Posture dashboard</strong> — risk score, exposed assets and historical trend</li>
-        <li><strong style="color:#F0EBE1;">Findings</strong> — real CVEs with CVSS severity, context and remediation guidance</li>
-        <li><strong style="color:#F0EBE1;">Incidents</strong> — case management with full timeline and Red/Blue debate</li>
-        <li><strong style="color:#F0EBE1;">Phishing</strong> — simulated campaign with click rates and awareness screen</li>
-        <li><strong style="color:#F0EBE1;">Iris</strong> — continuous attack surface monitoring</li>
+        <li><strong style="color:#F0EBE1;">Posture dashboard:</strong> risk score, exposed assets and historical trend</li>
+        <li><strong style="color:#F0EBE1;">Findings:</strong> real CVEs with CVSS severity, context and remediation guidance</li>
+        <li><strong style="color:#F0EBE1;">Incidents:</strong> case management with full timeline and Red/Blue debate</li>
+        <li><strong style="color:#F0EBE1;">Phishing:</strong> simulated campaign with click rates and awareness screen</li>
+        <li><strong style="color:#F0EBE1;">Iris:</strong> continuous attack surface monitoring</li>
       </ul>
 
       <p style="margin:0;font-size:12px;color:rgba(122,132,153,0.5);">Read-only access. Nothing you see affects real systems.</p>
