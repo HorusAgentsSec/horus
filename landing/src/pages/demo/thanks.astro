@@ -1,0 +1,49 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+---
+
+<Layout
+  title="Check your inbox — Horus demo"
+  description="We've sent you the demo link and a quick guide on what to explore."
+>
+  <Nav />
+
+  <div class="thanks-page">
+    <div class="container">
+      <div class="thanks-card">
+        <div class="thanks-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#27C2B6" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+        </div>
+        <h1>Check your inbox.</h1>
+        <p>Te hemos enviado el enlace de acceso a la demo junto con una guía rápida de qué explorar.</p>
+        <p class="sub">Si no ves el correo en unos minutos, revisa la carpeta de spam.</p>
+        <a href="/" class="btn-ghost">Volver al inicio</a>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>
+
+<style>
+  .thanks-page {
+    min-height: calc(100vh - 56px); display: flex;
+    align-items: center; justify-content: center;
+    padding: 64px 0;
+  }
+  .thanks-card { max-width: 480px; margin: 0 auto; text-align: center; }
+  .thanks-icon {
+    width: 60px; height: 60px; border-radius: 50%;
+    background: rgba(39,194,182,0.1); border: 1px solid rgba(39,194,182,0.25);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 28px;
+  }
+  h1 {
+    font-size: clamp(28px,4vw,44px); font-weight: 800;
+    letter-spacing: -0.03em; color: #fff; margin-bottom: 14px;
+  }
+  p { font-size: 15px; color: var(--muted); line-height: 1.65; margin-bottom: 10px; }
+  .sub { font-size: 13px; margin-bottom: 32px; }
+</style>
