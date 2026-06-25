@@ -1,48 +1,52 @@
 # Horus
 
-AI-native cybersecurity platform for blue teams. A multi-agent LLM pipeline scans your infrastructure, enriches findings with threat intelligence, and suggests or auto-executes remediations — all gated by a granular permission system.
+AI-native cybersecurity platform for blue teams. A multi-agent LLM pipeline discovers your attack surface, scans for vulnerabilities, correlates findings against live threat intelligence, and surfaces only what needs your attention.
+
+---
+
+## Documentation
+
+| | |
+|---|---|
+| [Overview](docs/overview.md) | Architecture, tech stack, deployment targets |
+| [API Reference](docs/api-reference.md) | All REST endpoints with request/response shapes |
+| [Agents](docs/agents.md) | Multi-agent pipeline stages, token budget, adversarial debate |
+| [Scanners](docs/scanners.md) | Nmap, Nuclei, ZAP; CVE/EPSS/HIBP/IntelX threat intel; SSVC |
+| [Data Models](docs/data-models.md) | Database schema, RLS policies, ERD |
+| [Iris](docs/iris.md) | Rust monitoring daemon for your servers |
+| [Security](docs/security.md) | Auth, roles, API keys, rate limiting, security headers |
+| [Frontend](docs/frontend.md) | React app routes, layout, state management |
+| [Deployment](docs/deployment.md) | Docker Compose, env vars, Fly.io, Cloudflare Pages |
 
 ---
 
 ## Architecture
 
 ```
-                        ┌─────────────────────────────────────────┐
-                        │            Agent Pipeline                │
-  ┌──────────┐          │                                         │
-  │  Assets  │──scan──▶ │  Recon ──▶ Analyst ──▶ Threat Intel    │
-  └──────────┘          │                 │                       │
-                        │          Remediation ──▶ Risk Manager   │
-  ┌──────────────────┐  │                 │                       │
-  │ Permission       │──│─────────────────┘                       │
-  │ Policies         │  │           Reporter                       │
-  └──────────────────┘  └──────────────────┬──────────────────────┘
-                                           │
-                          ┌────────────────▼──────────────────┐
-                          │         Supabase (PostgreSQL)      │
-                          │  findings · agent_runs · suggestions│
-                          └───────────────────────────────────┘
-                                           │
-                          ┌────────────────▼──────────────────┐
-                          │    React 18 PWA (dark theme)       │
-                          │  Realtime via Supabase channels    │
-                          └───────────────────────────────────┘
+  ┌──────────────────────────────────────────────────────────────┐
+  │                        Horus Platform                        │
+  │                                                              │
+  │  React 18 PWA  ──────────────▶  FastAPI (Python)            │
+  │  (Cloudflare Pages)            (Fly.io, single instance)     │
+  │                                         │                    │
+  │                           ┌─────────────┼─────────────┐     │
+  │                           ▼             ▼             ▼     │
+  │                       Supabase       Redis         APScheduler│
+  │                    (Postgres+Auth) (rate limit)  (nightly jobs)│
+  └──────────────────────────────────────────────────────────────┘
+
+  Scan pipeline (triggered on-demand or on schedule):
+
+  Assets ──▶ Recon ──▶ Analyst ──▶ Correlation ──▶ Threat Intel
+                                                         │
+              Reporter ◀── Risk Manager ◀── Remediation ◀── Validation
+
+  Adversarial layer (parallel, per finding):
+  Red Agent ◀──▶ Blue Agent ──▶ Verdict + confidence score
+
+  Iris (optional, runs on your servers):
+  JournaldMonitor + AuditdMonitor ──▶ Horus API ──▶ AI triage
 ```
-
----
-
-## Agent Pipeline
-
-Each agent receives only the state slice it needs — never full conversation history.
-
-| Agent | Input | Output | LLM? |
-|---|---|---|---|
-| **Recon** | Asset host/port | `raw_findings` | No — subprocess only |
-| **Analyst** | `raw_findings` | `analyzed_findings` (severity, fingerprint, CVSS) | Yes |
-| **Threat Intel** | `analyzed_findings` titles+CVEs | `enriched_findings` (exploitability, context) | Yes |
-| **Remediation** | analyzed + enriched findings | `remediation_suggestions` (commands, patches) | Yes |
-| **Risk Manager** | suggestions + permission_rules | `risk_decisions` (auto/approval/suggest) | LLM fallback only |
-| **Reporter** | counts + top 10 findings | `ScanReport` summary | Yes |
 
 ---
 
@@ -52,163 +56,80 @@ Each agent receives only the state slice it needs — never full conversation hi
 # 1. Copy and fill env vars
 cp .env.example .env
 
-# 2. Run the migration in your Supabase project
-# Paste supabase/migrations/001_initial.sql into the SQL editor
+# 2. Apply the migrations in your Supabase project (SQL editor)
+#    Run each file in supabase/migrations/ in order
 
 # 3. Start everything
 docker-compose up
 ```
 
-Frontend: http://localhost:5173  
-API: http://localhost:8000  
-API docs: http://localhost:8000/docs
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| API | http://localhost:8000 |
+| API docs (Swagger) | http://localhost:8000/docs |
+| Mailpit (email previews) | http://localhost:8025 |
+
+Full setup guide: [docs/deployment.md](docs/deployment.md)
 
 ---
 
-## LLM Provider Configuration
+## LLM Provider
 
-The agent layer uses the OpenAI-compatible API, so any provider works:
+The agent layer uses an OpenAI-compatible API, so any provider works:
 
 ```bash
-# OpenRouter (recommended — access to Claude, GPT-4o, Llama, Mistral, etc.)
+# OpenRouter (access to Claude, GPT-4o, Llama, Mistral, etc.)
 LLM_BASE_URL=https://openrouter.ai/api/v1
 LLM_API_KEY=sk-or-...
 LLM_DEFAULT_MODEL=anthropic/claude-opus-4-5
 
-# Ollama (local models, no API key needed)
+# Ollama (local, no data leaves your network)
 LLM_BASE_URL=http://localhost:11434/v1
 LLM_API_KEY=ollama
 LLM_DEFAULT_MODEL=llama3.1:70b
 
-# Per-agent overrides (e.g. use a fast model for the reporter)
+# Per-agent overrides
 LLM_REPORTER_MODEL=anthropic/claude-haiku-4-5
 LLM_RISK_MANAGER_MODEL=anthropic/claude-haiku-4-5
 ```
 
 ---
 
-## Data privacy & deployment modes
+## Data Privacy
 
-A security tool shouldn't leak your infrastructure map to a third party. The deterministic core
-(CVE correlation, SSVC, posture, Watchtower) **never calls an LLM**, so Horus can run with
-your data fully inside your perimeter:
+The deterministic core (CVE correlation, SSVC, posture, Watchtower) never calls an LLM. Three operating modes:
 
-- **Sovereign — no-cloud** (`LLM_ENABLED=false`): the whole pipeline runs with zero LLM calls.
-- **Sovereign — local model**: point `LLM_BASE_URL` at Ollama/vLLM in your VPC; nothing leaves.
-- **Private — cloud + redaction** (default): hostnames/IPs/emails are pseudonymized before any prompt
-  leaves the process and restored in the response.
-
-The active posture is shown under **Settings → Data privacy**. Full guide: **[docs/PRIVACY.md](docs/PRIVACY.md)**.
-
----
-
-## Adding Scan Targets
-
-1. Go to **Assets** → Add Asset
-2. Enter host (e.g. `example.com`), type (`web`, `ip`, `api`, `domain`), and tags
-3. Click **Scan now** on any asset row, or configure a schedule in **Settings**
-
-Or via API:
-```bash
-curl -X POST http://localhost:8000/api/assets \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"My App","host":"app.example.com","type":"web","tags":["production"]}'
-```
-
----
-
-## Permission Policies
-
-Policies control what the AI is allowed to do automatically.
-
-Go to **Permissions** → New Policy → add rules:
-
-| Action | Mode | Meaning |
+| Mode | How | LLM calls |
 |---|---|---|
-| `update_library` | `auto` | Agent updates packages without asking |
-| `apply_firewall_rule` | `approval_required` | Agent proposes, human approves |
-| `restart_service` | `suggest_only` | Agent only suggests, never executes |
+| **Sovereign, no-cloud** | `LLM_ENABLED=false` | None |
+| **Sovereign, local model** | Point `LLM_BASE_URL` at Ollama/vLLM in your VPC | Stay on-prem |
+| **Private, cloud + redaction** | Default | Hostnames/IPs/emails pseudonymized before any prompt leaves the process |
 
-Rules support conditions:
-- `asset_tags`: only apply to assets with these tags
-- `is_internal_only`: only apply to internal assets
-- `severity_max`: only apply when finding severity is at or below this level
+Active mode is shown under **Settings → Data privacy**. Full guide: [docs/PRIVACY.md](docs/PRIVACY.md)
 
 ---
 
-## Running the Pipeline Manually via API
+## Core Features
 
-```bash
-# Trigger a scan
-curl -X POST http://localhost:8000/api/scans \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"asset_id":"<uuid>","tools":["nuclei","nmap"]}'
-
-# Check status + agent run timeline
-curl http://localhost:8000/api/scans/<scan_id> \
-  -H "Authorization: Bearer $TOKEN"
-
-# List findings with filters
-curl "http://localhost:8000/api/findings?severity=critical&status=open" \
-  -H "Authorization: Bearer $TOKEN"
-
-# Approve a suggestion
-curl -X POST http://localhost:8000/api/suggestions/<id>/approve \
-  -H "Authorization: Bearer $TOKEN"
-```
-
----
-
-## Environment Variables Reference
-
-Keep backend and browser secrets separate. Only `VITE_*` values are bundled into
-the frontend; never put the Supabase service-role key, LLM keys, or integration
-secrets in `frontend/.env` or any variable prefixed with `VITE_`.
-
-| Variable | Required | Description |
-|---|---|---|
-| `SUPABASE_URL` | Yes | Your Supabase project URL |
-| `SUPABASE_ANON_KEY` | Yes | Supabase anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key (backend only) |
-| `LLM_BASE_URL` | Yes | OpenAI-compatible endpoint |
-| `LLM_API_KEY` | Yes | API key for the provider |
-| `LLM_DEFAULT_MODEL` | Yes | Default model for all agents |
-| `LLM_TIMEOUT_SECONDS` | No | Per-call LLM timeout in seconds |
-| `LLM_MAX_RETRIES` | No | Retries for transient LLM/provider failures |
-| `LLM_ANALYST_MODEL` | No | Override model for Analyst agent |
-| `LLM_THREAT_INTEL_MODEL` | No | Override model for Threat Intel agent |
-| `LLM_REMEDIATION_MODEL` | No | Override model for Remediation agent |
-| `LLM_RISK_MANAGER_MODEL` | No | Override model for Risk Manager agent |
-| `LLM_REPORTER_MODEL` | No | Override model for Reporter agent |
-| `PIPELINE_MAX_CONCURRENCY` | No | Maximum scans running concurrently per backend process |
-| `ENVIRONMENT` | No | `development`, `staging`, or `production`; controls security headers such as HSTS |
-| `SECRET_KEY` | Yes | App secret; replace the default before deployment |
-| `RATE_LIMIT_ENABLED` | No | Enables in-memory rate limiting for `/api` routes |
-| `RATE_LIMIT_PER_MINUTE` | No | Per-IP request budget across all `/api` routes |
-| `RATE_LIMIT_SENSITIVE_PER_MINUTE` | No | Tighter per-IP budget for scan trigger and team invite routes |
-| `TRUST_PROXY_HEADERS` | No | Honor `X-Forwarded-For`; set true only behind a trusted reverse proxy |
-| `SHODAN_API_KEY` | No | Shodan integration (optional) |
-| `VITE_SUPABASE_URL` | Yes (frontend) | Supabase URL for the browser client |
-| `VITE_SUPABASE_ANON_KEY` | Yes (frontend) | Supabase anon key for the browser |
+- **Attack surface discovery**: subdomain enumeration via CT logs and DNS brute-force, network CIDR sweeps
+- **Vulnerability scanning**: Nmap (ports/services), Nuclei (templates), ZAP (DAST web)
+- **Threat intelligence**: NVD CVE/CVSS/EPSS, CISA KEV, HIBP breaches, IntelX credentials, abuse.ch, ransomware.live
+- **AI agent pipeline**: 8-stage pipeline with adversarial Red/Blue debate on ambiguous findings
+- **Incident management**: case management with linked findings and append-only notes
+- **Phishing simulation**: campaign builder, employee contacts, open/click tracking, community templates
+- **Watchtower**: continuous monitoring for new CVEs affecting your software inventory
+- **Iris**: lightweight Rust daemon that monitors your servers (journald + auditd) and reports back
+- **Posture reporting**: security score over time, PDF export, email delivery
 
 ---
 
 ## Security Notes
 
-- Supabase RLS is enabled for tenant-owned tables. User-facing backend queries use
-  an authed Supabase client so org isolation is enforced by policy.
-- `SUPABASE_SERVICE_ROLE_KEY` is reserved for backend-only system writes, such as
-  append-only audit logging. Do not expose it to the browser.
-- Asset create, update, and delete actions write audit events with actor, org,
-  entity id, and compact metadata for incident review.
-- Scan targets are validated before persistence or execution to block metadata
-  endpoints, private addresses unless explicitly marked internal, and shell/flag
-  injection patterns.
-- API rate limiting returns HTTP `429` with a `Retry-After` header. The frontend
-  converts that into user-facing wait guidance.
-- In production, set `ENVIRONMENT=production`, use HTTPS, rotate default secrets,
-  keep JWT lifetimes appropriate for your risk model, and leave
-  `TRUST_PROXY_HEADERS=false` unless your deployment terminates traffic at a
-  trusted proxy that controls `X-Forwarded-For`.
+- Supabase RLS is enforced on all tenant-owned tables; org isolation is handled at the policy layer, not application code.
+- `SUPABASE_SERVICE_ROLE_KEY` is backend-only; never expose it to the browser.
+- Scan targets are validated before execution to block private-address SSRF and shell injection.
+- Rate limiting returns HTTP 429 with a `Retry-After` header. Redis is used when `REDIS_URL` is set; falls back to in-process memory.
+- In production: set `ENVIRONMENT=production`, use HTTPS, rotate default secrets, and leave `TRUST_PROXY_HEADERS=false` unless behind a trusted proxy.
+
+Full reference: [docs/security.md](docs/security.md)
