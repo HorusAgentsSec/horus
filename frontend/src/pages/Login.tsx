@@ -49,7 +49,7 @@ export default function Login() {
         )}
         {isDemo ? (
           <div className="bg-surface border border-border rounded-xl p-6 text-center text-sm text-gray-400">
-            Entrando a la demo…
+            Loading demo…
           </div>
         ) : (
         <div className="bg-surface border border-border rounded-xl p-6">
