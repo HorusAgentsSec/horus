@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-bg text-white antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-bg;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded;
+  }
+}
+
+/* ── Horus visual direction: liquid-glass utilities (preview) ───────────────── */
+@layer components {
+  /* Egyptian-night backdrop with soft lapis (dominant) + gold glows. */
+  .horus-bg {
+    background:
+      radial-gradient(1100px 620px at 12% -8%, rgba(44, 107, 237, 0.22), transparent 60%),
+      radial-gradient(820px 480px at 100% 4%, rgba(232, 185, 74, 0.10), transparent 55%),
+      radial-gradient(900px 700px at 50% 120%, rgba(39, 194, 182, 0.08), transparent 60%),
+      #0A0E1A;
+    background-attachment: fixed;
+  }
+
+  /* Frosted glass panel: translucency + blur + luminous hairline + inner sheen. */
+  .glass {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  }
+
+  .glass-hover {
+    transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+  }
+  .glass-hover:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.20);
+    transform: translateY(-2px);
+  }
+
+  /* Specular highlight: a thin band of light sliding across the top edge. */
+  .specular {
+    position: relative;
+    overflow: hidden;
+  }
+  .specular::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 40%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent);
+    pointer-events: none;
+  }
+}
+
+/* ── Motion: fast, intentional, exponential ease-out ────────────────────────── */
+@layer utilities {
+  @keyframes page-enter {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  /* Per-route entrance for the main content area (keyed by pathname). */
+  .animate-page-enter {
+    animation: page-enter 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.18s ease-out;
+  }
+
+  /* Modal entrance: small scale + fade, centered via translate. */
+  @keyframes modal-in {
+    from { opacity: 0; transform: translate(-50%, -48%) scale(0.97); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+  .animate-modal-in {
+    animation: modal-in 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Staggered list/grid reveal — drop `.stagger` on the container.
+     `both` holds the hidden state through the delay; the global
+     reduced-motion block collapses it to an instant appearance. */
+  @keyframes list-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .stagger > * {
+    animation: list-enter 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .stagger > *:nth-child(1)  { animation-delay: 0.03s; }
+  .stagger > *:nth-child(2)  { animation-delay: 0.06s; }
+  .stagger > *:nth-child(3)  { animation-delay: 0.09s; }
+  .stagger > *:nth-child(4)  { animation-delay: 0.12s; }
+  .stagger > *:nth-child(5)  { animation-delay: 0.15s; }
+  .stagger > *:nth-child(6)  { animation-delay: 0.18s; }
+  .stagger > *:nth-child(7)  { animation-delay: 0.21s; }
+  .stagger > *:nth-child(8)  { animation-delay: 0.24s; }
+  .stagger > *:nth-child(9)  { animation-delay: 0.27s; }
+  .stagger > *:nth-child(n+10) { animation-delay: 0.30s; }
+}
+
+/* Reduced motion: collapse every transition/animation to an instant change.
+   One block covers the Tailwind transition-* utilities and the keyframes above. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

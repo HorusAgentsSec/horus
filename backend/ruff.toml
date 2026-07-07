@@ -1,0 +1,6 @@
+# Backend lint config. Sin `select` explícito, ruff usa su set por defecto (E4, E7, E9, F),
+# que es lo que valida el CI.
+[lint.per-file-ignores]
+# Los tests favorecen fixtures escuetas: lambdas como stubs (E731), setup inline con ; (E702)
+# y resultados asignados sin comprobar (F841) son idiomáticos aquí, no code smells.
+"tests/**" = ["E731", "E702", "F841"]

@@ -1,0 +1,4 @@
+# SPA fallback: react-router maneja las rutas en cliente, así que cualquier deep
+# link cae en index.html. /api/* lo intercepta functions/api/[[path]].js antes
+# que esta regla, así que no se ve afectado.
+/*    /index.html   200

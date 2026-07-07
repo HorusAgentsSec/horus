@@ -1,0 +1,16 @@
+-- Phishing simulation campaigns and per-target tracking.
+--
+-- SUPERSEDED / NO-OP. Las tablas phishing_campaigns y phishing_targets (con sus
+-- politicas RLS org_isolation e indices) ya las crea la migracion anterior
+-- 20260608120000_human_attack_surface.sql, que es el esquema que usa el backend
+-- (context_asset_ids, schedule_cron, status con 'scheduled', email_body_html,
+-- link_clicked_at, creds_entered_at, unique(campaign_id, employee_id)).
+--
+-- Esta migracion definia de nuevo ambas tablas con un CREATE TABLE sin
+-- IF NOT EXISTS y con columnas distintas (asset_ids jsonb, email_pretext, etc.),
+-- lo que rompia el apply en orden ("relation already exists") y, de aplicarse,
+-- dejaba un esquema incompatible con el codigo. Se deja vacia a proposito para
+-- conservar el numero de version en el historial de migraciones.
+--
+-- El track endpoint publico (sin JWT) usa service-role en el backend, asi que no
+-- necesita politica adicional.

@@ -1,0 +1,25 @@
+[Unit]
+Description=Horus Iris Security Agent
+Documentation=https://docs.horus.security/iris
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/horus-iris
+Restart=always
+RestartSec=10
+User=root
+
+EnvironmentFile=-/etc/horus/iris.env
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=horus-iris
+
+NoNewPrivileges=yes
+ProtectSystem=no
+PrivateTmp=no
+
+[Install]
+WantedBy=multi-user.target

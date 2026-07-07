@@ -1,0 +1,31 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-multipart==0.0.6
+# OpenAI-compatible SDK — works with OpenRouter, Ollama, and any provider
+openai==1.54.0
+supabase==2.9.0
+pydantic==2.9.0
+pydantic[email]==2.9.0
+pydantic-settings==2.6.0
+python-dotenv==1.0.1
+apscheduler==3.10.4
+httpx==0.27.0
+python-nmap==0.7.1
+email-validator==2.2.0
+# Server-side PDF generation for the board-ready posture report
+reportlab==4.2.5
+dnspython==2.6.1
+# Stripe webhook signature verification (billing.py). Imported lazily, only when billing is enabled.
+stripe==11.1.0
+pytest==8.3.0
+pytest-asyncio==0.24.0
+# Error tracking. Auto-instruments FastAPI/Starlette when SENTRY_DSN is set; a no-op otherwise.
+sentry-sdk[fastapi]==2.64.0
+# Optional: shared rate-limit store for multi-worker deployments. Falls back to
+# in-memory when REDIS_URL is not set, so Redis is not required for single-worker dev.
+redis==5.0.8
+# Cloud security audit (AWS). Only imported when an AWS audit runs, so the app starts without it.
+boto3==1.35.0
+# Cloud security audit (GCP). Only imported when a GCP audit runs.
+google-api-python-client==2.149.0
+google-auth==2.35.0
