@@ -78,6 +78,14 @@ class Settings(BaseSettings):
     environment: str = "development"
     secret_key: str = "changeme"
 
+    # ── Edition (open-core gating) ───────────────────────────────────────────
+    # "community" (default) is the AGPL open-source core: a single active org (no org
+    # switching) and email-only notification integrations (no Slack/Teams/PagerDuty/
+    # webhook/Jira ticketing). "enterprise" unlocks them (the Horus-hosted SaaS runs
+    # this). Enforcement is server-side; the commercial license, not the flag, is what
+    # governs use of the premium features.
+    edition: str = "community"
+
     # ── Error tracking (Sentry) ──────────────────────────────────────────────
     # Empty = disabled (dev/CI default). Set to enable crash reporting in production.
     sentry_dsn: Optional[str] = None
@@ -260,6 +268,10 @@ class Settings(BaseSettings):
     # Check assets against ThreatFox and URLhaus IOC databases (free APIs, no auth).
     ioc_check_enabled: bool = True
     ioc_check_cron: str = "0 6 * * *"  # 6:00 AM, after ransomware check
+
+    @property
+    def is_enterprise(self) -> bool:
+        return self.edition.strip().lower() == "enterprise"
 
     class Config:
         env_file = ".env"

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ExternalLink, Ticket, AlertCircle } from 'lucide-react'
 import { api, jiraApi, incidentsApi, friendlyErrorMessage, type JiraStatus, type JiraTicket } from '../lib/api'
+import { isEnterprise } from '../lib/edition'
 import { FindingDetailView } from '../components/findings/FindingDetail'
 
 // Narrow shape we read off the otherwise-unknown finding to decide whether to
@@ -35,8 +36,11 @@ export default function FindingDetailPage() {
     setSuggestions(s as unknown[])
     setLoading(false)
     // Jira is optional context — never block the finding render on it.
-    jiraApi.status().then(setJiraStatus).catch(() => setJiraStatus(null))
-    jiraApi.getTickets(id).then((t) => setTicket(t[0] ?? null)).catch(() => {})
+    // Enterprise-only: the community edition has no Jira ticketing.
+    if (isEnterprise) {
+      jiraApi.status().then(setJiraStatus).catch(() => setJiraStatus(null))
+      jiraApi.getTickets(id).then((t) => setTicket(t[0] ?? null)).catch(() => {})
+    }
   }
 
   const createTicket = async () => {
@@ -106,7 +110,7 @@ export default function FindingDetailPage() {
   const showIncidentNudge = ssvcPriority === 'act' && (nudge.incident_count ?? 0) === 0
 
   const jiraReady = !!jiraStatus?.configured && !!jiraStatus?.enabled
-  const jiraControl = ticket ? (
+  const jiraControl = !isEnterprise ? null : ticket ? (
     <a
       href={ticket.ticket_url}
       target="_blank"

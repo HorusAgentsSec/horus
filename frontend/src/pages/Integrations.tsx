@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Bell, Slack, Mail, Plus, Trash2, Send, FileText, AlertTriangle, Ticket, Webhook, MessageSquare } from 'lucide-react'
 import { api, jiraApi, friendlyErrorMessage } from '../lib/api'
+import { isEnterprise } from '../lib/edition'
 import { useRole } from '../hooks/useRole'
 import { cn } from '../lib/utils'
 import { Modal } from '../components/Modal'
@@ -194,7 +195,7 @@ export default function Integrations() {
 }
 
 function AddForm({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [type, setType] = useState<IntegrationType>('slack')
+  const [type, setType] = useState<IntegrationType>(isEnterprise ? 'slack' : 'email')
   const [minSeverity, setMinSeverity] = useState('high')
   const [webhookUrl, setWebhookUrl] = useState('')
   const [to, setTo] = useState('')
@@ -254,15 +255,20 @@ function AddForm({ onClose, onCreated }: { onClose: () => void; onCreated: () =>
     }
   }
 
-  const TYPE_TABS: { value: IntegrationType; label: string; icon: React.ReactNode }[] = [
-    { value: 'slack', label: 'Slack', icon: <Slack className="w-4 h-4" /> },
-    { value: 'teams', label: 'Teams', icon: <MessageSquare className="w-4 h-4" /> },
-    { value: 'email', label: 'Email', icon: <Mail className="w-4 h-4" /> },
-    { value: 'pagerduty', label: 'PagerDuty', icon: <AlertTriangle className="w-4 h-4" /> },
-    { value: 'opsgenie', label: 'OpsGenie', icon: <AlertTriangle className="w-4 h-4" /> },
-    { value: 'jira', label: 'Jira', icon: <Ticket className="w-4 h-4" /> },
-    { value: 'webhook', label: 'Webhook', icon: <Webhook className="w-4 h-4" /> },
-  ]
+  // Community edition ships email only; the rest are enterprise (server enforces with 402).
+  const TYPE_TABS: { value: IntegrationType; label: string; icon: React.ReactNode }[] = (
+    isEnterprise
+      ? [
+          { value: 'slack', label: 'Slack', icon: <Slack className="w-4 h-4" /> },
+          { value: 'teams', label: 'Teams', icon: <MessageSquare className="w-4 h-4" /> },
+          { value: 'email', label: 'Email', icon: <Mail className="w-4 h-4" /> },
+          { value: 'pagerduty', label: 'PagerDuty', icon: <AlertTriangle className="w-4 h-4" /> },
+          { value: 'opsgenie', label: 'OpsGenie', icon: <AlertTriangle className="w-4 h-4" /> },
+          { value: 'jira', label: 'Jira', icon: <Ticket className="w-4 h-4" /> },
+          { value: 'webhook', label: 'Webhook', icon: <Webhook className="w-4 h-4" /> },
+        ]
+      : [{ value: 'email', label: 'Email', icon: <Mail className="w-4 h-4" /> }]
+  )
 
   const showSeveritySelector = type === 'slack' || type === 'teams' || type === 'email'
 

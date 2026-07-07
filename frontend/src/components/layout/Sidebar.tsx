@@ -5,6 +5,7 @@ import { cn } from '../../lib/utils'
 import { useRole, type Role } from '../../hooks/useRole'
 import { useUser } from '../../contexts/UserContext'
 import { api } from '../../lib/api'
+import { isEnterprise } from '../../lib/edition'
 
 interface OrgOption { org_id: string; name: string | null; role: string; icon: string | null; active: boolean }
 
@@ -144,13 +145,15 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       >
         <div className="relative border-b border-white/10">
           <div className="flex items-center gap-2 px-3 py-4">
+            {/* Community edition is single-org: the header is static (no switcher). */}
             <button
-              onClick={toggleSwitcher}
-              aria-haspopup="menu"
-              aria-expanded={switcherOpen}
-              aria-label="Switch organization"
+              onClick={isEnterprise ? toggleSwitcher : undefined}
+              aria-haspopup={isEnterprise ? 'menu' : undefined}
+              aria-expanded={isEnterprise ? switcherOpen : undefined}
+              aria-label={isEnterprise ? 'Switch organization' : undefined}
               className={cn(
-                'flex items-center gap-3 flex-1 min-w-0 rounded-md px-2 py-1.5 hover:bg-white/10 transition-colors',
+                'flex items-center gap-3 flex-1 min-w-0 rounded-md px-2 py-1.5 transition-colors',
+                isEnterprise ? 'hover:bg-white/10' : 'cursor-default',
                 collapsed && 'md:justify-center md:px-0',
               )}
             >
@@ -160,7 +163,9 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
               <span className={cn('font-semibold text-horus-ivory tracking-tight truncate', collapsed && 'md:hidden')}>
                 Horus{orgName ? ` × ${orgName}` : ''}
               </span>
-              <ChevronDown className={cn('w-4 h-4 text-white/50 shrink-0 transition-transform', switcherOpen && 'rotate-180', collapsed && 'md:hidden')} />
+              {isEnterprise && (
+                <ChevronDown className={cn('w-4 h-4 text-white/50 shrink-0 transition-transform', switcherOpen && 'rotate-180', collapsed && 'md:hidden')} />
+              )}
             </button>
             <button
               onClick={onClose}
@@ -171,7 +176,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
             </button>
           </div>
 
-          {switcherOpen && (
+          {isEnterprise && switcherOpen && (
             <>
               <div className="fixed inset-0 z-40" aria-hidden="true" onClick={() => setSwitcherOpen(false)} />
               <div

@@ -22,6 +22,20 @@ def require_role(minimum_role: str):
     return check
 
 
+async def require_enterprise(user: dict = Depends(get_current_user)) -> dict:
+    """Gate for enterprise-edition features (org switching, non-email integrations, Jira).
+
+    In the community edition these return 402 Payment Required — the feature exists in the
+    code but is reserved for the commercial edition (settings.edition == "enterprise").
+    """
+    if not settings.is_enterprise:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="This feature is available in the Horus enterprise edition.",
+        )
+    return user
+
+
 async def require_superadmin(auth: dict = Depends(get_authenticated_user)) -> dict:
     """Gate for the cross-org Horus super-admin panel (SUPERADMIN_EMAILS allowlist).
 

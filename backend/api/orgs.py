@@ -12,6 +12,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.api.auth import evict_user_sessions, get_current_user
+from backend.api.deps import require_enterprise
 from backend.core.audit import log_action
 from backend.core.supabase_client import supabase  # service-role client (bypasses RLS)
 
@@ -48,8 +49,11 @@ async def list_orgs(user: dict = Depends(get_current_user)) -> list[dict]:
 
 
 @router.post("/{org_id}/switch")
-async def switch_org(org_id: str, user: dict = Depends(get_current_user)) -> dict:
-    """Set the caller's active org to `org_id`. Requires an active membership."""
+async def switch_org(org_id: str, user: dict = Depends(require_enterprise)) -> dict:
+    """Set the caller's active org to `org_id`. Requires an active membership.
+
+    Enterprise-only: the community edition is single-org (one active membership), so there
+    is nothing to switch to."""
     membership = (
         supabase.table("memberships")
         .select("role")

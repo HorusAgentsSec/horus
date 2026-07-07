@@ -15,9 +15,10 @@ from pydantic import BaseModel
 from supabase import Client
 
 from backend.api.auth import get_current_user, get_db
-from backend.api.deps import require_role
+from backend.api.deps import require_enterprise, require_role
 from backend.core import notify, ticketing
 from backend.core.audit import log_action
+from backend.core.config import settings
 from backend.models.schemas import IntegrationCreate, IntegrationUpdate
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
 VALID_TYPES = {"slack", "teams", "email", "pagerduty", "opsgenie", "webhook", "jira", "aws", "gcp"}
+# Community edition ships email-only notifications; every other connector (chat, paging,
+# webhook, Jira ticketing) is enterprise. Enforced server-side in create_integration.
+COMMUNITY_TYPES = {"email"}
 _SECRET_KEYS = {"webhook_url", "smtp_password", "integration_key", "api_key", "api_token", "secret",
                 "secret_access_key", "session_token", "service_account_json"}
 
@@ -48,8 +52,15 @@ async def list_integrations(user=Depends(require_role("admin")), db: Client = De
 async def create_integration(
     body: IntegrationCreate, user=Depends(require_role("admin")), db: Client = Depends(get_db)
 ):
-    if body.type not in VALID_TYPES:
-        raise HTTPException(400, f"type must be one of {sorted(VALID_TYPES)}")
+    allowed = VALID_TYPES if settings.is_enterprise else COMMUNITY_TYPES
+    if body.type not in allowed:
+        if body.type in VALID_TYPES:
+            raise HTTPException(
+                402,
+                f"'{body.type}' integrations are available in the Horus enterprise edition "
+                "(the community edition supports email).",
+            )
+        raise HTTPException(400, f"type must be one of {sorted(allowed)}")
     row = (
         db.table("integrations")
         .insert({"org_id": user["org_id"], "type": body.type, "config": body.config, "enabled": body.enabled})
@@ -193,7 +204,11 @@ async def jira_status(user=Depends(get_current_user), db: Client = Depends(get_d
 
 
 @router.post("/jira/test")
-async def jira_test_connection(user=Depends(require_role("admin")), db: Client = Depends(get_db)):
+async def jira_test_connection(
+    user=Depends(require_role("admin")),
+    _ent=Depends(require_enterprise),
+    db: Client = Depends(get_db),
+):
     """Calls Jira's GET /myself with the stored credentials. Returns ok + account, or a 400
     whose detail says exactly what to fix (bad URL, bad token, no access)."""
     integ = _jira_integration(db, user["org_id"])
@@ -207,7 +222,10 @@ async def jira_test_connection(user=Depends(require_role("admin")), db: Client =
 
 @router.post("/jira/tickets", status_code=201)
 async def create_jira_ticket(
-    body: JiraTicketCreate, user=Depends(require_role("analyst")), db: Client = Depends(get_db)
+    body: JiraTicketCreate,
+    user=Depends(require_role("analyst")),
+    _ent=Depends(require_enterprise),
+    db: Client = Depends(get_db),
 ):
     """Create a Jira issue from a finding. Idempotent: if the finding already has a jira
     ticket, the existing reference is returned (created=False) instead of duplicating."""
